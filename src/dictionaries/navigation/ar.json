@@ -1,0 +1,21 @@
+{
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "quran_recitation": "تسميع القرآن",
+    "recitation_results": "نتائج التسميع",
+    "friends": "الأصدقاء",
+    "find_friends": "البحث عن أصدقاء",
+    "my_friends": "أصدقائي",
+    "groups": "المجموعات",
+    "find_groups": "البحث عن مجموعات",
+    "my_groups": "مجموعاتي",
+    "notifications": "الإشعارات",
+    "admin": "المشرف",
+    "admin_users": "إدارة المستخدمين",
+    "admin_qurani": "إدارة القرآني",
+    "profile": "الملف الشخصي",
+    "sign_out": "تسجيل الخروج",
+    "menu": "القائمة",
+    "manage_group": "إدارة المجموعة"
+  }
+}

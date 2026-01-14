@@ -1,0 +1,101 @@
+{
+    "support": {
+        "dashboard": {
+            "title": "Dashboard Support",
+            "cards": {
+                "tickets": "Tiket",
+                "open_tickets": "Tiket Terbuka",
+                "in_progress": "Dalam Proses",
+                "resolved": "Terselesaikan"
+            },
+            "chart": {
+                "title": "Grafik Area - Interaktif",
+                "description": "Menampilkan total pengunjung selama 3 bulan terakhir",
+                "select_aria": "Pilih nilai",
+                "range_90d": "3 bulan terakhir",
+                "range_30d": "30 hari terakhir",
+                "range_7d": "7 hari terakhir",
+                "visitors": "Pengunjung",
+                "desktop": "Desktop",
+                "mobile": "Mobile"
+            }
+        }
+    },
+    "common": {
+        "title": "Tiket Dukungan"
+    },
+    "search_placeholder": "Cari tiket...",
+    "bulk_actions": "Aksi Massal",
+    "edit_selected": "Edit Terpilih",
+    "export_label": "Ekspor",
+    "date_range": "Rentang Tanggal",
+    "this_month": "Bulan Ini",
+    "last_3_months": "3 Bulan Terakhir",
+    "last_6_months": "6 Bulan Terakhir",
+    "last_year": "Tahun Lalu",
+    "start": "Mulai",
+    "end": "Selesai",
+    "clear": "Hapus",
+    "apply": "Terapkan",
+    "filters": "Filter",
+    "all_tickets": "Semua Tiket",
+    "new_ticket": "Tiket Baru",
+    "subject": "Subjek",
+    "status": "Status",
+    "priority": "Prioritas",
+    "department": "Departemen",
+    "contact": "Kontak",
+    "created": "Dibuat",
+    "last_reply": "Balasan Terakhir",
+    "no_tickets_found": "Tidak ada tiket ditemukan",
+    "clear_all_filters": "Hapus semua filter",
+    "view_details": "Lihat Detail",
+    "view": "Lihat",
+    "select_tickets_warning": "Silakan pilih tiket terlebih dahulu untuk aksi massal.",
+    "success_bulk": "Aksi massal berhasil!",
+    "update": "Perbarui",
+    "delete": "Hapus",
+    "cancel": "Batal",
+    "no_change": "Tidak Ada Perubahan",
+    "bulk_delete_warning": "Peringatan: Anda akan menghapus {{count}} tiket!",
+    "bulk_delete_irreversible": "Aksi ini tidak dapat dibatalkan.",
+    "status_labels": {
+        "open": "Terbuka",
+        "in_progress": "Dalam Proses",
+        "answered": "Terjawab",
+        "on_hold": "Ditahan",
+        "closed": "Ditutup"
+    },
+    "priority_labels": {
+        "low": "Rendah",
+        "medium": "Sedang",
+        "high": "Tinggi"
+    },
+    "relative": {
+        "today": "Hari ini",
+        "yesterday": "Kemarin",
+        "days_ago": "{{count}} hari lalu"
+    },
+    "pagination": {
+        "showing": "Menampilkan {{start}}-{{end}} dari {{total}}",
+        "page_of": "Halaman {{page}} dari {{total}}"
+    },
+    "export": {
+        "report_title": "Laporan Tiket",
+        "report_heading": "Laporan Tiket Dukungan",
+        "excel": "Excel",
+        "csv": "CSV",
+        "print": "Cetak",
+        "headers": {
+            "id": "ID",
+            "ticket_number": "Nomor Tiket",
+            "subject": "Subjek",
+            "department": "Departemen",
+            "contact": "Kontak",
+            "status": "Status",
+            "priority": "Prioritas",
+            "last_reply": "Balasan Terakhir",
+            "created": "Dibuat"
+        }
+    }
+}

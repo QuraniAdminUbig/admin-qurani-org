@@ -1,0 +1,31 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "users": "Pengguna",
+    "users_dashboard": "Dashboard Pengguna",
+    "manage_users": "Pengguna",
+    "recitation": "Setoran",
+    "recitation_dashboard": "Dashboard Setoran",
+    "recitation_list": "Daftar Setoran",
+    "groups": "Grup",
+    "groups_dashboard": "Dashboard Grup",
+    "manage_groups": "Grup",
+    "manage_categories": "Kategori Grup",
+    "settings": "Pengaturan",
+    "reports": "Laporan",
+    "profile": "Profil",
+    "sign_out": "Keluar",
+    "menu": "Menu",
+    "download_app": "Install App",
+    "app_installed": "Aplikasi berhasil diinstal!",
+    "install_manually": "Andah sudah menginstal silahkan buka aplikasi Qurani App",
+    "installing_app": "Sedang menginstal aplikasi...",
+    "install_error": "Gagal menginstal aplikasi",
+    "about": "Tentang",
+    "close_sidebar": "Tutup sidebar"
+  },
+  "logout_text": "Apa Kamu Yakin?",
+  "logout_desc": "Jika Anda ingin keluar, pastikan semua perubahan telah disimpan.",
+  "cancel": "Batal",
+  "continue": "Keluar"
+}

@@ -1,0 +1,31 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "users_dashboard": "Users Dashboard",
+    "manage_users": "Users",
+    "recitation": "Recitation",
+    "recitation_dashboard": "Recitation Dashboard",
+    "recitation_list": "Recitation List",
+    "groups": "Groups",
+    "groups_dashboard": "Groups Dashboard",
+    "manage_groups": "Groups",
+    "manage_categories": "Group Categories",
+    "settings": "Settings",
+    "reports": "Reports",
+    "profile": "Profile",
+    "sign_out": "Logout",
+    "menu": "Menu",
+    "download_app": "Install App",
+    "app_installed": "App successfully installed!",
+    "install_manually": "Once you have installed it, please open the Qurani App application",
+    "installing_app": "Installing app...",
+    "install_error": "Failed to install app",
+    "about": "About",
+    "close_sidebar": "Close sidebar"
+  },
+  "logout_text": "Are You Sure?",
+  "logout_desc": "If you want to logout, make sure all changes have been saved.",
+  "cancel": "Cancel",
+  "continue": "Logout"
+}

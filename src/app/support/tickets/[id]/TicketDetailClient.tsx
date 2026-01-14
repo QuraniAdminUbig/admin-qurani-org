@@ -1,0 +1,919 @@
+"use client"
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+
+import {
+    ArrowLeft,
+    Send,
+    Paperclip,
+    AlertCircle,
+    Clock,
+    Plus,
+    Trash2,
+    MessageSquare,
+    StickyNote,
+    ChevronDown,
+    X,
+    Check,
+    CheckCircle,
+    Bell,
+    Layers,
+    ListChecks,
+    PanelRight,
+    Edit,
+} from "lucide-react"
+
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+
+
+import {
+    type TicketListItem,
+    type TicketReply,
+    fetchTicketRepliesPage
+} from "@/utils/api/tickets/fetch"
+import { createTicketReply } from "@/utils/api/tickets/insert"
+import { updateTicketStatus, updateTicketPriority } from "@/utils/api/tickets/update"
+import { useAuth } from "@/hooks/use-auth"
+import { createClient } from "@/utils/supabase/client"
+import { type RegularUser } from "@/utils/api/users/fetch-users"
+import { cn } from "@/lib/utils"
+
+type DetailTab = "reply" | "note" | "reminder" | "others" | "task"
+
+interface Note {
+    id: string
+    content: string
+    author: string
+    date: string
+}
+
+interface Reminder {
+    id: string
+    title: string
+    date: string
+    notifyEmail: boolean
+    staff: string
+}
+
+interface Task {
+    id: string
+    title: string
+    status: "pending" | "in_progress" | "completed"
+    assignee: string
+    dueDate: string
+}
+
+interface TicketDetailClientProps {
+    ticketId: string
+    backUrl?: string
+    initialTicket: TicketListItem | null
+    initialReplies: TicketReply[]
+    initialRelatedTickets: TicketListItem[]
+    initialUsers: RegularUser[]
+}
+
+// Extend TicketListItem with replies for local state compatibility if needed, or manage separately
+// The existing code expected `TicketWithReplies` which has `replies: TicketReply[]` embedded.
+// We can reconstruct that structure or adapt the state.
+// Let's reconstruct it to minimize churn in render logic.
+type TicketState = TicketListItem & { replies: TicketReply[] }
+
+
+export default function TicketDetailClient({
+    ticketId,
+    backUrl = "/support/tickets",
+    initialTicket,
+    initialReplies,
+    initialRelatedTickets,
+    initialUsers
+}: TicketDetailClientProps) {
+    const router = useRouter()
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const { profile } = useAuth()
+
+
+    const [notes, setNotes] = useState<Note[]>([])
+    const [newNote, setNewNote] = useState("")
+    const [reminders, setReminders] = useState<Reminder[]>([])
+    const [newReminder, setNewReminder] = useState({ title: "", date: "", notifyEmail: false, staff: "" })
+    const [tasks, setTasks] = useState<Task[]>([])
+    const [newTask, setNewTask] = useState({ title: "", assignee: "", dueDate: "" })
+
+    // UI States for Responsive Layout (Simplified for 2-col)
+    const [showInfoPanel, setShowInfoPanel] = useState(false) // For mobile toggling only
+    const [textareaHeight, setTextareaHeight] = useState("auto")
+
+    // Auto-resize textarea
+    const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setTextareaHeight("auto") // Reset height
+        const newHeight = `${Math.max(100, e.target.scrollHeight)}px`
+        setTextareaHeight(newHeight)
+        setReplyContent(e.target.value)
+    }
+
+    useEffect(() => {
+        const savedNotes = localStorage.getItem(`ticket_${ticketId}_notes`)
+        const savedReminders = localStorage.getItem(`ticket_${ticketId}_reminders`)
+        const savedTasks = localStorage.getItem(`ticket_${ticketId}_tasks`)
+        if (savedNotes) setNotes(JSON.parse(savedNotes))
+        if (savedReminders) setReminders(JSON.parse(savedReminders))
+        if (savedTasks) setTasks(JSON.parse(savedTasks))
+    }, [ticketId])
+
+    const saveNotes = (newNotes: Note[]) => {
+        setNotes(newNotes)
+        localStorage.setItem(`ticket_${ticketId}_notes`, JSON.stringify(newNotes))
+    }
+
+    const saveReminders = (newReminders: Reminder[]) => {
+        setReminders(newReminders)
+        localStorage.setItem(`ticket_${ticketId}_reminders`, JSON.stringify(newReminders))
+    }
+
+    const saveTasks = (newTasks: Task[]) => {
+        setTasks(newTasks)
+        localStorage.setItem(`ticket_${ticketId}_tasks`, JSON.stringify(newTasks))
+    }
+
+    const [activeTab, setActiveTab] = useState<DetailTab>("reply")
+    const [replyContent, setReplyContent] = useState("")
+
+    // Initialize ticket state with SSR data
+    const [ticket, setTicket] = useState<TicketState | null>(
+        initialTicket ? { ...initialTicket, replies: initialReplies } : null
+    )
+
+    const [ticketStatus, setTicketStatus] = useState(initialTicket?.status || "Open")
+    const [ticketPriority, setTicketPriority] = useState(initialTicket?.priority || "Medium")
+    const [showSaveSuccess, setShowSaveSuccess] = useState(false)
+
+    // Split loading states - Initial is false because we have SSR dadta
+    const [isTicketLoading] = useState(false)
+    const [isSending, setIsSending] = useState(false)
+
+    const [relatedTickets] = useState<TicketListItem[]>(initialRelatedTickets)
+    const [users] = useState<RegularUser[]>(initialUsers)
+    const [selectedAssignee, setSelectedAssignee] = useState<RegularUser | null>(null)
+    const [assigneeSearch, setAssigneeSearch] = useState("")
+    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false)
+
+
+    // Pagination State
+    const [repliesLimit] = useState(20)
+    const [repliesOffset, setRepliesOffset] = useState(20) // We already loaded 0-20
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [hasMoreReplies, setHasMoreReplies] = useState(initialReplies.length >= 20) // Simple heuristic
+
+
+    // Realtime subscription
+    useEffect(() => {
+        let supabase
+        try {
+            supabase = createClient()
+        } catch (error) {
+            console.error("Failed to init realtime client:", error)
+            return
+        }
+        const channel = supabase
+            .channel(`ticket-${ticketId}-replies`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "ticket_replies",
+                    filter: `ticket_id=eq.${ticketId}`,
+                },
+                (payload) => {
+                    console.log("🔔 New reply for ticket:", ticketId, payload)
+                    // Optimization: Append reply directly instead of refetching
+                    const newReply = payload.new as TicketReply
+                    setTicket(prev => {
+                        if (!prev) return null
+                        // Check if already exists to avoid dupes
+                        if (prev.replies.some(r => r.id === newReply.id)) return prev
+                        return { ...prev, replies: [...prev.replies, newReply] }
+                    })
+
+                    setTimeout(() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+                    }, 100)
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase?.removeChannel(channel)
+        }
+    }, [ticketId]) // Removed loadTicket dep
+
+    // Scroll to bottom on mount ONLY
+    useEffect(() => {
+        if (activeTab === 'reply' && initialReplies.length > 0) {
+            // Small timeout to ensure rendering is complete
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+            }, 100)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // Empty deps ensures this runs once on mount
+
+    const handleLoadMoreReplies = async () => {
+        setIsLoadingMore(true)
+        try {
+            // Note: To mimic "load older", we might need to adjust query. 
+            // Current assumption: replies are sorted ASC (oldest top). 
+            // "Load More" usually means loading *next page* of replies? 
+            // The user request said "header cepat + replies paginated".
+            // If we want "infinite scroll" downwards, we fetch next offset.
+            // If we want "load previous" (like Slack), it's different.
+            // Typically tickets are linear timeline. 
+            // Let's assume standard "Show more" at bottom or "Load older" at top?
+            // Usually ticket system shows OLDEST first.
+
+            const result = await fetchTicketRepliesPage(parseInt(ticketId), repliesLimit, repliesOffset)
+            if (result.success && result.data) {
+                if (result.data.length < repliesLimit) {
+                    setHasMoreReplies(false)
+                }
+
+                setTicket(prev => {
+                    if (!prev) return null
+                    // Use Map to dedupe
+                    const combined = [...prev.replies, ...result.data!]
+                    const unique = Array.from(new Map(combined.map(item => [item.id, item])).values())
+                    // Sort just in case
+                    unique.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    return { ...prev, replies: unique }
+                })
+                setRepliesOffset(prev => prev + repliesLimit)
+            } else {
+                setHasMoreReplies(false)
+            }
+        } catch (err) {
+            console.error("Error loading more replies", err)
+        } finally {
+            setIsLoadingMore(false)
+        }
+    }
+
+
+    const filteredUsers = users.filter(user =>
+        user.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
+        user.email.toLowerCase().includes(assigneeSearch.toLowerCase())
+    )
+
+    const handleSelectAssignee = (user: RegularUser) => {
+        setSelectedAssignee(user)
+        setAssigneeSearch(user.name)
+        setShowAssigneeDropdown(false)
+        showSuccessToast()
+    }
+
+    const getStatusConfig = (status: string) => {
+        // Perfex Style: Often simple badges or text colors
+        const config: Record<string, { label: string; className: string; bgClass: string; icon: React.ReactNode }> = {
+            Open: {
+                label: 'Open',
+                className: 'text-red-700 dark:text-red-400',
+                bgClass: 'bg-red-500',
+                icon: <AlertCircle className="w-3.5 h-3.5" />
+            },
+            "In Progress": {
+                label: 'In Progress',
+                className: 'text-yellow-700 dark:text-yellow-400',
+                bgClass: 'bg-yellow-500',
+                icon: <Clock className="w-3.5 h-3.5" />
+            },
+            Answered: {
+                label: 'Answered',
+                className: 'text-blue-700 dark:text-blue-400',
+                bgClass: 'bg-blue-500',
+                icon: <MessageSquare className="w-3.5 h-3.5" />
+            },
+            "On Hold": {
+                label: 'On Hold',
+                className: 'text-gray-700 dark:text-gray-400',
+                bgClass: 'bg-gray-500',
+                icon: <Clock className="w-3.5 h-3.5" />
+            },
+            Closed: {
+                label: 'Closed',
+                className: 'text-green-700 dark:text-green-400',
+                bgClass: 'bg-green-500',
+                icon: <CheckCircle className="w-3.5 h-3.5" />
+            },
+        }
+        return config[status] || { label: status, className: 'text-gray-700', bgClass: 'bg-gray-500', icon: null }
+    }
+
+
+
+    const formatDateTime = (dateString: string | null) => {
+        if (!dateString) return "-"
+        try {
+            let dateStr = dateString
+            if (!dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+                dateStr = dateStr.replace(' ', 'T') + 'Z'
+            }
+            const date = new Date(dateStr)
+            if (Number.isNaN(date.getTime())) return dateString
+
+            const day = date.getDate().toString().padStart(2, "0")
+            const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+            const month = months[date.getMonth()]
+            const year = date.getFullYear()
+            const hour = date.getHours().toString().padStart(2, "0")
+            const minute = date.getMinutes().toString().padStart(2, "0")
+            // Perfex format is often YYYY-MM-DD HH:mm or similar, but friendly format is better
+            return `${day} ${month} ${year} ${hour}:${minute}`
+        } catch {
+            return dateString
+        }
+    }
+
+    const isUserMessage = (author: string) => {
+        if (!ticket) return false
+        return author.toLowerCase() === (ticket.contact || '').toLowerCase()
+    }
+
+
+
+    const handleSendMessage = async () => {
+        if (!replyContent.trim() || !ticket) return
+        setIsSending(true)
+        const authorName = profile?.name || "Admin"
+        const messageContent = replyContent.trim()
+        const optimisticReply = {
+            id: Date.now(),
+            ticket_id: ticket.id,
+            author: authorName,
+            message: messageContent,
+            date: new Date().toISOString(),
+            attachments: null
+        }
+        setTicket(prev => prev ? { ...prev, replies: [...prev.replies, optimisticReply] } : prev)
+        setReplyContent("")
+        setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, 50)
+
+        try {
+            const newStatus = ticketStatus === "Open" ? "Answered" : ticketStatus
+            await Promise.all([
+                createTicketReply({
+                    ticket_id: ticket.id,
+                    author: authorName,
+                    message: messageContent,
+                    isFromAdmin: true
+                }),
+                newStatus !== ticketStatus
+                    // Use setTicketStatus directly or implement a local updater if needed, as per current logic
+                    ? updateTicketStatus(ticket.id, newStatus).then(() => setTicketStatus(newStatus))
+                    : Promise.resolve()
+            ])
+            showSuccessToast()
+        } catch (error) {
+            console.error("Error sending reply:", error)
+            setTicket(prev => prev ? { ...prev, replies: prev.replies.filter(r => r.id !== optimisticReply.id) } : prev)
+            setReplyContent(messageContent)
+        } finally {
+            setIsSending(false)
+        }
+    }
+
+
+
+    const handlePriorityChange = async (newPriority: string) => {
+        if (!ticket) return
+        try {
+            const result = await updateTicketPriority(ticket.id, newPriority)
+            if (result.success) {
+                setTicketPriority(newPriority)
+                showSuccessToast()
+            }
+        } catch (error) {
+            console.error("Error updating priority:", error)
+        }
+    }
+
+
+
+    const handleAddNote = () => {
+        if (!newNote.trim()) return
+        const note: Note = { id: Date.now().toString(), content: newNote, author: profile?.name || "Admin", date: new Date().toISOString() }
+        saveNotes([...notes, note])
+        setNewNote("")
+        showSuccessToast()
+    }
+
+    const handleAddReminder = () => {
+        if (!newReminder.title.trim() || !newReminder.date) return
+        const reminder: Reminder = { id: Date.now().toString(), ...newReminder }
+        saveReminders([...reminders, reminder])
+        setNewReminder({ title: "", date: "", notifyEmail: false, staff: "" })
+        showSuccessToast()
+    }
+
+    const handleDeleteReminder = (reminderId: string) => {
+        saveReminders(reminders.filter(r => r.id !== reminderId))
+        showSuccessToast()
+    }
+
+    const handleAddTask = () => {
+        if (!newTask.title.trim()) return
+        const task: Task = { id: Date.now().toString(), title: newTask.title, status: "pending", assignee: newTask.assignee || profile?.name || "Admin", dueDate: newTask.dueDate }
+        saveTasks([...tasks, task])
+        setNewTask({ title: "", assignee: "", dueDate: "" })
+        showSuccessToast()
+    }
+
+    const handleUpdateTaskStatus = (taskId: string, status: Task["status"]) => {
+        saveTasks(tasks.map(t => t.id === taskId ? { ...t, status } : t))
+        showSuccessToast()
+    }
+
+    const handleDeleteTask = (taskId: string) => {
+        saveTasks(tasks.filter(t => t.id !== taskId))
+        showSuccessToast()
+    }
+
+    const showSuccessToast = () => {
+        setShowSaveSuccess(true)
+        setTimeout(() => setShowSaveSuccess(false), 2000)
+    }
+
+    // If ticket is not loaded or not found, show loading/error state
+    // This guard ensures that `ticket` is not null for the rest of the component
+    if (!ticket) {
+        if (isTicketLoading) {
+            return (
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-gray-500">Loading Ticket...</p>
+                    </div>
+                </div>
+            )
+        }
+
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                <div className="text-center">
+                    <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Ticket not found</h3>
+                    <button onClick={() => router.push(backUrl)} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg">Back to List</button>
+                </div>
+            </div>
+        )
+    }
+
+
+    const statusConfig = getStatusConfig(ticketStatus)
+
+    // -- Render Helpers --
+    const renderTabs = () => (
+        <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 pt-2 sticky top-0 z-10">
+            {[
+                { key: "reply", label: "Add Reply", icon: <Edit className="w-4 h-4" /> },
+                { key: "note", label: "Notes", icon: <StickyNote className="w-4 h-4" />, count: notes.length },
+                { key: "reminder", label: "Reminders", icon: <Bell className="w-4 h-4" />, count: reminders.length },
+                { key: "others", label: "Related Tickets", icon: <Layers className="w-4 h-4" /> },
+                { key: "task", label: "Tasks", icon: <ListChecks className="w-4 h-4" />, count: tasks.length },
+            ].map((tab) => (
+                <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as DetailTab)}
+                    className={cn(
+                        "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 rounded-t-md hover:bg-gray-50 dark:hover:bg-gray-800",
+                        activeTab === tab.key
+                            ? "border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-gray-50 dark:bg-gray-800"
+                            : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    )}
+                >
+                    {tab.icon}
+                    {tab.label}
+                    {tab.count !== undefined && tab.count > 0 && (
+                        <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+                            {tab.count}
+                        </span>
+                    )}
+                </button>
+            ))}
+        </div>
+    )
+
+    const renderReplyTab = () => (
+        <div className="space-y-6">
+            {/* 1. Reply Editor (Top) */}
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-900 px-4 py-2 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Reply to Ticket</h3>
+                    <div className="flex items-center gap-2">
+                        {/* Presets or Macros could go here */}
+                    </div>
+                </div>
+                <div className="p-0">
+                    {notes.length > 0 && (
+                        <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-900/10 border-b border-yellow-100 dark:border-yellow-900">
+                            <p className="text-xs text-yellow-700 font-semibold mb-1">Latest Note:</p>
+                            <div className="text-xs text-yellow-800 dark:text-yellow-200 line-clamp-1">{notes[notes.length - 1].content}</div>
+                        </div>
+                    )}
+                    <textarea
+                        value={replyContent}
+                        onChange={handleTextareaInput}
+                        placeholder="Enter your reply here..."
+                        className="w-full min-h-[150px] p-4 text-sm bg-white dark:bg-gray-950 border-0 focus:ring-0 placeholder-gray-400 resize-none font-sans"
+                        style={{ height: textareaHeight }}
+                    />
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center gap-2">
+                            <button className="text-gray-500 hover:text-emerald-600 transition-colors p-1" title="Attach Files">
+                                <Paperclip className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <select
+                                value={ticketStatus}
+                                onChange={(e) => setTicketStatus(e.target.value)}
+                                className="text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md py-1.5 px-3 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Answered">Answered</option>
+                                <option value="On Hold">On Hold</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={!replyContent.trim() || isSending}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-1.5 rounded-md shadow-sm transition-all flex items-center gap-2"
+                            >
+                                <Send className="w-4 h-4" /> Reply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
+            {/* 2. Conversation History */}
+            <div className="space-y-6 pb-10">
+                {/* Original Ticket Body */}
+                {ticket.body && (
+                    <div className="flex gap-4">
+                        <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold border border-blue-200 dark:border-blue-800">
+                                {ticket.contact.charAt(0).toUpperCase()}
+                            </div>
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="font-bold text-gray-900 dark:text-white text-sm">{ticket.contact}</span>
+                                    <span className="text-xs text-gray-500">opened this ticket</span>
+                                </div>
+                                <span className="text-xs text-gray-400">{formatDateTime(ticket.submitted_date)}</span>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                                {ticket.body}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* History Timeline Look */}
+                <div className="relative pl-5 border-l-2 border-gray-100 dark:border-gray-800 ml-5 space-y-8">
+                    {ticket.replies.map((reply) => {
+                        const isUser = isUserMessage(reply.author)
+                        return (
+                            <div key={reply.id} className="relative">
+                                <div className={cn(
+                                    "absolute -left-[29px] top-0 w-8 h-8 rounded-full border-4 border-white dark:border-gray-950 flex items-center justify-center text-xs font-bold",
+                                    isUser
+                                        ? "bg-blue-100 text-blue-600"
+                                        : "bg-emerald-600 text-white"
+                                )}>
+                                    {reply.author.charAt(0).toUpperCase()}
+                                </div>
+
+                                <div className={cn(
+                                    "rounded-[8px] border overflow-hidden",
+                                    isUser
+                                        ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+                                        : "bg-white dark:bg-gray-900 border-emerald-200 dark:border-emerald-900 shadow-sm"
+                                )}>
+                                    <div className={cn(
+                                        "px-4 py-2 text-xs flex justify-between items-center border-b",
+                                        isUser
+                                            ? "bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800"
+                                            : "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30"
+                                    )}>
+                                        <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                            {reply.author} <span className="font-normal text-gray-500 ml-1">{isUser ? "(Client)" : "(Staff)"}</span>
+                                        </div>
+                                        <div className="text-gray-400">{formatDateTime(reply.date)}</div>
+                                    </div>
+                                    <div className="p-4 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                        {reply.message}
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
+                {/* Load More Button */}
+                {hasMoreReplies && (
+                    <div className="flex justify-center pt-4">
+                        <button
+                            onClick={handleLoadMoreReplies}
+                            disabled={isLoadingMore}
+                            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition flex items-center gap-2"
+                        >
+                            {isLoadingMore ? <div className="w-3 h-3 rounded-full border-2 border-gray-400 border-t-transparent animate-spin"></div> : <ChevronDown className="w-3 h-3" />}
+                            Load more replies
+                        </button>
+                    </div>
+                )}
+            </div>
+            <div ref={messagesEndRef}></div>
+        </div>
+    )
+
+    // --- Main Render ---
+    return (
+        <div className="flex flex-col h-screen bg-gray-100/50 dark:bg-black font-sans text-gray-900 dark:text-gray-100">
+
+            {showSaveSuccess && (
+                <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <Check className="w-4 h-4" /> Saved Successfully
+                </div>
+            )}
+
+            {/* HEADER */}
+            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center justify-between px-6 flex-shrink-0 relative z-20">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => router.push(backUrl)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500">
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h1 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                            #{ticket.id} <span className="font-normal text-gray-400">|</span> {ticket.subject}
+                        </h1>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {/* Mobile Info Toggle */}
+                    <button
+                        className="lg:hidden p-2 text-gray-500"
+                        onClick={() => setShowInfoPanel(!showInfoPanel)}
+                    >
+                        <PanelRight className="w-5 h-5" />
+                    </button>
+                </div>
+            </header>
+
+            {/* BODY (2-Columns) */}
+            <div className="flex-1 flex overflow-hidden relative">
+
+                {/* LEFT: MAIN CONTENT */}
+                <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-950 relative overflow-hidden">
+
+                    {/* Horizontal Tabs */}
+                    {renderTabs()}
+
+                    {/* Tab Content Area */}
+                    <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-black/20 scroll-smooth">
+                        <div className="max-w-4xl mx-auto">
+
+                            {activeTab === 'reply' && renderReplyTab()}
+
+                            {activeTab === 'note' && (
+                                <div className="space-y-4">
+                                    <div className="flex gap-2">
+                                        <textarea
+                                            value={newNote}
+                                            onChange={(e) => setNewNote(e.target.value)}
+                                            placeholder="Add an internal note..."
+                                            className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm h-24 resize-none bg-white dark:bg-gray-900"
+                                        />
+                                        <button onClick={handleAddNote} className="h-24 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 transition-colors">
+                                            <Plus className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {notes.map(note => (
+                                            <div key={note.id} className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="font-bold text-sm text-yellow-800 dark:text-yellow-500">{note.author}</span>
+                                                    <span className="text-xs text-yellow-600 dark:text-yellow-600">{formatDateTime(note.date)}</span>
+                                                </div>
+                                                <p className="text-sm text-yellow-900 dark:text-yellow-100">{note.content}</p>
+                                            </div>
+                                        ))}
+                                        {notes.length === 0 && <p className="text-center text-gray-400 py-8">No internal notes yet.</p>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'reminder' && (
+                                <div className="space-y-4">
+                                    <Card>
+                                        <CardHeader className="pb-3"><CardTitle className="text-base">Add Reminder</CardTitle></CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <Input value={newReminder.title} onChange={e => setNewReminder({ ...newReminder, title: e.target.value })} placeholder="Reminder title..." />
+                                            <div className="flex gap-3">
+                                                <Input type="datetime-local" value={newReminder.date} onChange={e => setNewReminder({ ...newReminder, date: e.target.value })} className="flex-1" />
+                                                <Input value={newReminder.staff} onChange={e => setNewReminder({ ...newReminder, staff: e.target.value })} placeholder="Staff..." className="flex-1" />
+                                            </div>
+                                            <button onClick={handleAddReminder} className="w-full bg-emerald-600 text-white py-2 rounded-md text-sm font-medium hover:bg-emerald-700">Create Reminder</button>
+                                        </CardContent>
+                                    </Card>
+                                    {reminders.map(rem => (
+                                        <div key={rem.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <Bell className="w-5 h-5 text-gray-400" />
+                                                <div>
+                                                    <p className="font-medium text-sm">{rem.title}</p>
+                                                    <p className="text-xs text-gray-500">{formatDateTime(rem.date)} • {rem.staff}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleDeleteReminder(rem.id)}><X className="w-4 h-4 text-gray-400 hover:text-red-500" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {activeTab === 'task' && (
+                                <div className="space-y-4">
+                                    <div className="flex gap-2">
+                                        <Input value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder="New task..." className="flex-1" />
+                                        <button onClick={handleAddTask} className="px-4 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"><Plus className="w-5 h-5" /></button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {tasks.map(task => (
+                                            <div key={task.id} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group">
+                                                <input type="checkbox" checked={task.status === 'completed'} onChange={() => handleUpdateTaskStatus(task.id, task.status === 'completed' ? 'pending' : 'completed')} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                                                <span className={cn("flex-1 text-sm font-medium", task.status === 'completed' && "line-through text-gray-400")}>{task.title}</span>
+                                                <button onClick={() => handleDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'others' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {relatedTickets.map(t => (
+                                        <div key={t.id} onClick={() => router.push(`/support/tickets/${t.id}`)} className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:ring-2 hover:ring-emerald-500/20 cursor-pointer transition-all">
+                                            <div className="flex justify-between text-xs mb-2">
+                                                <span className="font-mono text-gray-500">#{t.id}</span>
+                                                <span className={cn("px-2 py-0.5 rounded-full", getStatusConfig(t.status).bgClass, "bg-opacity-20 text-gray-700")}>{t.status}</span>
+                                            </div>
+                                            <h4 className="font-semibold text-sm mb-1 line-clamp-1">{t.subject}</h4>
+                                            <p className="text-xs text-gray-500">{formatDateTime(t.submitted_date)}</p>
+                                        </div>
+                                    ))}
+                                    {relatedTickets.length === 0 && <p className="text-gray-500 text-sm">No related tickets found.</p>}
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </main>
+
+                {/* RIGHT SIDEBAR (Ticket Info) */}
+                <aside className={cn(
+                    "w-[320px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto transition-transform duration-300 absolute lg:static inset-y-0 right-0 z-30 shadow-2xl lg:shadow-none",
+                    showInfoPanel ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+                )}>
+                    <div className="p-4 space-y-6">
+
+                        {/* Mobile Close Button */}
+                        <div className="lg:hidden flex justify-end mb-2">
+                            <button onClick={() => setShowInfoPanel(false)}><X className="w-5 h-5 text-gray-500" /></button>
+                        </div>
+
+                        {/* STATUS & PRIORITY */}
+                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-4">
+                            <div className="space-y-1">
+                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
+                                <div className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-md border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm",
+                                    statusConfig.className
+                                )}>
+                                    {statusConfig.icon}
+                                    <span className="font-semibold">{statusConfig.label}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</span>
+                                <div className="inline-flex w-full rounded-md bg-gray-100 dark:bg-gray-900 p-0.5 gap-1">
+                                    {(["Low", "Medium", "High"] as const).map((level) => (
+                                        <button
+                                            key={level}
+                                            type="button"
+                                            onClick={() => handlePriorityChange(level)}
+                                            className={cn(
+                                                "flex-1 px-2 py-1.5 text-xs font-medium rounded-md border border-transparent transition-colors",
+                                                ticketPriority === level
+                                                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm border-gray-200 dark:border-gray-700"
+                                                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                                            )}
+                                        >
+                                            {level}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* DETAILS */}
+                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-3">
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Details</h4>
+                            <dl className="space-y-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-gray-500">Department</dt>
+                                    <dd className="font-medium text-gray-900 dark:text-gray-100">{ticket.department || "-"}</dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-gray-500">Project</dt>
+                                    <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{ticket.project || "-"}</dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-gray-500">Service</dt>
+                                    <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{ticket.service || "-"}</dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        {/* TAGS */}
+                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-2">
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tags</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {/* Mock Tags (sementara) */}
+                                <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 text-[11px] rounded-full">#support</span>
+                                <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 text-[11px] rounded-full">#bug</span>
+                            </div>
+                        </div>
+
+                        {/* ASSIGNEE */}
+                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-2">
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Assignee</h4>
+                            <div className="relative">
+                                <div
+                                    className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                    onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+                                >
+                                    {selectedAssignee ? (
+                                        <>
+                                            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                                                {selectedAssignee.name.charAt(0)}
+                                            </div>
+                                            <span className="text-sm truncate flex-1">{selectedAssignee.name}</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-sm text-gray-400 italic">Unassigned</span>
+                                    )}
+                                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                                </div>
+
+                                {showAssigneeDropdown && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                                        <div className="p-2 sticky top-0 bg-white dark:bg-gray-900 border-b">
+                                            <input
+                                                type="text"
+                                                placeholder="Search staff..."
+                                                value={assigneeSearch}
+                                                onChange={(e) => setAssigneeSearch(e.target.value)}
+                                                className="w-full text-xs p-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                            />
+                                        </div>
+                                        {filteredUsers.map(user => (
+                                            <div
+                                                key={user.id}
+                                                onClick={() => handleSelectAssignee(user)}
+                                                className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm"
+                                            >
+                                                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs">
+                                                    {user.name.charAt(0)}
+                                                </div>
+                                                <div className="truncate">
+                                                    <p>{user.name}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                    </div>
+                </aside>
+
+            </div>
+        </div>
+    )
+}

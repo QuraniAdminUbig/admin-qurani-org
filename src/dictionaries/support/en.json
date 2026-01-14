@@ -1,0 +1,101 @@
+{
+    "support": {
+        "dashboard": {
+            "title": "Support Dashboard",
+            "cards": {
+                "tickets": "Tickets",
+                "open_tickets": "Open Tickets",
+                "in_progress": "In Progress",
+                "resolved": "Resolved"
+            },
+            "chart": {
+                "title": "Area Chart - Interactive",
+                "description": "Showing total visitors for the last 3 months",
+                "select_aria": "Select a value",
+                "range_90d": "Last 3 months",
+                "range_30d": "Last 30 days",
+                "range_7d": "Last 7 days",
+                "visitors": "Visitors",
+                "desktop": "Desktop",
+                "mobile": "Mobile"
+            }
+        }
+    },
+    "common": {
+        "title": "Support Tickets"
+    },
+    "search_placeholder": "Search tickets...",
+    "bulk_actions": "Bulk Actions",
+    "edit_selected": "Edit Selected",
+    "export_label": "Export",
+    "date_range": "Date Range",
+    "this_month": "This Month",
+    "last_3_months": "Last 3 Months",
+    "last_6_months": "Last 6 Months",
+    "last_year": "Last Year",
+    "start": "Start",
+    "end": "End",
+    "clear": "Clear",
+    "apply": "Apply",
+    "filters": "Filters",
+    "all_tickets": "All Tickets",
+    "new_ticket": "New Ticket",
+    "subject": "Subject",
+    "status": "Status",
+    "priority": "Priority",
+    "department": "Department",
+    "contact": "Contact",
+    "created": "Created",
+    "last_reply": "Last Reply",
+    "no_tickets_found": "No tickets found",
+    "clear_all_filters": "Clear all filters",
+    "view_details": "View Details",
+    "view": "View",
+    "select_tickets_warning": "Please select tickets first for bulk action.",
+    "success_bulk": "Bulk action successful!",
+    "update": "Update",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "no_change": "No Change",
+    "bulk_delete_warning": "Warning: You are about to delete {{count}} tickets!",
+    "bulk_delete_irreversible": "This action cannot be undone.",
+    "status_labels": {
+        "open": "Open",
+        "in_progress": "In Progress",
+        "answered": "Answered",
+        "on_hold": "On Hold",
+        "closed": "Closed"
+    },
+    "priority_labels": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+    },
+    "relative": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "days_ago": "{{count}}d ago"
+    },
+    "pagination": {
+        "showing": "Showing {{start}}-{{end}} of {{total}}",
+        "page_of": "Page {{page}} of {{total}}"
+    },
+    "export": {
+        "report_title": "Tickets Report",
+        "report_heading": "Support Tickets Report",
+        "excel": "Excel",
+        "csv": "CSV",
+        "print": "Print",
+        "headers": {
+            "id": "ID",
+            "ticket_number": "Ticket Number",
+            "subject": "Subject",
+            "department": "Department",
+            "contact": "Contact",
+            "status": "Status",
+            "priority": "Priority",
+            "last_reply": "Last Reply",
+            "created": "Created"
+        }
+    }
+}

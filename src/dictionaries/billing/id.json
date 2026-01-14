@@ -1,0 +1,107 @@
+{
+  "billing": {
+    "title": "Penagihan",
+    "subtitle": "Kelola paket Qurani, pemakaian, dan riwayat transaksi.",
+    "credit_label": "Saldo Kredit Qurani",
+    "summary": {
+      "active_plan": "Paket Aktif",
+      "active_plan_value": "Expert 1 Tahun",
+      "active_plan_ends": "Berakhir {{date}}",
+      "mau": "Pengguna Aktif Bulanan",
+      "human_agents": "Agen Manusia",
+      "ai_responses": "Respons AI",
+      "of_quota": "dari {{quota}} kuota"
+    },
+    "periods": {
+      "monthly": "Bulanan",
+      "half_yearly": "6 Bulan",
+      "yearly": "Tahunan"
+    },
+    "period_label": {
+      "month": "per bulan"
+    },
+    "plans": {
+      "badges": {
+        "save_50": "Hemat 50%",
+        "best_value": "Nilai terbaik"
+      },
+      "basic": {
+        "name": "Basic",
+        "features": {
+          "0": "10.000 Respons AI",
+          "1": "2.000 Pengguna Aktif Bulanan",
+          "2": "3 Agen Manusia",
+          "3": "1 WhatsApp & 1 Telegram",
+          "4": "Grup Qurani tanpa batas",
+          "5": "Dasbor & Laporan dasar"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "features": {
+          "0": "50.000 Respons AI",
+          "1": "10.000 Pengguna Aktif Bulanan",
+          "2": "7 Agen Manusia",
+          "3": "3 WhatsApp & 2 Telegram",
+          "4": "Dukungan Prioritas",
+          "5": "Integrasi API dasar"
+        }
+      },
+      "expert": {
+        "name": "Expert",
+        "features": {
+          "0": "150.000 Respons AI",
+          "1": "30.000 Pengguna Aktif Bulanan",
+          "2": "15 Agen Manusia",
+          "3": "4 WhatsApp & 4 Telegram",
+          "4": "SLA & Dukungan Prioritas",
+          "5": "Integrasi API lanjutan"
+        }
+      }
+    },
+    "plan_features": "Fitur Paket",
+    "buy_package": "Beli Paket",
+    "no_plans_title": "Paket untuk periode ini belum tersedia.",
+    "no_plans_desc": "Silakan hubungi admin untuk mengaktifkan paket {{period}}.",
+    "recent": {
+      "title": "Transaksi Terbaru",
+      "subtitle": "Riwayat pembayaran paket Qurani Anda.",
+      "view_all": "Lihat semua"
+    },
+    "table": {
+      "order_date": "Tanggal Pesanan",
+      "order_id": "ID Pesanan",
+      "package_name": "Nama Paket",
+      "price": "Harga",
+      "discount": "Diskon",
+      "quantity": "Qty",
+      "total_price": "Total Harga",
+      "status": "Status",
+      "action": "Aksi"
+    },
+    "action": {
+      "detail": "Detail"
+    },
+    "empty_transactions": "Belum ada transaksi.",
+    "modal": {
+      "title": "Transaksi",
+      "order_id": "ID Pesanan",
+      "order_date": "Tanggal Pesanan",
+      "payment_date": "Tanggal Pembayaran",
+      "product": "Produk",
+      "quantity": "Jumlah: {{quantity}}",
+      "price": "Harga",
+      "discount": "Diskon",
+      "total": "Total Harga",
+      "close": "Tutup"
+    },
+    "status": {
+      "paid": "Lunas",
+      "pending": "Menunggu"
+    },
+    "transactions": {
+      "expert_year": "Expert 1 Tahun",
+      "pro_monthly": "Pro Bulanan"
+    }
+  }
+}
