@@ -543,6 +543,7 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
                 <input
                   type="checkbox"
                   id="mark-completed-wrapper"
+                  checked={ticketStatus === "Closed"}
                   onChange={(e) => {
                     if (e.target.checked) setTicketStatus("Closed")
                   }}
