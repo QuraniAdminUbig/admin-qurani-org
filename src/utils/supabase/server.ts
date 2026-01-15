@@ -53,13 +53,38 @@ export async function createClient() {
           // Set to 15 seconds to ensure API timeouts don't conflict
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
-          
+
           return fetch(url, {
             ...options,
             signal: controller.signal,
           }).finally(() => {
             clearTimeout(timeoutId);
           });
+        },
+      },
+    }
+  );
+}
+
+export async function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('Missing Supabase admin credentials');
+    throw new Error('Missing Supabase admin credentials');
+  }
+
+  return createServerClient<Database>(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      cookies: {
+        getAll() {
+          return []
+        },
+        setAll() {
+          // No-op for admin client
         },
       },
     }

@@ -1,6 +1,4 @@
-"use server"
-
-import { createClient } from "@/utils/supabase/server"
+import { createClient, createAdminClient } from "@/utils/supabase/server"
 
 /**
  * OPTIMIZED: Create targeted notification for each admin when user creates a new ticket
@@ -10,7 +8,7 @@ export async function createSingleTicketNotification(
   ticketId: number
 ) {
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // Get all admin users
     const { data: adminUsers, error: adminError } = await supabase
@@ -120,7 +118,7 @@ export async function updateTicketNotification(
     }
   }
   try {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // Get ticket information and latest reply
     const { data: ticketData, error: ticketError } = await supabase
