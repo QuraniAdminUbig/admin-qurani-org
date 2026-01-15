@@ -91,8 +91,16 @@ const recentNotificationCalls = new Map<number, number>()
 /**
  * Update existing ticket notification (e.g., when reply is added)  
  * SIMPLE: Prevents duplicate notifications with basic deduplication
+ * 
+ * @param ticketId - ID tiket yang diupdate
+ * @param options - Opsi tambahan
+ * @param options.isFromAdmin - Jika true, notifikasi dikirim ke user. Jika false, ke admin.
+ * @param options.senderUserId - ID user yang mengirim reply (optional)
  */
-export async function updateTicketNotification(ticketId: number) {
+export async function updateTicketNotification(
+  ticketId: number,
+  options?: { isFromAdmin?: boolean; senderUserId?: string }
+) {
   // SIMPLE DEDUP: Check if we already processed this ticket in last 5 seconds
   const now = Date.now()
   const lastCall = recentNotificationCalls.get(ticketId)
@@ -143,16 +151,37 @@ export async function updateTicketNotification(ticketId: number) {
       return { success: false, error: replyError.message }
     }
 
-    // Determine sender's user_id
-    const { data: senderProfile, error: senderError } = await supabase
+    // Determine sender's user_id and role
+    // Use ilike for case-insensitive matching and limit(1) to avoid duplicate name errors
+    const { data: senderProfiles } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('name', latestReply.author)
-      .single()
+      .ilike('name', latestReply.author)
+      .limit(1)
 
-    let fromUserId = null
-    if (!senderError && senderProfile) {
+    // Get first match (handles duplicate names gracefully)
+    const senderProfile = senderProfiles?.[0] || null
+
+    let fromUserId: string | null = null
+    if (senderProfile) {
       fromUserId = senderProfile.id
+    }
+
+    // Determine if reply is from admin
+    // Priority: use passed parameter if available, otherwise check from database
+    let isAdminReply: boolean
+    if (options?.isFromAdmin !== undefined) {
+      // Caller already knows if sender is admin (preferred - avoids lookup issues)
+      isAdminReply = options.isFromAdmin
+      console.log(`📧 Using isFromAdmin from caller: ${isAdminReply}`)
+    } else if (senderProfile) {
+      // Fallback: determine from database lookup
+      isAdminReply = senderProfile.role === 'admin'
+      console.log(`📧 Determined isAdminReply from DB: ${isAdminReply} (role: ${senderProfile.role})`)
+    } else {
+      // Cannot determine sender - assume it's from user (safer default)
+      isAdminReply = false
+      console.warn(`⚠️ Could not find sender profile for "${latestReply.author}", assuming user reply`)
     }
 
     // Create targeted notifications based on reply sender
@@ -171,24 +200,29 @@ export async function updateTicketNotification(ticketId: number) {
       dedup_key: string;
     }> = []
 
-    if (senderProfile?.role === 'admin') {
+    if (isAdminReply) {
       // Admin replied → notify ticket creator (user)
-      const { data: userProfile } = await supabase
+      // Use limit(1) to avoid error if there are duplicate names
+      const { data: userProfiles } = await supabase
         .from('user_profiles')
         .select('id')
         .ilike('name', ticketData.contact)
-        .single()
+        .limit(1)
+
+      const userProfile = userProfiles?.[0] || null
 
       if (userProfile) {
         // Check if notification already exists for this user in last 5 seconds
-        const { data: existingNotif } = await supabase
+        const { data: existingNotifs } = await supabase
           .from('notifications')
           .select('id')
           .eq('ticket_id', ticketId)
           .eq('user_id', userProfile.id)
           .eq('type', 'ticket_reply')
           .gte('created_at', new Date(Date.now() - 5 * 1000).toISOString())
-          .single()
+          .limit(1)
+
+        const existingNotif = existingNotifs?.[0] || null
 
         if (!existingNotif) {
           notifications.push({
@@ -202,7 +236,10 @@ export async function updateTicketNotification(ticketId: number) {
             created_at: nowISO,
             dedup_key: `ticket_reply:${userProfile.id}:${ticketId}:${dedupBucket}`
           })
+          console.log(`📧 Will notify user ${userProfile.id} about admin reply on ticket ${ticketId}`)
         }
+      } else {
+        console.warn(`⚠️ Could not find user profile for contact "${ticketData.contact}" to send notification`)
       }
     } else {
       // User replied → notify all admins
@@ -214,14 +251,16 @@ export async function updateTicketNotification(ticketId: number) {
       if (adminUsers && adminUsers.length > 0) {
         for (const admin of adminUsers) {
           // Check if notification already exists for this admin in last 5 seconds
-          const { data: existingNotif } = await supabase
+          const { data: existingNotifs } = await supabase
             .from('notifications')
             .select('id')
             .eq('ticket_id', ticketId)
             .eq('user_id', admin.id)
             .eq('type', 'ticket_reply')
             .gte('created_at', new Date(Date.now() - 5 * 1000).toISOString())
-            .single()
+            .limit(1)
+
+          const existingNotif = existingNotifs?.[0] || null
 
           if (!existingNotif) {
             notifications.push({
@@ -237,6 +276,9 @@ export async function updateTicketNotification(ticketId: number) {
             })
           }
         }
+        console.log(`📧 Will notify ${notifications.length} admin(s) about user reply on ticket ${ticketId}`)
+      } else {
+        console.warn(`⚠️ No admin users found to notify for ticket ${ticketId}`)
       }
     }
 

@@ -100,7 +100,10 @@ export async function createTicketReply(replyData: {
 
     // Create notification ONLY once per reply (server-side only)
     // Realtime listeners should NOT create notifications to prevent duplicates
-    updateTicketNotification(replyData.ticket_id).catch(err => {
+    // Pass isFromAdmin so notification system knows the sender role without lookup
+    updateTicketNotification(replyData.ticket_id, {
+      isFromAdmin: replyData.isFromAdmin
+    }).catch(err => {
       console.error('Failed to update ticket notification:', err)
     })
 

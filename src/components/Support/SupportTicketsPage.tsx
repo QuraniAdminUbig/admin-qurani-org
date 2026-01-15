@@ -810,7 +810,7 @@ export default function SupportTicketsPage() {
                       <input
                         type="checkbox"
                         className="rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 text-emerald-600"
-                        checked={selectedTickets.length === tickets.length && tickets.length > 0}
+                        checked={selectedTickets.length === tickets.length && tickets.length > 0 ? true : false}
                         onChange={handleSelectAll}
                         disabled={isLoading}
                       />
@@ -830,7 +830,7 @@ export default function SupportTicketsPage() {
                     ? Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i} className="bg-white dark:bg-gray-900">
                         <td className="px-4 py-3 text-center">
-                          <input type="checkbox" disabled className="rounded border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50" />
+                          <input type="checkbox" disabled checked={false} className="rounded border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50" />
                         </td>
                         <td className="px-4 py-3 max-w-[300px]">
                           <div className="flex flex-col gap-1.5">
@@ -887,7 +887,7 @@ export default function SupportTicketsPage() {
                             <input
                               type="checkbox"
                               className="rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-emerald-500 text-emerald-600"
-                              checked={isSelected}
+                              checked={isSelected === true}
                               onChange={(e) => handleSelectTicket(ticket.id, e as unknown as React.MouseEvent)}
                             />
                           </td>
@@ -1017,7 +1017,7 @@ export default function SupportTicketsPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {DEPARTMENTS.map(dept => (
                     <label key={dept} className={cn("flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all", tempDepartmentFilters.includes(dept) ? "border-emerald-500 bg-emerald-50" : "border-gray-200")}>
-                      <input type="checkbox" className="rounded accent-emerald-600" checked={tempDepartmentFilters.includes(dept)}
+                      <input type="checkbox" className="rounded accent-emerald-600" checked={tempDepartmentFilters.includes(dept) === true}
                         onChange={() => setTempDepartmentFilters(prev => prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept])}
                       />
                       <span className="text-sm">{dept}</span>
@@ -1035,7 +1035,7 @@ export default function SupportTicketsPage() {
                       "flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all",
                       tempStatusFilters.includes(status) ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "border-gray-200 dark:border-gray-700"
                     )}>
-                      <input type="checkbox" className="rounded accent-emerald-600" checked={tempStatusFilters.includes(status)}
+                      <input type="checkbox" className="rounded accent-emerald-600" checked={tempStatusFilters.includes(status) === true}
                         onChange={() => setTempStatusFilters(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status])}
                       />
                       <span className="text-sm">{getStatusConfig(status).label}</span>
@@ -1053,7 +1053,7 @@ export default function SupportTicketsPage() {
                       "flex-1 flex items-center justify-center gap-2 p-2 border rounded-lg cursor-pointer transition-all",
                       tempPriorityFilters.includes(priority) ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "border-gray-200 dark:border-gray-700"
                     )}>
-                      <input type="checkbox" className="hidden" checked={tempPriorityFilters.includes(priority)}
+                      <input type="checkbox" className="hidden" checked={tempPriorityFilters.includes(priority) === true}
                         onChange={() => setTempPriorityFilters(prev => prev.includes(priority) ? prev.filter(p => p !== priority) : [...prev, priority])}
                       />
                       <span className={cn("text-sm font-medium", tempPriorityFilters.includes(priority) ? "text-emerald-700" : "text-gray-600")}>{getPriorityConfig(priority).label}</span>
