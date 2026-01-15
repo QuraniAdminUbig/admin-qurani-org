@@ -43,7 +43,6 @@ export async function createSingleTicketNotification(
 
     const nowMs = Date.now()
     const nowISO = new Date(nowMs).toISOString()
-    const dedupBucket = Math.floor(nowMs / 5000)
 
     // Create targeted notification for each admin
     const notifications = adminsToNotify.map(admin => ({
@@ -54,13 +53,12 @@ export async function createSingleTicketNotification(
       ticket_id: ticketId,
       is_read: false,
       is_action_taken: true,
-      created_at: nowISO,
-      dedup_key: `ticket_new_message:${admin.id}:${ticketId}:${dedupBucket}`
+      created_at: nowISO
     }))
 
     const { error } = await supabase
       .from('notifications')
-      .upsert(notifications, { onConflict: 'dedup_key', ignoreDuplicates: true })
+      .insert(notifications)
 
     if (error) {
       console.error('Error creating ticket notifications:', error)
@@ -185,7 +183,6 @@ export async function updateTicketNotification(
     // Create targeted notifications based on reply sender
     const nowMs = Date.now()
     const nowISO = new Date(nowMs).toISOString()
-    const dedupBucket = Math.floor(nowMs / 5000)
     const notifications: Array<{
       id: string;
       user_id: string;
@@ -195,17 +192,29 @@ export async function updateTicketNotification(
       is_read: boolean;
       is_action_taken: boolean;
       created_at: string;
-      dedup_key: string;
     }> = []
 
     if (isAdminReply) {
       // Admin replied → notify ticket creator (user)
       // Use limit(1) to avoid error if there are duplicate names
-      const { data: userProfiles } = await supabase
+      console.log(`🔍 LOOKING UP USER for contact name: "${ticketData.contact}"`)
+
+      const { data: userProfiles, error: userLookupError } = await supabase
         .from('user_profiles')
-        .select('id')
+        .select('id, name, username')
         .ilike('name', ticketData.contact)
         .limit(1)
+
+      if (userLookupError) {
+        console.error(`❌ User lookup ERROR:`, userLookupError)
+      } else {
+        console.log(`✅ User lookup matching "${ticketData.contact}" found: ${userProfiles?.length || 0} result(s)`)
+        if (userProfiles?.[0]) {
+          console.log(`   -> MATCH User: ${userProfiles[0].name} (${userProfiles[0].username}), ID: ${userProfiles[0].id}`)
+        } else {
+          console.warn(`   -> WARNING: No user found with name matching "${ticketData.contact}". Notification will NOT be sent!`)
+        }
+      }
 
       const userProfile = userProfiles?.[0] || null
 
@@ -231,8 +240,7 @@ export async function updateTicketNotification(
             ticket_id: ticketId,
             is_read: false,
             is_action_taken: true,
-            created_at: nowISO,
-            dedup_key: `ticket_reply:${userProfile.id}:${ticketId}:${dedupBucket}`
+            created_at: nowISO
           })
           console.log(`📧 Will notify user ${userProfile.id} about admin reply on ticket ${ticketId}`)
         }
@@ -269,8 +277,7 @@ export async function updateTicketNotification(
               ticket_id: ticketId,
               is_read: false,
               is_action_taken: true,
-              created_at: nowISO,
-              dedup_key: `ticket_reply:${admin.id}:${ticketId}:${dedupBucket}`
+              created_at: nowISO
             })
           }
         }
@@ -284,7 +291,7 @@ export async function updateTicketNotification(
     if (notifications.length > 0) {
       const { error } = await supabase
         .from('notifications')
-        .upsert(notifications, { onConflict: 'dedup_key', ignoreDuplicates: true })
+        .insert(notifications)
 
       if (error) {
         console.error('Error creating ticket notifications:', error)
