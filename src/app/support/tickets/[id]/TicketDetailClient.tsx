@@ -193,7 +193,22 @@ export default function TicketDetailClient({
                     setTicket(prev => {
                         if (!prev) return null
                         // Check if already exists to avoid dupes
-                        if (prev.replies.some(r => r.id === newReply.id)) return prev
+                        // Compare by: ID (for real replies) OR (message + author + recent time) for optimistic replies
+                        const isDuplicate = prev.replies.some(r => {
+                            // Match by real ID
+                            if (r.id === newReply.id) return true
+                            // Match by content + author (for optimistic replies with temp ID)
+                            // Only consider recent replies (within last 10 seconds) to avoid false matches
+                            const rTime = new Date(r.date).getTime()
+                            const newTime = new Date(newReply.date).getTime()
+                            const isRecent = Math.abs(newTime - rTime) < 10000 // 10 seconds
+                            if (isRecent && r.message === newReply.message && r.author === newReply.author) {
+                                console.log("🔄 Skipping duplicate reply (optimistic match)")
+                                return true
+                            }
+                            return false
+                        })
+                        if (isDuplicate) return prev
                         return { ...prev, replies: [...prev.replies, newReply] }
                     })
 
