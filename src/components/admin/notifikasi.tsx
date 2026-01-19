@@ -61,6 +61,7 @@ interface MappedNotification {
 
 interface NotifikasiProps {
     userId: string
+    viewMode?: string
 }
 
 // Utility function untuk debounce
@@ -193,7 +194,7 @@ const NotificationItem = memo(function NotificationItem({
                             )
 
                             // For ticket notifications, don't show user avatar link
-                            if (notification.type === "ticket_reply") {
+                            if (notification.type === "ticket_reply" || notification.type === "ticket_new_message") {
                                 return (
                                     <>
                                         <AvatarImage
@@ -239,7 +240,7 @@ const NotificationItem = memo(function NotificationItem({
                         {notification.type === "group_invite" && <Users className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />}
                         {notification.type === "friend_request" && <UserPlus className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />}
                         {notification.type === "recap_notification" && <BookOpen className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />}
-                        {notification.type === "ticket_reply" && <MessageSquare className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />}
+                        {(notification.type === "ticket_reply" || notification.type === "ticket_new_message") && <MessageSquare className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />}
                     </div>
                 </div>
 
@@ -248,18 +249,18 @@ const NotificationItem = memo(function NotificationItem({
                         <div className="flex-1 pr-0 sm:pr-3">
                             <div className="mb-1.5 flex items-center justify-between">
                                 <h3
-                                    className={notification.type === "ticket_reply"
+                                    className={(notification.type === "ticket_reply" || notification.type === "ticket_new_message")
                                         ? "font-semibold text-sm sm:text-base text-slate-700 dark:text-slate-200"
                                         : "font-semibold text-sm sm:text-base text-slate-700 dark:text-slate-200 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
                                     }
-                                    onClick={notification.type === "ticket_reply" ? undefined : (e) => {
+                                    onClick={(notification.type === "ticket_reply" || notification.type === "ticket_new_message") ? undefined : (e) => {
                                         e.stopPropagation()
                                         router.push('/profile/' + notification.fromUserUsername?.replace(/^@/, ''))
                                     }}
-                                    title={notification.type === "ticket_reply" ? undefined : `View ${notification.fromUserName}'s profile`}
+                                    title={(notification.type === "ticket_reply" || notification.type === "ticket_new_message") ? undefined : `View ${notification.fromUserName}'s profile`}
                                 >
-                                    {notification.type === "ticket_reply"
-                                        ? `${t('notifikasi.ticket_reply_title', 'Balasan untuk Ticket')}: ${notification.ticketSubject || 'Support'}`
+                                    {(notification.type === "ticket_reply" || notification.type === "ticket_new_message")
+                                        ? `${t('notifikasi.ticket_reply_title', 'Update Ticket')}: ${notification.ticketSubject || 'Support'}`
                                         : notification.fromUserName
                                     }
                                 </h3>
@@ -367,7 +368,7 @@ const NotificationItem = memo(function NotificationItem({
                                         </div>
                                     </div>
                                 )}
-                                {notification.type === "ticket_reply" && (
+                                {(notification.type === "ticket_reply" || notification.type === "ticket_new_message") && (
                                     <div className="flex justify-between gap-5">
                                         <p className="break-words hyphens-auto">
                                             {notification.latestReplyAuthor && notification.latestReplyMessage
@@ -472,7 +473,7 @@ const NotificationItem = memo(function NotificationItem({
                         </div>
                     )}
 
-                    {notification.type === "ticket_reply" && notification.ticket_id && (
+                    {(notification.type === "ticket_reply" || notification.type === "ticket_new_message") && notification.ticket_id && (
                         <div className="flex flex-row gap-2 justify-end sm:hidden">
                             <Button
                                 onClick={() => {
@@ -502,30 +503,24 @@ const NotificationItem = memo(function NotificationItem({
     )
 })
 
-export function Notifikasi({ userId }: NotifikasiProps) {
+export function Notifikasi({ userId, viewMode }: NotifikasiProps) {
     const { t } = useI18n()
     const [notifications, setNotifications] = useState<MappedNotification[]>([])
     const [showFriendRequestOnly, setshowFriendRequestOnly] = useState(false)
     const [showGroupRequestOnly, setshowGroupRequestOnly] = useState(false)
     const [showSetoranOnly, setShowSetoranOnly] = useState(false)
     const [showReportsOnly, setShowReportsOnly] = useState(false)
-    // Loading is handled by the notifications hook
     const [actionLoading, setActionLoading] = useState<string | null>(null)
-    // Track clicked notifications to prevent button reappearing
     const [clickedNotifications, setClickedNotifications] = useState<Set<string>>(new Set())
-    // Delete dialog state
     const [deleteAllDialog, setDeleteAllDialog] = useState(false)
     const [deleteAllLoading, setDeleteAllLoading] = useState(false)
-    // Touch handlers for mobile long press
     const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const [isMobile, setIsMobile] = useState(false)
-    // Tambah di dalam Notifikasi()
     const [searchValue, setSearchValue] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    // Removed unused state variables
 
     // Always filter by user - NEVER use 'all' viewMode for regular users
-    const { notifications: hookNotifications, loading, error, refresh } = useNotifications(userId)
+    const { notifications: hookNotifications, loading, error, refresh } = useNotifications(userId, viewMode)
 
     // Mirror hook data to local state to keep existing UI/optimistic flows
     useEffect(() => {
@@ -741,7 +736,7 @@ export function Notifikasi({ userId }: NotifikasiProps) {
         } else if (showSetoranOnly) {
             base = base.filter(n => n.type === "recap_notification");
         } else if (showReportsOnly) {
-            base = base.filter(n => n.type === "ticket_reply");
+            base = base.filter(n => n.type === "ticket_reply" || n.type === "ticket_new_message");
         }
         if (searchQuery.trim() !== "") {
             const q = searchQuery.trim().toLowerCase();

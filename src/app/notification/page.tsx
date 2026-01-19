@@ -14,7 +14,7 @@ export default function Page() {
     return (
         <DashboardLayout>
             <I18nProvider namespaces={["common", "notifikasi"]}>
-                <Notifikasi userId={userId} />
+                <Notifikasi userId={userId} viewMode='all' />
             </I18nProvider>
         </DashboardLayout>
     )

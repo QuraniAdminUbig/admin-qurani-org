@@ -92,8 +92,8 @@ export async function GET(request: Request) {
     console.log('⚠️ WARNING: viewMode "all" used - this should only be for admin dashboard!')
   }
 
-  // Explicitly exclude old ticket_new_message type
-  query = query.neq('type', 'ticket_new_message')
+  // Explicitly exclude old ticket_new_message type - REMOVED to show all ticket notifications
+  // query = query.neq('type', 'ticket_new_message')
 
   const { data, error } = await query
     .order("created_at", { ascending: false })

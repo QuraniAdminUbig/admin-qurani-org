@@ -53,14 +53,10 @@ export async function updateSession(request: NextRequest) {
         .eq("auth", user.id)
         .single()
 
-      // TEMPORARILY DISABLED: Username and role checks
-      // These checks are disabled to allow access while database is being set up
-      // Re-enable these after database is properly configured
-
       const hasUsername = !(
         error?.code === "PGRST116" || !userProfile?.username
       )
-      // const userRole = userProfile?.role || "member"
+      const userRole = userProfile?.role || "member"
       const isBlocked = userProfile?.isBlocked || false
 
       // Check if user is blocked - redirect to blocked page (except if already on blocked page)
@@ -84,23 +80,23 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
       }
 
-      // TEMPORARILY DISABLED: Username requirement check
-      // This was causing redirect loops when profile data is incomplete
-      /*
-      if (!hasUsername && !isRequiredPage && !isBlocked) {
+      // ADMIN-ONLY ACCESS: Redirect non-admin users to unauthorized page
+      // Only 'admin' role is allowed to access the application
+      const isUnauthorizedPage = pathname.startsWith("/unauthorized")
+      if (userRole !== "admin" && !isUnauthorizedPage) {
+        console.warn("Non-admin access attempt:", { userId: user.id, role: userRole })
         const url = request.nextUrl.clone()
-        url.pathname = "/required"
+        url.pathname = "/unauthorized"
         return NextResponse.redirect(url)
       }
-      */
 
-      // TEMPORARILY DISABLED: Admin route protection
-      // Re-enable after setting up admin roles in database
-      /*
-      if (isAdminRoute && userRole !== "admin") {
-        return new NextResponse(null, { status: 404 })
+      // If admin tries to access unauthorized page, redirect to dashboard
+      if (userRole === "admin" && isUnauthorizedPage) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/dashboard"
+        return NextResponse.redirect(url)
       }
-      */
+
     } catch (error) {
       console.error("Error checking username in middleware:", error)
       // Don't block access on error - let the page handle it
