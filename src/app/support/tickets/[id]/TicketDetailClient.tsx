@@ -187,39 +187,28 @@ export default function TicketDetailClient({
                     filter: `ticket_id=eq.${ticketId}`,
                 },
                 (payload) => {
+                    console.log("🔔 New reply for ticket:", ticketId, payload)
                     // Optimization: Append reply directly instead of refetching
                     const newReply = payload.new as TicketReply
-                    console.log(" New reply from realtime:", ticketId, { id: newReply.id, message: newReply.message?.substring(0, 50), author: newReply.author })
                     setTicket(prev => {
                         if (!prev) return null
                         // Check if already exists to avoid dupes
                         // Compare by: ID (for real replies) OR (message + author + recent time) for optimistic replies
                         const isDuplicate = prev.replies.some(r => {
-                            // Match by real ID (exact match)
-                            if (r.id === newReply.id) {
-                                console.log(" Skipping duplicate reply (ID match)")
-                                return true
-                            }
+                            // Match by real ID
+                            if (r.id === newReply.id) return true
                             // Match by content + author (for optimistic replies with temp ID)
-                            // Increased window to 60 seconds to handle server/client time differences
+                            // Only consider recent replies (within last 10 seconds) to avoid false matches
                             const rTime = new Date(r.date).getTime()
                             const newTime = new Date(newReply.date).getTime()
-                            const timeDiff = Math.abs(newTime - rTime)
-                            const isRecent = timeDiff < 60000 // 60 seconds (increased from 10s)
-                            const sameContent = r.message === newReply.message && r.author === newReply.author
-
-                            if (sameContent && isRecent) {
-                                console.log(" Skipping duplicate reply (content match)", { timeDiff: Math.round(timeDiff / 1000) + 's' })
+                            const isRecent = Math.abs(newTime - rTime) < 10000 // 10 seconds
+                            if (isRecent && r.message === newReply.message && r.author === newReply.author) {
+                                console.log("🔄 Skipping duplicate reply (optimistic match)")
                                 return true
-                            }
-                            // Also check if same content regardless of time (edge case: clock skew)
-                            if (sameContent) {
-                                console.log(" Same content found but time diff is", Math.round(timeDiff / 1000) + 's')
                             }
                             return false
                         })
                         if (isDuplicate) return prev
-                        console.log(" Adding new reply from realtime")
                         return { ...prev, replies: [...prev.replies, newReply] }
                     })
 
