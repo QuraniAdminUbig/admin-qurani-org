@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
-  // Build query based on view mode - using LEFT JOIN to show all notifications
+  // Build query based on view mode - fetch notifications without JOINs first
   let query = supabase
     .from("notifications")
     .select(
@@ -65,19 +65,7 @@ export async function GET(request: Request) {
       from_user_id,
       user_id,
       recap_id,
-      ticket_id,
-      grup:grup!left(name),
-      from_user:user_profiles!left(
-        name,
-        username,
-        avatar
-      ),
-      recap:recaps!left(
-        recitation_type,
-        conclusion,
-        memorization,
-        examiner:user_profiles!recaps_examiner_id_fkey(name)
-      )
+      ticket_id
     `
     )
 
@@ -107,10 +95,71 @@ export async function GET(request: Request) {
   // Basic logging for monitoring
   console.log(`📊 Fetched ${data?.length || 0} notifications for user ${userId}`);
 
-  // Get unique ticket IDs from notifications
+  // Get unique IDs for separate lookups
+  const fromUserIds = [...new Set(data?.filter(n => n.from_user_id).map(n => n.from_user_id) || [])];
+  const groupIds = [...new Set(data?.filter(n => n.group_id).map(n => n.group_id) || [])];
+  const recapIds = [...new Set(data?.filter(n => n.recap_id).map(n => n.recap_id) || [])];
   const ticketIds = [...new Set(data?.filter(n => n.ticket_id).map(n => n.ticket_id) || [])];
 
-  // Fetch ticket data and latest replies separately if there are any ticket notifications
+  // Fetch user profiles separately
+  let usersData: { [key: string]: { name: string; username: string; avatar: string | null } } = {};
+  if (fromUserIds.length > 0) {
+    const { data: users } = await supabase
+      .from("user_profiles")
+      .select("id, name, username, avatar")
+      .in("id", fromUserIds);
+
+    usersData = (users || []).reduce((acc, user) => {
+      acc[user.id] = { name: user.name, username: user.username, avatar: user.avatar };
+      return acc;
+    }, {} as typeof usersData);
+  }
+
+  // Fetch groups separately
+  let groupsData: { [key: string]: { name: string } } = {};
+  if (groupIds.length > 0) {
+    const { data: groups } = await supabase
+      .from("grup")
+      .select("id, name")
+      .in("id", groupIds);
+
+    groupsData = (groups || []).reduce((acc, group) => {
+      acc[group.id] = { name: group.name };
+      return acc;
+    }, {} as typeof groupsData);
+  }
+
+  // Fetch recaps separately
+  let recapsData: { [key: number]: { recitation_type: string; conclusion?: string; memorization?: string; examiner_name?: string } } = {};
+  if (recapIds.length > 0) {
+    const { data: recaps } = await supabase
+      .from("recaps")
+      .select("id, recitation_type, conclusion, memorization, examiner_id")
+      .in("id", recapIds);
+
+    // Get examiner names
+    const examinerIds = [...new Set((recaps || []).filter(r => r.examiner_id).map(r => r.examiner_id))];
+    let examinersData: { [key: string]: string } = {};
+    if (examinerIds.length > 0) {
+      const { data: examiners } = await supabase
+        .from("user_profiles")
+        .select("id, name")
+        .in("id", examinerIds);
+      examinersData = (examiners || []).reduce((acc, e) => { acc[e.id] = e.name; return acc; }, {} as typeof examinersData);
+    }
+
+    recapsData = (recaps || []).reduce((acc, recap) => {
+      acc[recap.id] = {
+        recitation_type: recap.recitation_type,
+        conclusion: recap.conclusion,
+        memorization: recap.memorization,
+        examiner_name: recap.examiner_id ? examinersData[recap.examiner_id] : undefined
+      };
+      return acc;
+    }, {} as typeof recapsData);
+  }
+
+  // Fetch ticket data separately
   let ticketsData: { [key: number]: { contact: string; subject: string; ticket_number: string; latestReply?: { author: string; message: string } } } = {};
   if (ticketIds.length > 0) {
     // Get ticket basic info
@@ -129,7 +178,6 @@ export async function GET(request: Request) {
     // Create a lookup map for latest replies
     const latestRepliesMap: { [key: number]: { author: string; message: string } } = {};
     if (latestReplies) {
-      // Group by ticket_id and take the first (latest) reply for each ticket
       latestReplies.forEach(reply => {
         if (!latestRepliesMap[reply.ticket_id]) {
           latestRepliesMap[reply.ticket_id] = {
@@ -149,11 +197,14 @@ export async function GET(request: Request) {
         latestReply: latestRepliesMap[ticket.id]
       };
       return acc;
-    }, {} as { [key: number]: { contact: string; subject: string; ticket_number: string; latestReply?: { author: string; message: string } } });
+    }, {} as typeof ticketsData);
   }
 
-  const mapped = ((data ?? []) as unknown as NotificationRaw[]).map((notif) => {
+  const mapped = (data ?? []).map((notif) => {
     const ticketInfo = notif.ticket_id ? ticketsData[notif.ticket_id] : null;
+    const userInfo = notif.from_user_id ? usersData[notif.from_user_id] : null;
+    const groupInfo = notif.group_id ? groupsData[notif.group_id] : null;
+    const recapInfo = notif.recap_id ? recapsData[notif.recap_id] : null;
 
     return {
       id: notif.id,
@@ -163,12 +214,12 @@ export async function GET(request: Request) {
       is_accept_friend: notif.is_accept_friend,
       created_at: notif.created_at,
       group_id: notif.group_id,
-      groupName: notif.grup?.name ?? "Tidak Diketahui",
+      groupName: groupInfo?.name ?? "Tidak Diketahui",
       // For ticket notifications, show ticket contact instead of system
-      fromUserName: notif.type === "ticket_reply" ? (ticketInfo?.contact ?? "Support Ticket") : (notif.from_user?.name ?? "Tidak Diketahui"),
-      fromUserUsername: notif.type === "ticket_reply" ? "support" : (notif.from_user?.username ?? "Tidak Diketahui"),
-      fromUserAvatar: notif.type === "ticket_reply" ? null : (notif.from_user?.avatar ?? null),
-      fromUserProfileUser: notif.type === "ticket_reply" ? null : (notif.from_user?.avatar ?? null),
+      fromUserName: notif.type === "ticket_reply" ? (ticketInfo?.contact ?? "Support Ticket") : (userInfo?.name ?? "Tidak Diketahui"),
+      fromUserUsername: notif.type === "ticket_reply" ? "support" : (userInfo?.username ?? "Tidak Diketahui"),
+      fromUserAvatar: notif.type === "ticket_reply" ? null : (userInfo?.avatar ?? null),
+      fromUserProfileUser: notif.type === "ticket_reply" ? null : (userInfo?.avatar ?? null),
       fromUserId: notif.from_user_id,
       userId: notif.user_id,
       recap_id: notif.recap_id,
@@ -178,10 +229,10 @@ export async function GET(request: Request) {
       ticketNumber: ticketInfo?.ticket_number ?? undefined,
       latestReplyAuthor: ticketInfo?.latestReply?.author ?? undefined,
       latestReplyMessage: ticketInfo?.latestReply?.message ?? undefined,
-      recitationType: notif.recap?.recitation_type ?? undefined,
-      examinerName: notif.recap?.examiner?.name ?? "Tidak Diketahui",
-      conclusion: notif.recap?.conclusion ?? undefined,
-      memorization: notif.recap?.memorization ?? undefined,
+      recitationType: recapInfo?.recitation_type ?? undefined,
+      examinerName: recapInfo?.examiner_name ?? "Tidak Diketahui",
+      conclusion: recapInfo?.conclusion ?? undefined,
+      memorization: recapInfo?.memorization ?? undefined,
     };
   });
 
