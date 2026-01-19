@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
-  // Build query based on view mode
+  // Build query based on view mode - using LEFT JOIN to show all notifications
   let query = supabase
     .from("notifications")
     .select(
@@ -66,13 +66,13 @@ export async function GET(request: Request) {
       user_id,
       recap_id,
       ticket_id,
-      grup:grup(name),
-      from_user:user_profiles!notifications_from_user_id_fkey(
+      grup:grup!left(name),
+      from_user:user_profiles!left(
         name,
         username,
         avatar
       ),
-      recap:recaps!notifications_recap_id_fkey(
+      recap:recaps!left(
         recitation_type,
         conclusion,
         memorization,
