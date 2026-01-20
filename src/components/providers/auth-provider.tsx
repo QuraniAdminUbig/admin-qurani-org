@@ -103,15 +103,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile
     }), [user, profile, sessionLoading, profileError, authError, signOut, refreshProfile])
 
-    // 4. Enforce Admin Role - Active
-    // Only 'admin' role is allowed to access the application
+    // 4. Enforce Privileged Roles Access
+    // Allowed roles: admin, billing, support
     useEffect(() => {
         if (!sessionLoading && user && profile) {
-            const userRole = profile.role;
+            const userRole = profile.role || 'member'; // Default to member if undefined
+            const allowedRoles = ["admin", "billing", "support"]
 
-            if (userRole !== 'admin') {
-                console.warn("Unauthorized access attempt by non-admin:", userRole)
-                setAuthError("Akses Ditolak: Hanya Admin yang diizinkan masuk.")
+            if (!allowedRoles.includes(userRole)) {
+                console.warn("Unauthorized access attempt by:", userRole)
+                setAuthError("Akses Ditolak: Anda tidak memiliki izin untuk mengakses aplikasi ini.")
                 // Note: The actual logout and redirect is handled by middleware
                 // This is just for client-side UX feedback
             }

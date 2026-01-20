@@ -80,18 +80,20 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
       }
 
-      // ADMIN-ONLY ACCESS: Redirect non-admin users to unauthorized page
-      // Only 'admin' role is allowed to access the application
+      // ADMIN-ONLY ACCESS: Redirect non-privileged users to unauthorized page
+      // Allowed roles: admin, billing, support
       const isUnauthorizedPage = pathname.startsWith("/unauthorized")
-      if (userRole !== "admin" && !isUnauthorizedPage) {
-        console.warn("Non-admin access attempt:", { userId: user.id, role: userRole })
+      const allowedRoles = ["admin", "billing", "support"]
+
+      if (!allowedRoles.includes(userRole) && !isUnauthorizedPage) {
+        console.warn("Unauthorized access attempt:", { userId: user.id, role: userRole })
         const url = request.nextUrl.clone()
         url.pathname = "/unauthorized"
         return NextResponse.redirect(url)
       }
 
-      // If admin tries to access unauthorized page, redirect to dashboard
-      if (userRole === "admin" && isUnauthorizedPage) {
+      // If privileged user tries to access unauthorized page, redirect to dashboard
+      if (allowedRoles.includes(userRole) && isUnauthorizedPage) {
         const url = request.nextUrl.clone()
         url.pathname = "/dashboard"
         return NextResponse.redirect(url)
