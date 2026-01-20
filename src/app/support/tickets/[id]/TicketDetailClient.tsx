@@ -15,6 +15,8 @@ import {
     StickyNote,
     ChevronDown,
     X,
+    Image,
+    Loader2,
     Check,
     CheckCircle,
     Bell,
@@ -35,6 +37,7 @@ import {
 } from "@/utils/api/tickets/fetch"
 import { createTicketReply } from "@/utils/api/tickets/insert"
 import { updateTicketStatus, updateTicketPriority } from "@/utils/api/tickets/update"
+import { uploadMultipleAttachments } from "@/utils/api/tickets/upload"
 import { useAuth } from "@/hooks/use-auth"
 import { createClient } from "@/utils/supabase/client"
 import { type RegularUser } from "@/utils/api/users/fetch-users"
@@ -166,6 +169,13 @@ export default function TicketDetailClient({
     const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [hasMoreReplies, setHasMoreReplies] = useState(initialReplies.length >= 20) // Simple heuristic
 
+    // Attachment states
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+    const [filePreviews, setFilePreviews] = useState<string[]>([])
+    const [isUploading, setIsUploading] = useState(false)
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+
 
     // Realtime subscription
     useEffect(() => {
@@ -194,21 +204,30 @@ export default function TicketDetailClient({
                         if (!prev) return null
                         // Check if already exists to avoid dupes
                         // Compare by: ID (for real replies) OR (message + author + recent time) for optimistic replies
-                        const isDuplicate = prev.replies.some(r => {
+                        const existingIndex = prev.replies.findIndex(r => {
                             // Match by real ID
                             if (r.id === newReply.id) return true
                             // Match by content + author (for optimistic replies with temp ID)
-                            // Only consider recent replies (within last 10 seconds) to avoid false matches
+                            // Extended time window to 60 seconds to handle upload delays
                             const rTime = new Date(r.date).getTime()
                             const newTime = new Date(newReply.date).getTime()
-                            const isRecent = Math.abs(newTime - rTime) < 10000 // 10 seconds
+                            const isRecent = Math.abs(newTime - rTime) < 60000 // 60 seconds for upload time
                             if (isRecent && r.message === newReply.message && r.author === newReply.author) {
-                                console.log("🔄 Skipping duplicate reply (optimistic match)")
+                                console.log("🔄 Found matching optimistic reply, will replace")
                                 return true
                             }
                             return false
                         })
-                        if (isDuplicate) return prev
+
+                        if (existingIndex !== -1) {
+                            // Replace optimistic reply with real one from database
+                            const updatedReplies = [...prev.replies]
+                            updatedReplies[existingIndex] = newReply
+                            console.log("✅ Replaced optimistic reply with real reply:", newReply.id)
+                            return { ...prev, replies: updatedReplies }
+                        }
+
+                        // No match found, append as new
                         return { ...prev, replies: [...prev.replies, newReply] }
                     })
 
@@ -354,46 +373,105 @@ export default function TicketDetailClient({
         return author.toLowerCase() === (ticket.contact || '').toLowerCase()
     }
 
+    // File picker handlers
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || [])
+        if (files.length === 0) return
 
+        // Max 2 files
+        const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        const validFiles = files.filter(f => allowedTypes.includes(f.type))
+
+        if (validFiles.length !== files.length) {
+            alert("Only image files (jpg, png, gif, webp) are allowed")
+        }
+
+        const totalFiles = [...selectedFiles, ...validFiles].slice(0, 2)
+        setSelectedFiles(totalFiles)
+
+        // Generate previews
+        totalFiles.forEach((file, index) => {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                setFilePreviews(prev => {
+                    const newPreviews = [...prev]
+                    newPreviews[index] = e.target?.result as string
+                    return newPreviews
+                })
+            }
+            reader.readAsDataURL(file)
+        })
+
+        // Reset input
+        if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+
+    const removeFile = (index: number) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+        setFilePreviews(prev => prev.filter((_, i) => i !== index))
+    }
 
     const handleSendMessage = async () => {
-        if (!replyContent.trim() || !ticket) return
+        if ((!replyContent.trim() && selectedFiles.length === 0) || !ticket) return
         setIsSending(true)
+
         const authorName = profile?.name || "Admin"
         const messageContent = replyContent.trim()
-        const optimisticReply = {
-            id: Date.now(),
-            ticket_id: ticket.id,
-            author: authorName,
-            message: messageContent,
-            date: new Date().toISOString(),
-            attachments: null
-        }
-        setTicket(prev => prev ? { ...prev, replies: [...prev.replies, optimisticReply] } : prev)
-        setReplyContent("")
-        setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, 50)
+        let attachmentUrls: string[] = []
 
         try {
+            // Upload attachments first if any
+            if (selectedFiles.length > 0) {
+                setIsUploading(true)
+                const uploadResult = await uploadMultipleAttachments(selectedFiles, ticket.id)
+                setIsUploading(false)
+
+                if (!uploadResult.success) {
+                    console.error("Upload errors:", uploadResult.errors)
+                    alert("Failed to upload some files: " + (uploadResult.errors?.join(", ") || "Unknown error"))
+                }
+
+                if (uploadResult.urls) {
+                    attachmentUrls = uploadResult.urls
+                }
+            }
+
+            const attachmentsJson = attachmentUrls.length > 0 ? JSON.stringify(attachmentUrls) : null
+
+            const optimisticReply = {
+                id: Date.now(),
+                ticket_id: ticket.id,
+                author: authorName,
+                message: messageContent || (attachmentUrls.length > 0 ? "📎 Attachment" : ""),
+                date: new Date().toISOString(),
+                attachments: attachmentsJson
+            }
+
+            setTicket(prev => prev ? { ...prev, replies: [...prev.replies, optimisticReply] } : prev)
+            setReplyContent("")
+            setSelectedFiles([])
+            setFilePreviews([])
+            setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, 50)
             const newStatus = ticketStatus === "Open" ? "Answered" : ticketStatus
             await Promise.all([
                 createTicketReply({
                     ticket_id: ticket.id,
                     author: authorName,
-                    message: messageContent,
+                    message: messageContent || (attachmentUrls.length > 0 ? "📎 Attachment" : ""),
+                    attachments: attachmentsJson || undefined,
                     isFromAdmin: true
                 }),
                 newStatus !== ticketStatus
-                    // Use setTicketStatus directly or implement a local updater if needed, as per current logic
                     ? updateTicketStatus(ticket.id, newStatus).then(() => setTicketStatus(newStatus))
                     : Promise.resolve()
             ])
             showSuccessToast()
         } catch (error) {
             console.error("Error sending reply:", error)
-            setTicket(prev => prev ? { ...prev, replies: prev.replies.filter(r => r.id !== optimisticReply.id) } : prev)
             setReplyContent(messageContent)
         } finally {
             setIsSending(false)
+            setIsUploading(false)
         }
     }
 
@@ -542,11 +620,72 @@ export default function TicketDetailClient({
                         className="w-full min-h-[150px] p-4 text-sm bg-white dark:bg-gray-950 border-0 focus:ring-0 placeholder-gray-400 resize-none font-sans"
                         style={{ height: textareaHeight }}
                     />
+                    {/* File Previews */}
+                    {filePreviews.length > 0 && (
+                        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {filePreviews.map((preview, index) => (
+                                    <div key={index} className="relative group">
+                                        <div className="w-20 h-20 rounded-lg overflow-hidden border-2 border-emerald-500 shadow-md">
+                                            <img
+                                                src={preview}
+                                                alt={`Preview ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => removeFile(index)}
+                                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                        <div className="absolute bottom-1 left-1 right-1 text-[10px] text-white bg-black/60 rounded px-1 truncate">
+                                            {(selectedFiles[index]?.size / 1024 / 1024).toFixed(1)} MB
+                                        </div>
+                                    </div>
+                                ))}
+                                {selectedFiles.length < 2 && (
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 flex flex-col items-center justify-center text-gray-400 hover:text-emerald-600 transition-colors"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        <span className="text-[10px] mt-1">Add</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-2">
-                            <button className="text-gray-500 hover:text-emerald-600 transition-colors p-1" title="Attach Files">
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                multiple
+                                onChange={handleFileSelect}
+                                className="hidden"
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={selectedFiles.length >= 2}
+                                className={cn(
+                                    "transition-colors p-1 rounded",
+                                    selectedFiles.length >= 2
+                                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                        : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                                )}
+                                title={selectedFiles.length >= 2 ? "Max 2 files" : "Attach Files (max 2)"}
+                            >
                                 <Paperclip className="w-5 h-5" />
                             </button>
+                            {selectedFiles.length > 0 && (
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                    {selectedFiles.length}/2 files
+                                </span>
+                            )}
                         </div>
                         <div className="flex items-center gap-3">
                             <select
@@ -562,10 +701,21 @@ export default function TicketDetailClient({
                             </select>
                             <button
                                 onClick={handleSendMessage}
-                                disabled={!replyContent.trim() || isSending}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-1.5 rounded-md shadow-sm transition-all flex items-center gap-2"
+                                disabled={(!replyContent.trim() && selectedFiles.length === 0) || isSending || isUploading}
+                                className={cn(
+                                    "text-white text-sm font-medium px-4 py-1.5 rounded-md shadow-sm transition-all flex items-center gap-2",
+                                    (!replyContent.trim() && selectedFiles.length === 0) || isSending || isUploading
+                                        ? "bg-gray-400 cursor-not-allowed"
+                                        : "bg-emerald-600 hover:bg-emerald-700"
+                                )}
                             >
-                                <Send className="w-4 h-4" /> Reply
+                                {isUploading ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                                ) : isSending ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                                ) : (
+                                    <><Send className="w-4 h-4" /> Reply</>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -630,7 +780,36 @@ export default function TicketDetailClient({
                                         <div className="text-gray-400">{formatDateTime(reply.date)}</div>
                                     </div>
                                     <div className="p-4 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-                                        {reply.message}
+                                        {/* Only show message if it's not just "📎 Attachment" placeholder */}
+                                        {reply.message && reply.message !== "📎 Attachment" && reply.message}
+
+                                        {/* Attachments Display */}
+                                        {reply.attachments && (() => {
+                                            try {
+                                                const urls = JSON.parse(reply.attachments) as string[]
+                                                if (urls.length === 0) return null
+                                                return (
+                                                    <div className={`flex flex-wrap gap-2 ${reply.message && reply.message !== "📎 Attachment" ? 'mt-3' : ''}`}>
+                                                        {urls.map((url, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => setLightboxImage(url)}
+                                                                className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors shadow-sm hover:shadow-md"
+                                                            >
+                                                                <img
+                                                                    src={url}
+                                                                    alt={`Attachment ${idx + 1}`}
+                                                                    loading="lazy"
+                                                                    className="w-[100px] h-[100px] object-cover bg-gray-100 dark:bg-gray-800"
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )
+                                            } catch {
+                                                return null
+                                            }
+                                        })()}
                                     </div>
                                 </div>
                             </div>
@@ -658,277 +837,300 @@ export default function TicketDetailClient({
 
     // --- Main Render ---
     return (
-        <div className="flex flex-col h-screen bg-gray-100/50 dark:bg-black font-sans text-gray-900 dark:text-gray-100">
+        <>
+            <div className="flex flex-col h-screen bg-gray-100/50 dark:bg-black font-sans text-gray-900 dark:text-gray-100">
 
-            {showSaveSuccess && (
-                <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                    <Check className="w-4 h-4" /> Saved Successfully
-                </div>
-            )}
-
-            {/* HEADER */}
-            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center justify-between px-6 flex-shrink-0 relative z-20">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.push(backUrl)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500">
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                    <div>
-                        <h1 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                            #{ticket.id} <span className="font-normal text-gray-400">|</span> {ticket.subject}
-                        </h1>
+                {showSaveSuccess && (
+                    <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                        <Check className="w-4 h-4" /> Saved Successfully
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    {/* Mobile Info Toggle */}
-                    <button
-                        className="lg:hidden p-2 text-gray-500"
-                        onClick={() => setShowInfoPanel(!showInfoPanel)}
-                    >
-                        <PanelRight className="w-5 h-5" />
-                    </button>
-                </div>
-            </header>
+                )}
 
-            {/* BODY (2-Columns) */}
-            <div className="flex-1 flex overflow-hidden relative">
-
-                {/* LEFT: MAIN CONTENT */}
-                <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-950 relative overflow-hidden">
-
-                    {/* Horizontal Tabs */}
-                    {renderTabs()}
-
-                    {/* Tab Content Area */}
-                    <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-black/20 scroll-smooth">
-                        <div className="max-w-4xl mx-auto">
-
-                            {activeTab === 'reply' && renderReplyTab()}
-
-                            {activeTab === 'note' && (
-                                <div className="space-y-4">
-                                    <div className="flex gap-2">
-                                        <textarea
-                                            value={newNote}
-                                            onChange={(e) => setNewNote(e.target.value)}
-                                            placeholder="Add an internal note..."
-                                            className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm h-24 resize-none bg-white dark:bg-gray-900"
-                                        />
-                                        <button onClick={handleAddNote} className="h-24 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 transition-colors">
-                                            <Plus className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {notes.map(note => (
-                                            <div key={note.id} className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="font-bold text-sm text-yellow-800 dark:text-yellow-500">{note.author}</span>
-                                                    <span className="text-xs text-yellow-600 dark:text-yellow-600">{formatDateTime(note.date)}</span>
-                                                </div>
-                                                <p className="text-sm text-yellow-900 dark:text-yellow-100">{note.content}</p>
-                                            </div>
-                                        ))}
-                                        {notes.length === 0 && <p className="text-center text-gray-400 py-8">No internal notes yet.</p>}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'reminder' && (
-                                <div className="space-y-4">
-                                    <Card>
-                                        <CardHeader className="pb-3"><CardTitle className="text-base">Add Reminder</CardTitle></CardHeader>
-                                        <CardContent className="space-y-3">
-                                            <Input value={newReminder.title} onChange={e => setNewReminder({ ...newReminder, title: e.target.value })} placeholder="Reminder title..." />
-                                            <div className="flex gap-3">
-                                                <Input type="datetime-local" value={newReminder.date} onChange={e => setNewReminder({ ...newReminder, date: e.target.value })} className="flex-1" />
-                                                <Input value={newReminder.staff} onChange={e => setNewReminder({ ...newReminder, staff: e.target.value })} placeholder="Staff..." className="flex-1" />
-                                            </div>
-                                            <button onClick={handleAddReminder} className="w-full bg-emerald-600 text-white py-2 rounded-md text-sm font-medium hover:bg-emerald-700">Create Reminder</button>
-                                        </CardContent>
-                                    </Card>
-                                    {reminders.map(rem => (
-                                        <div key={rem.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg">
-                                            <div className="flex items-center gap-3">
-                                                <Bell className="w-5 h-5 text-gray-400" />
-                                                <div>
-                                                    <p className="font-medium text-sm">{rem.title}</p>
-                                                    <p className="text-xs text-gray-500">{formatDateTime(rem.date)} • {rem.staff}</p>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => handleDeleteReminder(rem.id)}><X className="w-4 h-4 text-gray-400 hover:text-red-500" /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {activeTab === 'task' && (
-                                <div className="space-y-4">
-                                    <div className="flex gap-2">
-                                        <Input value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder="New task..." className="flex-1" />
-                                        <button onClick={handleAddTask} className="px-4 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"><Plus className="w-5 h-5" /></button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {tasks.map(task => (
-                                            <div key={task.id} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group">
-                                                <input type="checkbox" checked={task.status === 'completed'} onChange={() => handleUpdateTaskStatus(task.id, task.status === 'completed' ? 'pending' : 'completed')} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                                                <span className={cn("flex-1 text-sm font-medium", task.status === 'completed' && "line-through text-gray-400")}>{task.title}</span>
-                                                <button onClick={() => handleDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'others' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {relatedTickets.map(t => (
-                                        <div key={t.id} onClick={() => router.push(`/support/tickets/${t.id}`)} className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:ring-2 hover:ring-emerald-500/20 cursor-pointer transition-all">
-                                            <div className="flex justify-between text-xs mb-2">
-                                                <span className="font-mono text-gray-500">#{t.id}</span>
-                                                <span className={cn("px-2 py-0.5 rounded-full", getStatusConfig(t.status).bgClass, "bg-opacity-20 text-gray-700")}>{t.status}</span>
-                                            </div>
-                                            <h4 className="font-semibold text-sm mb-1 line-clamp-1">{t.subject}</h4>
-                                            <p className="text-xs text-gray-500">{formatDateTime(t.submitted_date)}</p>
-                                        </div>
-                                    ))}
-                                    {relatedTickets.length === 0 && <p className="text-gray-500 text-sm">No related tickets found.</p>}
-                                </div>
-                            )}
-
+                {/* HEADER */}
+                <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center justify-between px-6 flex-shrink-0 relative z-20">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => router.push(backUrl)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500">
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                        <div>
+                            <h1 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                                #{ticket.id} <span className="font-normal text-gray-400">|</span> {ticket.subject}
+                            </h1>
                         </div>
                     </div>
-                </main>
+                    <div className="flex items-center gap-2">
+                        {/* Mobile Info Toggle */}
+                        <button
+                            className="lg:hidden p-2 text-gray-500"
+                            onClick={() => setShowInfoPanel(!showInfoPanel)}
+                        >
+                            <PanelRight className="w-5 h-5" />
+                        </button>
+                    </div>
+                </header>
 
-                {/* RIGHT SIDEBAR (Ticket Info) */}
-                <aside className={cn(
-                    "w-[320px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto transition-transform duration-300 absolute lg:static inset-y-0 right-0 z-30 shadow-2xl lg:shadow-none",
-                    showInfoPanel ? "translate-x-0" : "translate-x-full lg:translate-x-0"
-                )}>
-                    <div className="p-4 space-y-6">
+                {/* BODY (2-Columns) */}
+                <div className="flex-1 flex overflow-hidden relative">
 
-                        {/* Mobile Close Button */}
-                        <div className="lg:hidden flex justify-end mb-2">
-                            <button onClick={() => setShowInfoPanel(false)}><X className="w-5 h-5 text-gray-500" /></button>
-                        </div>
+                    {/* LEFT: MAIN CONTENT */}
+                    <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-950 relative overflow-hidden">
 
-                        {/* STATUS & PRIORITY */}
-                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-4">
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
-                                <div className={cn(
-                                    "flex items-center gap-2 px-3 py-2 rounded-md border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm",
-                                    statusConfig.className
-                                )}>
-                                    {statusConfig.icon}
-                                    <span className="font-semibold">{statusConfig.label}</span>
-                                </div>
-                            </div>
+                        {/* Horizontal Tabs */}
+                        {renderTabs()}
 
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</span>
-                                <div className="inline-flex w-full rounded-md bg-gray-100 dark:bg-gray-900 p-0.5 gap-1">
-                                    {(["Low", "Medium", "High"] as const).map((level) => (
-                                        <button
-                                            key={level}
-                                            type="button"
-                                            onClick={() => handlePriorityChange(level)}
-                                            className={cn(
-                                                "flex-1 px-2 py-1.5 text-xs font-medium rounded-md border border-transparent transition-colors",
-                                                ticketPriority === level
-                                                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm border-gray-200 dark:border-gray-700"
-                                                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                                            )}
-                                        >
-                                            {level}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                        {/* Tab Content Area */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-black/20 scroll-smooth">
+                            <div className="max-w-4xl mx-auto">
 
-                        {/* DETAILS */}
-                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-3">
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Details</h4>
-                            <dl className="space-y-2 text-xs">
-                                <div className="flex items-center justify-between">
-                                    <dt className="text-gray-500">Department</dt>
-                                    <dd className="font-medium text-gray-900 dark:text-gray-100">{ticket.department || "-"}</dd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <dt className="text-gray-500">Project</dt>
-                                    <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{ticket.project || "-"}</dd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <dt className="text-gray-500">Service</dt>
-                                    <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{ticket.service || "-"}</dd>
-                                </div>
-                            </dl>
-                        </div>
+                                {activeTab === 'reply' && renderReplyTab()}
 
-                        {/* TAGS */}
-                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-2">
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tags</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {/* Mock Tags (sementara) */}
-                                <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 text-[11px] rounded-full">#support</span>
-                                <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 text-[11px] rounded-full">#bug</span>
-                            </div>
-                        </div>
-
-                        {/* ASSIGNEE */}
-                        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-2">
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Assignee</h4>
-                            <div className="relative">
-                                <div
-                                    className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                    onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
-                                >
-                                    {selectedAssignee ? (
-                                        <>
-                                            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
-                                                {selectedAssignee.name.charAt(0)}
-                                            </div>
-                                            <span className="text-sm truncate flex-1">{selectedAssignee.name}</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-sm text-gray-400 italic">Unassigned</span>
-                                    )}
-                                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                                </div>
-
-                                {showAssigneeDropdown && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                                        <div className="p-2 sticky top-0 bg-white dark:bg-gray-900 border-b">
-                                            <input
-                                                type="text"
-                                                placeholder="Search staff..."
-                                                value={assigneeSearch}
-                                                onChange={(e) => setAssigneeSearch(e.target.value)}
-                                                className="w-full text-xs p-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                {activeTab === 'note' && (
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2">
+                                            <textarea
+                                                value={newNote}
+                                                onChange={(e) => setNewNote(e.target.value)}
+                                                placeholder="Add an internal note..."
+                                                className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm h-24 resize-none bg-white dark:bg-gray-900"
                                             />
+                                            <button onClick={handleAddNote} className="h-24 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 transition-colors">
+                                                <Plus className="w-5 h-5" />
+                                            </button>
                                         </div>
-                                        {filteredUsers.map(user => (
-                                            <div
-                                                key={user.id}
-                                                onClick={() => handleSelectAssignee(user)}
-                                                className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm"
-                                            >
-                                                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs">
-                                                    {user.name.charAt(0)}
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {notes.map(note => (
+                                                <div key={note.id} className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                                                    <div className="flex justify-between mb-2">
+                                                        <span className="font-bold text-sm text-yellow-800 dark:text-yellow-500">{note.author}</span>
+                                                        <span className="text-xs text-yellow-600 dark:text-yellow-600">{formatDateTime(note.date)}</span>
+                                                    </div>
+                                                    <p className="text-sm text-yellow-900 dark:text-yellow-100">{note.content}</p>
                                                 </div>
-                                                <div className="truncate">
-                                                    <p>{user.name}</p>
+                                            ))}
+                                            {notes.length === 0 && <p className="text-center text-gray-400 py-8">No internal notes yet.</p>}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'reminder' && (
+                                    <div className="space-y-4">
+                                        <Card>
+                                            <CardHeader className="pb-3"><CardTitle className="text-base">Add Reminder</CardTitle></CardHeader>
+                                            <CardContent className="space-y-3">
+                                                <Input value={newReminder.title} onChange={e => setNewReminder({ ...newReminder, title: e.target.value })} placeholder="Reminder title..." />
+                                                <div className="flex gap-3">
+                                                    <Input type="datetime-local" value={newReminder.date} onChange={e => setNewReminder({ ...newReminder, date: e.target.value })} className="flex-1" />
+                                                    <Input value={newReminder.staff} onChange={e => setNewReminder({ ...newReminder, staff: e.target.value })} placeholder="Staff..." className="flex-1" />
                                                 </div>
+                                                <button onClick={handleAddReminder} className="w-full bg-emerald-600 text-white py-2 rounded-md text-sm font-medium hover:bg-emerald-700">Create Reminder</button>
+                                            </CardContent>
+                                        </Card>
+                                        {reminders.map(rem => (
+                                            <div key={rem.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg">
+                                                <div className="flex items-center gap-3">
+                                                    <Bell className="w-5 h-5 text-gray-400" />
+                                                    <div>
+                                                        <p className="font-medium text-sm">{rem.title}</p>
+                                                        <p className="text-xs text-gray-500">{formatDateTime(rem.date)} • {rem.staff}</p>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => handleDeleteReminder(rem.id)}><X className="w-4 h-4 text-gray-400 hover:text-red-500" /></button>
                                             </div>
                                         ))}
                                     </div>
                                 )}
+
+                                {activeTab === 'task' && (
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2">
+                                            <Input value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} placeholder="New task..." className="flex-1" />
+                                            <button onClick={handleAddTask} className="px-4 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"><Plus className="w-5 h-5" /></button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {tasks.map(task => (
+                                                <div key={task.id} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group">
+                                                    <input type="checkbox" checked={task.status === 'completed'} onChange={() => handleUpdateTaskStatus(task.id, task.status === 'completed' ? 'pending' : 'completed')} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                                                    <span className={cn("flex-1 text-sm font-medium", task.status === 'completed' && "line-through text-gray-400")}>{task.title}</span>
+                                                    <button onClick={() => handleDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'others' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {relatedTickets.map(t => (
+                                            <div key={t.id} onClick={() => router.push(`/support/tickets/${t.id}`)} className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:ring-2 hover:ring-emerald-500/20 cursor-pointer transition-all">
+                                                <div className="flex justify-between text-xs mb-2">
+                                                    <span className="font-mono text-gray-500">#{t.id}</span>
+                                                    <span className={cn("px-2 py-0.5 rounded-full", getStatusConfig(t.status).bgClass, "bg-opacity-20 text-gray-700")}>{t.status}</span>
+                                                </div>
+                                                <h4 className="font-semibold text-sm mb-1 line-clamp-1">{t.subject}</h4>
+                                                <p className="text-xs text-gray-500">{formatDateTime(t.submitted_date)}</p>
+                                            </div>
+                                        ))}
+                                        {relatedTickets.length === 0 && <p className="text-gray-500 text-sm">No related tickets found.</p>}
+                                    </div>
+                                )}
+
                             </div>
                         </div>
+                    </main>
 
-                    </div>
-                </aside>
+                    {/* RIGHT SIDEBAR (Ticket Info) */}
+                    <aside className={cn(
+                        "w-[320px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto transition-transform duration-300 absolute lg:static inset-y-0 right-0 z-30 shadow-2xl lg:shadow-none",
+                        showInfoPanel ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+                    )}>
+                        <div className="p-4 space-y-6">
 
+                            {/* Mobile Close Button */}
+                            <div className="lg:hidden flex justify-end mb-2">
+                                <button onClick={() => setShowInfoPanel(false)}><X className="w-5 h-5 text-gray-500" /></button>
+                            </div>
+
+                            {/* STATUS & PRIORITY */}
+                            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-4">
+                                <div className="space-y-1">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
+                                    <div className={cn(
+                                        "flex items-center gap-2 px-3 py-2 rounded-md border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm",
+                                        statusConfig.className
+                                    )}>
+                                        {statusConfig.icon}
+                                        <span className="font-semibold">{statusConfig.label}</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</span>
+                                    <div className="inline-flex w-full rounded-md bg-gray-100 dark:bg-gray-900 p-0.5 gap-1">
+                                        {(["Low", "Medium", "High"] as const).map((level) => (
+                                            <button
+                                                key={level}
+                                                type="button"
+                                                onClick={() => handlePriorityChange(level)}
+                                                className={cn(
+                                                    "flex-1 px-2 py-1.5 text-xs font-medium rounded-md border border-transparent transition-colors",
+                                                    ticketPriority === level
+                                                        ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm border-gray-200 dark:border-gray-700"
+                                                        : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                                                )}
+                                            >
+                                                {level}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* DETAILS */}
+                            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-3">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Details</h4>
+                                <dl className="space-y-2 text-xs">
+                                    <div className="flex items-center justify-between">
+                                        <dt className="text-gray-500">Department</dt>
+                                        <dd className="font-medium text-gray-900 dark:text-gray-100">{ticket.department || "-"}</dd>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <dt className="text-gray-500">Project</dt>
+                                        <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{ticket.project || "-"}</dd>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <dt className="text-gray-500">Service</dt>
+                                        <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{ticket.service || "-"}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+
+                            {/* TAGS */}
+                            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-3 space-y-2">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tags</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {/* Mock Tags (sementara) */}
+                                    <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 text-[11px] rounded-full">#support</span>
+                                    <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 text-[11px] rounded-full">#bug</span>
+                                </div>
+                            </div>
+
+                            {/* ASSIGNEE */}
+                            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 pb-2">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Assignee</h4>
+                                <div className="relative">
+                                    <div
+                                        className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                        onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+                                    >
+                                        {selectedAssignee ? (
+                                            <>
+                                                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                                                    {selectedAssignee.name.charAt(0)}
+                                                </div>
+                                                <span className="text-sm truncate flex-1">{selectedAssignee.name}</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-sm text-gray-400 italic">Unassigned</span>
+                                        )}
+                                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                                    </div>
+
+                                    {showAssigneeDropdown && (
+                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                                            <div className="p-2 sticky top-0 bg-white dark:bg-gray-900 border-b">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search staff..."
+                                                    value={assigneeSearch}
+                                                    onChange={(e) => setAssigneeSearch(e.target.value)}
+                                                    className="w-full text-xs p-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                />
+                                            </div>
+                                            {filteredUsers.map(user => (
+                                                <div
+                                                    key={user.id}
+                                                    onClick={() => handleSelectAssignee(user)}
+                                                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm"
+                                                >
+                                                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs">
+                                                        {user.name.charAt(0)}
+                                                    </div>
+                                                    <div className="truncate">
+                                                        <p>{user.name}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
+                    </aside>
+
+                </div>
             </div>
-        </div>
+
+            {/* Lightbox Modal */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <button
+                        onClick={() => setLightboxImage(null)}
+                        className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Full size"
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
+        </>
     )
 }

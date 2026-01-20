@@ -61,7 +61,6 @@ interface MappedNotification {
 
 interface NotifikasiProps {
     userId: string
-    viewMode?: string
 }
 
 // Utility function untuk debounce
@@ -512,7 +511,7 @@ const NotificationItem = memo(function NotificationItem({
     )
 })
 
-export function Notifikasi({ userId, viewMode }: NotifikasiProps) {
+export function Notifikasi({ userId }: NotifikasiProps) {
     const { t } = useI18n()
     const [notifications, setNotifications] = useState<MappedNotification[]>([])
     const [showFriendRequestOnly, setshowFriendRequestOnly] = useState(false)
@@ -528,8 +527,8 @@ export function Notifikasi({ userId, viewMode }: NotifikasiProps) {
     const [searchValue, setSearchValue] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Always filter by user - NEVER use 'all' viewMode for regular users
-    const { notifications: hookNotifications, loading, error, refresh } = useNotifications(userId, viewMode)
+    // Fetch notifications for current user
+    const { notifications: hookNotifications, loading, error, refresh } = useNotifications(userId)
 
     // Mirror hook data to local state to keep existing UI/optimistic flows
     useEffect(() => {

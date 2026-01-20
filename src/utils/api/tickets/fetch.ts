@@ -250,7 +250,7 @@ export async function fetchTicketRepliesPage(ticketId: number, limit: number, of
 
     const { data: replies, error } = await supabase
       .from("ticket_replies")
-      .select("id, ticket_id, author, message, date")
+      .select("id, ticket_id, author, message, date, attachments")
       .eq("ticket_id", ticketId)
       .order("date", { ascending: true })
       .range(offset, offset + limit - 1)

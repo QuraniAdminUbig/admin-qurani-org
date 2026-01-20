@@ -34,7 +34,6 @@ interface NotificationRaw {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
-  const viewMode = searchParams.get("viewMode"); // 'all' untuk admin view
   const limitParam = Number(searchParams.get("limit"));
   const offsetParam = Number(searchParams.get("offset"));
   const limit = Number.isFinite(limitParam)
@@ -50,40 +49,17 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
-  // Build query based on view mode - fetch notifications without JOINs first
-  let query = supabase
+  // Define the fields to select
+  const selectFields = `id, type, is_read, is_action_taken, is_accept_friend, created_at, group_id, from_user_id, user_id, recap_id, ticket_id`;
+
+  // Always filter by user_id - show only notifications meant for this user
+  // New notifications will be added via realtime subscription
+  console.log('Fetching notifications for user:', userId);
+
+  const { data, error, count } = await supabase
     .from("notifications")
-    .select(
-      `
-      id,
-      type,
-      is_read,
-      is_action_taken,
-      is_accept_friend,
-      created_at,
-      group_id,
-      from_user_id,
-      user_id,
-      recap_id,
-      ticket_id
-    `
-    )
-
-  // SECURITY FIX: All users (including admins) only see notifications where user_id matches their ID
-  // This prevents users from seeing notifications intended for others
-
-  if (viewMode !== 'all') {
-    // All users (admin and regular) see only their own notifications
-    query = query.eq('user_id', userId)
-    console.log('🎯 User query: only notifications where user_id =', userId)
-  } else {
-    console.log('⚠️ WARNING: viewMode "all" used - this should only be for admin dashboard!')
-  }
-
-  // Explicitly exclude old ticket_new_message type - REMOVED to show all ticket notifications
-  // query = query.neq('type', 'ticket_new_message')
-
-  const { data, error } = await query
+    .select(selectFields, { count: 'exact' })
+    .eq('user_id', userId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -92,8 +68,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Basic logging for monitoring
-  console.log(`📊 Fetched ${data?.length || 0} notifications for user ${userId}`);
+  // Debug logging
+  console.log(`Fetched ${data?.length || 0} notifications for user ${userId}`);
 
   // Get unique IDs for separate lookups
   const fromUserIds = [...new Set(data?.filter(n => n.from_user_id).map(n => n.from_user_id) || [])];
