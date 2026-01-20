@@ -165,22 +165,7 @@ const NotificationItem = memo(function NotificationItem({
                 <div className="absolute top-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-500 rounded-full animate-pulse z-10" />
             )}
 
-            {/* Smooth delete button for confirmed notifications - positioned at bottom */}
-            {isConfirmed && !isMobile && (
-                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-out z-20">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            console.log('🗑️ Delete button clicked for:', notification.id)
-                            onNotificationClick(notification)
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                    >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {t('notifikasi.hapus', 'Delete')}
-                    </button>
-                </div>
-            )}
+            {/* Delete button moved to inline with View buttons below */}
 
 
             <div className="flex items-start gap-2 sm:gap-3">
@@ -353,7 +338,19 @@ const NotificationItem = memo(function NotificationItem({
                                             })()}
                                         </p>
 
-                                        <div className="flex-row gap-2 justify-end hidden sm:flex">
+                                        <div className="flex-row gap-2 justify-end hidden sm:flex opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            {/* Delete button - left of View */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onNotificationClick(notification)
+                                                }}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-150 active:scale-95"
+                                            >
+                                                <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                                {t('notifikasi.hapus', 'Delete')}
+                                            </button>
+                                            {/* View button */}
                                             <Button
                                                 onClick={() => {
                                                     // Navigate to recap detail page
@@ -377,7 +374,19 @@ const NotificationItem = memo(function NotificationItem({
                                             }
                                         </p>
 
-                                        <div className="flex-row gap-2 justify-end hidden sm:flex">
+                                        <div className="flex-row gap-2 justify-end hidden sm:flex opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            {/* Delete button - left of View */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onNotificationClick(notification)
+                                                }}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-150 active:scale-95"
+                                            >
+                                                <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                                {t('notifikasi.hapus', 'Delete')}
+                                            </button>
+                                            {/* View button */}
                                             <Button
                                                 onClick={() => {
                                                     // Navigate to ticket detail page
