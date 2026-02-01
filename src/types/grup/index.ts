@@ -71,6 +71,7 @@ interface MappedGroup {
   is_member?: boolean;
   user_role?: "admin" | "member" | "owner" | null;
   type?: "public" | "private" | "secret" | null;
+  isVerified?: boolean; // Group verification status
 }
 
 interface GroupCardProps {

@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export const getUsers = async () => {
   const supabase = await createClient();
-  
+
   // Get user profiles first
   const { data: userProfiles, error: userError } = await supabase
     .from("user_profiles")
@@ -36,7 +36,7 @@ export const getUsers = async () => {
 
 export const getUserBySearch = async (search: string) => {
   const supabase = await createClient();
-  
+
   // First get user profiles that match search criteria
   const { data: userProfiles, error: userError } = await supabase
     .from("user_profiles")

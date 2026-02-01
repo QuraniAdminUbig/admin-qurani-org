@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog"
 import { Categories, GroupDetail } from "@/types/grup"
 import { useI18n } from "@/components/providers/i18n-provider"
-import { fetchAllCategories } from "@/utils/api/grup/fetch"
+// import { fetchAllCategories } from "@/utils/api/grup/fetch"
 import { KelolaMember } from "./kelola-member"
 import { ImageCrop, ImageCropApply, ImageCropContent } from "@/components/kibo-ui/image-crop"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
@@ -48,7 +48,9 @@ export function KelolaGrup({ initialGroup, onUpdate, isOwner, userRole }: Kelola
   const { t } = useI18n()
   const router = useRouter()
   const [group, setGroup] = useState<GroupDetail>(initialGroup)
-  const [categories, setCategories] = useState<Categories[]>([])
+  /* REMOVED UNUSED LEGACY FETCH */
+  // const [categories, setCategories] = useState<Categories[]>([])
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeletingGroup, setIsDeletingGroup] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -61,25 +63,7 @@ export function KelolaGrup({ initialGroup, onUpdate, isOwner, userRole }: Kelola
     refresh: refreshGroups
   } = useGroupsData({ userId });
 
-  const fetchCategories = async () => {
-    try {
-      const res = await fetchAllCategories()
-      if (res.status === 'error') {
-        toast.error(res.message)
-        return
-      }
-
-      if (res.data) {
-        setCategories(res.data)
-      }
-    } catch {
-      toast.error("error while fetching categories")
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
+  // REMOVED: Unused fetchFunctions causing phantom requests
 
   // Form state untuk edit grup
   const [editData, setEditData] = useState({
@@ -267,7 +251,7 @@ export function KelolaGrup({ initialGroup, onUpdate, isOwner, userRole }: Kelola
       if (result.status === 'success') {
         // Update group state
         const categoryId = editData.category
-        const categoryName = categories.find((c) => c.id === categoryId)?.id || group.category?.name || ""
+        const categoryName = categoryList.find((c) => c.id === Number(categoryId))?.name || group.category?.name || ""
         const updatedGroup: GroupDetail = {
           ...group,
           name: editData.name.trim(),
@@ -293,7 +277,7 @@ export function KelolaGrup({ initialGroup, onUpdate, isOwner, userRole }: Kelola
     } finally {
       setIsSubmitting(false)
     }
-  }, [editData, group, newPhoto, onUpdate, t, categories, refreshGroups])
+  }, [editData, group, newPhoto, onUpdate, t, categoryList, refreshGroups])
 
   const handleDeleteGroup = useCallback(async () => {
     setIsDeletingGroup(true)

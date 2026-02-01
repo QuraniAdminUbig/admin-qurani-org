@@ -1,29 +1,20 @@
 "use client";
 
-import useSWR from "swr";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+/**
+ * Notifications Hook
+ * 
+ * NOTE: Supabase notifications disabled.
+ * TODO: Replace with MyQurani API notifications endpoint when available.
+ */
 
 export function useNotifications(userId?: string) {
-  // Build URL with userId parameter only
-  const apiUrl = userId
-    ? `/api/notifications?userId=${userId}`
-    : null;
-
-  const { data, error, isLoading, mutate } = useSWR(
-    apiUrl,
-    fetcher,
-    {
-      revalidateOnFocus: true,
-      dedupingInterval: 30000, // 30 detik
-      shouldRetryOnError: false, // Prevent infinite loop on 500 errors
-    }
-  );
+  // Disabled - no longer fetching from Supabase
+  // Return empty notifications without making any request
 
   return {
-    notifications: data || [],
-    loading: isLoading,
-    error,
-    refresh: mutate,
+    notifications: [],
+    loading: false,
+    error: null,
+    refresh: () => Promise.resolve([]),
   };
 }

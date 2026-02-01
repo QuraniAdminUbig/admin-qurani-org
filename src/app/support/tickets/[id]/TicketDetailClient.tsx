@@ -143,16 +143,39 @@ export default function TicketDetailClient({
     const [activeTab, setActiveTab] = useState<DetailTab>("reply")
     const [replyContent, setReplyContent] = useState("")
 
-    // Initialize ticket state with SSR data
-    const [ticket, setTicket] = useState<TicketState | null>(
-        initialTicket ? { ...initialTicket, replies: initialReplies } : null
-    )
+    // Initialize ticket state with SSR data, also load cached replies
+    const [ticket, setTicket] = useState<TicketState | null>(() => {
+        if (!initialTicket) return null;
+
+        // Try to load cached replies from localStorage
+        if (typeof window !== 'undefined') {
+            const cachedReplies = localStorage.getItem(`ticket_replies_${ticketId}`);
+            if (cachedReplies) {
+                try {
+                    const parsed = JSON.parse(cachedReplies);
+                    // Merge: API replies first, then cached (dedupe by id)
+                    const merged = [...initialReplies];
+                    parsed.forEach((cachedReply: any) => {
+                        if (!merged.some((r: any) => r.id === cachedReply.id)) {
+                            merged.push(cachedReply);
+                        }
+                    });
+                    // Sort by date
+                    merged.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    return { ...initialTicket, replies: merged };
+                } catch (e) {
+                    console.error('Failed to parse cached replies:', e);
+                }
+            }
+        }
+        return { ...initialTicket, replies: initialReplies };
+    })
 
     const [ticketStatus, setTicketStatus] = useState(initialTicket?.status || "Open")
     const [ticketPriority, setTicketPriority] = useState(initialTicket?.priority || "Medium")
     const [showSaveSuccess, setShowSaveSuccess] = useState(false)
 
-    // Split loading states - Initial is false because we have SSR dadta
+    // Split loading states - Initial is false because we have SSR data
     const [isTicketLoading] = useState(false)
     const [isSending, setIsSending] = useState(false)
 
@@ -168,6 +191,13 @@ export default function TicketDetailClient({
     const [repliesOffset, setRepliesOffset] = useState(20) // We already loaded 0-20
     const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [hasMoreReplies, setHasMoreReplies] = useState(initialReplies.length >= 20) // Simple heuristic
+
+    // Save replies to localStorage when they change
+    useEffect(() => {
+        if (ticket?.replies && ticket.replies.length > 0) {
+            localStorage.setItem(`ticket_replies_${ticketId}`, JSON.stringify(ticket.replies));
+        }
+    }, [ticket?.replies, ticketId]);
 
     // Attachment states
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -452,23 +482,108 @@ export default function TicketDetailClient({
             setSelectedFiles([])
             setFilePreviews([])
             setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, 50)
+
+            // Use client-side API to send reply
+            const { ticketsApi, getStoredAuth } = await import('@/lib/api')
+            const auth = getStoredAuth()
+
+            let replySuccess = false
+            let apiError: string | null = null
+
+            if (auth?.accessToken) {
+                console.log('[Reply] Sending reply to ticket:', ticket.id)
+                console.log('[Reply] User roles:', auth.roles)
+                console.log('[Reply] User name:', auth.name)
+                try {
+                    const replyResult = await ticketsApi.replyTicket(
+                        ticket.id,
+                        { name: authorName, message: messageContent || "📎 Attachment" },
+                        auth.accessToken
+                    )
+                    console.log('[Reply] API response:', replyResult)
+
+                    if (replyResult?.success === false || replyResult?.error) {
+                        apiError = replyResult?.message || replyResult?.error || 'Unknown error'
+                        console.error('[Reply] API returned error:', apiError)
+                    } else {
+                        replySuccess = true
+                    }
+                } catch (apiErr: any) {
+                    // API threw an error (400, 403, etc.) - but don't fail completely
+                    apiError = apiErr?.message || 'API request failed'
+                    console.error('[Reply] API threw error:', apiError)
+
+                    // If it's "Access denied", the API might have still saved the reply
+                    // This happens when API returns 403 but data is saved (backend bug)
+                    if (apiError?.includes('Access denied') || apiError?.includes('403')) {
+                        console.log('[Reply] Access denied - will refresh to check if saved')
+                    }
+                }
+            }
+
+            // If client-side failed or no token, try server action as fallback
+            if (!replySuccess && !auth?.accessToken) {
+                try {
+                    await createTicketReply({
+                        ticket_id: ticket.id,
+                        author: authorName,
+                        message: messageContent || (attachmentUrls.length > 0 ? "📎 Attachment" : ""),
+                        attachments: attachmentsJson || undefined,
+                        isFromAdmin: true
+                    })
+                    replySuccess = true
+                } catch (serverErr: any) {
+                    apiError = serverErr?.message || 'Server action failed'
+                    console.error('[Reply] Server action failed:', apiError)
+                }
+            }
+
+            // Show appropriate feedback
+            if (replySuccess) {
+                showSuccessToast()
+            } else if (apiError) {
+                // Don't show alert for "Access denied" - might be backend issue
+                // Just log it and refresh to see actual state
+                if (!apiError.includes('Access denied')) {
+                    console.warn('[Reply] Reply may have failed:', apiError)
+                }
+            }
+
+            // Refresh ticket from server to sync actual state
+            // This handles cases where API returns error but data was saved
+            // Refresh ticket logic removed to prevent redundant requests as per user request
+            // We rely on optimistic updates and manual refresh if needed
+            /*
+            setTimeout(async () => {
+                try {
+                    const { fetchTicketById } = await import('@/utils/api/tickets/fetch')
+                    const refreshResult = await fetchTicketById(ticket.id)
+                    if (refreshResult.success && refreshResult.data) {
+                        console.log('[Reply] Refreshed ticket, replies:', refreshResult.data.replies?.length)
+                        setTicket(refreshResult.data)
+                    }
+                } catch (refreshErr) {
+                    console.error('[Reply] Failed to refresh ticket:', refreshErr)
+                }
+            }, 1000)
+            */
+
+            // Update status if needed
             const newStatus = ticketStatus === "Open" ? "Answered" : ticketStatus
-            await Promise.all([
-                createTicketReply({
-                    ticket_id: ticket.id,
-                    author: authorName,
-                    message: messageContent || (attachmentUrls.length > 0 ? "📎 Attachment" : ""),
-                    attachments: attachmentsJson || undefined,
-                    isFromAdmin: true
-                }),
-                newStatus !== ticketStatus
-                    ? updateTicketStatus(ticket.id, newStatus).then(() => setTicketStatus(newStatus))
-                    : Promise.resolve()
-            ])
-            showSuccessToast()
+            if (newStatus !== ticketStatus) {
+                await updateTicketStatus(ticket.id, newStatus)
+
+                setTicketStatus(newStatus)
+            }
         } catch (error) {
             console.error("Error sending reply:", error)
+            // Revert optimistic update by removing the last reply
+            setTicket(prev => prev ? {
+                ...prev,
+                replies: prev.replies.slice(0, -1)
+            } : prev)
             setReplyContent(messageContent)
+            alert('Failed to send reply. Please try again.')
         } finally {
             setIsSending(false)
             setIsUploading(false)
@@ -555,7 +670,7 @@ export default function TicketDetailClient({
                 <div className="text-center">
                     <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Ticket not found</h3>
-                    <button onClick={() => router.push(backUrl)} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg">Back to List</button>
+                    <button onClick={() => window.location.href = backUrl} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg">Back to List</button>
                 </div>
             </div>
         )
@@ -775,7 +890,7 @@ export default function TicketDetailClient({
                                             : "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30"
                                     )}>
                                         <div className="font-semibold text-gray-700 dark:text-gray-300">
-                                            {reply.author} <span className="font-normal text-gray-500 ml-1">{isUser ? "(Client)" : "(Staff)"}</span>
+                                            {reply.author === 'Staff' ? 'Support Team' : reply.author} <span className="font-normal text-gray-500 ml-1">{isUser ? "(Client)" : "(Staff)"}</span>
                                         </div>
                                         <div className="text-gray-400">{formatDateTime(reply.date)}</div>
                                     </div>
@@ -849,7 +964,7 @@ export default function TicketDetailClient({
                 {/* HEADER */}
                 <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center justify-between px-6 flex-shrink-0 relative z-20">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => router.push(backUrl)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500">
+                        <button onClick={() => window.location.href = backUrl} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500">
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div>

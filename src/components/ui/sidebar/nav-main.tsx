@@ -293,6 +293,72 @@ export const NavMain = React.memo(function NavMain({
                         {item.items.map((subItem) => {
                           const isCurrentPageSub = pathname === subItem.url ||
                             ((subItem.url === "/grup" || subItem.url === "/groups") && (pathname.startsWith("/groups/detail/") || pathname.startsWith("/grup/detail/") || pathname.startsWith("/grup/kelola/")))
+
+                          // Check if subItem has nested items (3rd level)
+                          if (subItem.items && subItem.items.length > 0) {
+                            const hasActiveNestedItem = subItem.items.some(nestedItem => pathname === nestedItem.url)
+                            return (
+                              <Collapsible
+                                key={subItem.title}
+                                open={openMenus[`${item.title}-${subItem.title}`] || hasActiveNestedItem}
+                                onOpenChange={(isOpen) => handleOpenChange(`${item.title}-${subItem.title}`, isOpen)}
+                                className="group/nested-collapsible"
+                              >
+                                <li className="group/menu-sub-item relative">
+                                  <div className={cn(
+                                    "flex w-full h-9 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-lg px-2 text-sm transition-colors",
+                                    "hover:bg-gray-100 dark:hover:bg-gray-800",
+                                    (isCurrentPageSub || hasActiveNestedItem) && "bg-gray-100 dark:bg-gray-800 font-medium"
+                                  )}>
+                                    {/* Clickable area for navigation (icon + text) */}
+                                    <button
+                                      onClick={() => handleNavigation(subItem.url)}
+                                      className="flex items-center gap-2 flex-1 min-w-0 outline-none text-left focus-visible:ring-2 focus-visible:ring-green-500 rounded"
+                                    >
+                                      {subItem.icon && <subItem.icon className="h-4 w-4 shrink-0" />}
+                                      <span className="flex-1 truncate">{subItem.title}</span>
+                                    </button>
+                                    {/* Collapse trigger (arrow only) */}
+                                    <CollapsibleTrigger asChild>
+                                      <button
+                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <ChevronRight className="h-3 w-3 shrink-0 transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
+                                      </button>
+                                    </CollapsibleTrigger>
+                                  </div>
+                                  <CollapsibleContent>
+                                    <ul className="mx-3 flex min-w-0 translate-x-px flex-col gap-0.5 border-l border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                                      {subItem.items.map((nestedItem) => {
+                                        const isCurrentPageNested = pathname === nestedItem.url
+                                        return (
+                                          <li key={nestedItem.title} className="group/menu-nested-item relative">
+                                            <button
+                                              onClick={() => {
+                                                handleNavigation(nestedItem.url);
+                                              }}
+                                              className={cn(
+                                                "flex w-full h-8 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-xs outline-none transition-colors text-left",
+                                                "hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-green-500",
+                                                "disabled:pointer-events-none disabled:opacity-50",
+                                                isCurrentPageNested && "bg-emerald-100 dark:bg-emerald-900/30 font-medium text-emerald-700 dark:text-emerald-400"
+                                              )}
+                                            >
+                                              {nestedItem.icon && <nestedItem.icon className="h-3.5 w-3.5 shrink-0" />}
+                                              <span className="flex-1 truncate">{nestedItem.title}</span>
+                                            </button>
+                                          </li>
+                                        )
+                                      })}
+                                    </ul>
+                                  </CollapsibleContent>
+                                </li>
+                              </Collapsible>
+                            )
+                          }
+
+                          // Regular subItem without nested items
                           return (
                             <li key={subItem.title} className="group/menu-sub-item relative">
                               <button

@@ -40,7 +40,8 @@ import {
 import { createTicketReply } from "@/utils/api/tickets/insert"
 import { updateTicketStatus, updateTicketPriority } from "@/utils/api/tickets/update"
 import { useAuth } from "@/hooks/use-auth"
-import { createClient } from "@/utils/supabase/client"
+// DISABLED: Supabase realtime subscription
+// import { createClient } from "@/utils/supabase/client"
 import { fetchRegularUsers, type RegularUser } from "@/utils/api/users/fetch-users"
 import { cn } from "@/lib/utils"
 
@@ -202,6 +203,9 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
     showSuccessToast()
   }
 
+  // NOTE: Supabase realtime subscription DISABLED to eliminate Supabase requests
+  // TODO: Replace with MyQurani API websocket/polling when available
+  /*
   useEffect(() => {
     let supabase
     try {
@@ -232,6 +236,7 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
       supabase?.removeChannel(channel)
     }
   }, [ticketId, loadTicket])
+  */
 
   // Scroll to bottom on load/update
   useEffect(() => {

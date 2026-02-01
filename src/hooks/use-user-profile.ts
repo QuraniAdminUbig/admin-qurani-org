@@ -12,9 +12,20 @@ const fetcher = async (url: string): Promise<UserProfile> => {
 };
 
 export function useUserProfile(userId: string | undefined | null) {
+  // If userId is undefined/null or "me", use "me" endpoint directly
+  const endpoint = userId && userId !== "0" && userId !== "me"
+    ? `/api/profile?userId=${userId}`
+    : `/api/me`;
+
   const { data, error, isLoading, mutate } = useSWR(
-    userId ? `/api/profile?userId=${userId}` : null,
-    fetcher
+    endpoint,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 300000, // 5 minutes cache
+      errorRetryCount: 2,
+    }
   );
 
   return {

@@ -1,7 +1,15 @@
 "use server"
 
-import { createClient } from "@/utils/supabase/server"
-import { createSingleTicketNotification, updateTicketNotification } from "./notification-optimized"
+/**
+ * Tickets Insert API
+ * 
+ * This module provides ticket creation functions using the MyQurani API.
+ * Interface remains the same as before for backward compatibility.
+ */
+
+import { cookies } from 'next/headers';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_MYQURANI_API_URL || 'https://api.myqurani.com';
 
 export interface CreateTicketData {
   subject: string
@@ -13,54 +21,97 @@ export interface CreateTicketData {
   body: string
 }
 
-function generateTicketNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-  return `TKT-${timestamp}-${random}`
+// ============================================
+// Helper Functions
+// ============================================
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get('myqurani_access_token')?.value || null;
+  } catch {
+    return null;
+  }
 }
+
+// Map priority name to number for API
+function getPriorityNumber(priority?: string): number {
+  const priorityMap: Record<string, number> = {
+    'Low': 1,
+    'Medium': 2,
+    'High': 3,
+  };
+  return priorityMap[priority || 'Medium'] || 2;
+}
+
+// Map department name to number for API (placeholder - adjust as needed)
+function getDepartmentNumber(department: string): number {
+  const deptMap: Record<string, number> = {
+    'Marketing': 1,
+    'Teknis': 2,
+    'Produk': 3,
+    'Engineering': 4,
+    'Data': 5,
+    'Audio': 6,
+    'Sales': 7,
+    'Support': 8,
+  };
+  return deptMap[department] || 8; // Default to Support
+}
+
+// ============================================
+// API Functions
+// ============================================
 
 export async function createTicket(ticketData: CreateTicketData): Promise<{
   success: boolean
   data?: { id: number; ticket_number: string }
   error?: string
 }> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
   try {
-    const supabase = await createClient()
+    console.log('[createTicket] Creating ticket via API');
 
-    const ticketNumber = generateTicketNumber()
+    const response = await fetch(`${API_BASE_URL}/api/v1/tickets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        subject: ticketData.subject,
+        department: getDepartmentNumber(ticketData.department),
+        priority: getPriorityNumber(ticketData.priority),
+        message: ticketData.body,
+        name: ticketData.contact,
+      }),
+    });
 
-    const { data, error } = await supabase
-      .from("tickets")
-      .insert([
-        {
-          ticket_number: ticketNumber,
-          subject: ticketData.subject,
-          contact: ticketData.contact,
-          department: ticketData.department,
-          project: ticketData.project || null,
-          service: ticketData.service || null,
-          priority: ticketData.priority || "Medium",
-          status: "Open",
-          body: ticketData.body,
-          submitted_date: new Date().toISOString(),
-          last_reply: new Date().toISOString()
-        }
-      ])
-      .select("id, ticket_number")
-      .single()
+    const result = await response.json();
 
-    if (error) {
-      return { success: false, error: error.message }
+    if (!response.ok || !result.success) {
+      console.error('[createTicket] API error:', result);
+      return { success: false, error: result.message || 'Failed to create ticket' };
     }
 
-    // Create single notification for the ticket (async, don't block response)
-    createSingleTicketNotification(data.id).catch(err => {
-      console.error('Failed to create ticket notification:', err)
-    })
+    console.log('[createTicket] Ticket created:', result.data?.ticketKey);
 
-    return { success: true, data }
+    return {
+      success: true,
+      data: {
+        id: result.data.id,
+        ticket_number: result.data.ticketKey,
+      },
+    };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+    console.error('[createTicket] Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -71,44 +122,44 @@ export async function createTicketReply(replyData: {
   attachments?: string
   isFromAdmin?: boolean
 }): Promise<{ success: boolean; data?: { id: number }; error?: string }> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
   try {
-    const supabase = await createClient()
+    console.log('[createTicketReply] Adding reply to ticket:', replyData.ticket_id);
 
-    const { data, error } = await supabase
-      .from("ticket_replies")
-      .insert([
-        {
-          ticket_id: replyData.ticket_id,
-          author: replyData.author,
-          message: replyData.message,
-          date: new Date().toISOString(),
-          attachments: replyData.attachments || null
-        }
-      ])
-      .select("id")
-      .single()
+    const response = await fetch(`${API_BASE_URL}/api/v1/tickets/${replyData.ticket_id}/reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message: replyData.message,  // API only requires 'message' field
+      }),
+    });
 
-    if (error) {
-      return { success: false, error: error.message }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[createTicketReply] HTTP error:', response.status, errorText);
+      return { success: false, error: `HTTP ${response.status}` };
     }
 
-    // Update last_reply on ticket
-    await supabase
-      .from("tickets")
-      .update({ last_reply: new Date().toISOString() })
-      .eq("id", replyData.ticket_id)
+    const result = await response.json();
+    const replyId = result?.data?.id || result?.id || Date.now();
 
-    // Create notification ONLY once per reply (server-side only)
-    // Realtime listeners should NOT create notifications to prevent duplicates
-    // Pass isFromAdmin so notification system knows the sender role without lookup
-    updateTicketNotification(replyData.ticket_id, {
-      isFromAdmin: replyData.isFromAdmin
-    }).catch(err => {
-      console.error('Failed to update ticket notification:', err)
-    })
+    console.log('[createTicketReply] Reply added:', replyId);
 
-    return { success: true, data }
+    return {
+      success: true,
+      data: { id: replyId },
+    };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+    console.error('[createTicketReply] Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

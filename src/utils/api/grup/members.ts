@@ -1,4 +1,17 @@
-// API functions untuk mengelola anggota grup
+/**
+ * ============================================
+ * Groups Members API (LEGACY - Mock/Supabase)
+ * ============================================
+ * API Source: Mock Data + Supabase (Local Database)
+ * Status: DEPRECATED - Should migrate to MyQurani API
+ * 
+ * MyQurani Alternatives:
+ *   - groupsApi.getMembers() for listing members
+ *   - groupsApi.addMember() for adding members
+ *   - groupsApi.removeMember() for removing members
+ *   - groupsApi.updateMemberRole() for role changes
+ * ============================================
+ */
 
 import { sendGroupInviteNotification } from "../notifikasi/server";
 

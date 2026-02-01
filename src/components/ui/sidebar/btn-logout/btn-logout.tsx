@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -24,32 +23,56 @@ interface BtnLogoutProps {
     router?: AppRouterInstance
 }
 
-export const BtnLogout = React.memo(function BtnLogout({ 
-    showDialog, 
-    setShowDialog, 
-    text = "Sign Out", 
-    desc = "", 
+export const BtnLogout = React.memo(function BtnLogout({
+    showDialog,
+    setShowDialog,
+    text = "Sign Out",
+    desc = "",
     handleEvent,
     router
 }: BtnLogoutProps) {
-    // Memoized handlers for better performance
+    const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+    const { t } = useI18n()
+
+    // Direct logout handler using server-side API
+    const handleLogout = React.useCallback(async () => {
+        setIsLoggingOut(true)
+        setShowDialog(false)
+
+        try {
+            // Clear localStorage
+            localStorage.removeItem('myqurani_auth')
+            localStorage.removeItem('myqurani_access_token')
+            localStorage.removeItem('myqurani_refresh_token')
+            localStorage.removeItem('myqurani_user')
+            localStorage.removeItem('autoNotificationDismissed')
+
+            // Clear ticket cache
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('ticket_cache_') || key.startsWith('ticket_replies_')) {
+                    localStorage.removeItem(key)
+                }
+            })
+
+            // Call server-side logout API to clear httpOnly cookies
+            await fetch('/api/auth/logout', { method: 'POST' })
+
+            // Call the handleEvent for any additional cleanup
+            await handleEvent(true, router)
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+
+        // Force redirect to login page
+        window.location.href = '/login'
+    }, [handleEvent, router, setShowDialog])
+
     const handleCancel = React.useCallback(() => {
-        handleEvent(false, router)
-    }, [handleEvent, router])
-
-    const handleContinue = React.useCallback(() => {
-        localStorage.removeItem('autoNotificationDismissed')
-        handleEvent(true, router)
-    }, [handleEvent, router])
-
-    const handleOpenChange = React.useCallback((open: boolean) => {
-        setShowDialog(open)
+        setShowDialog(false)
     }, [setShowDialog])
 
-  const { t } = useI18n()
-
     return (
-        <AlertDialog open={showDialog} onOpenChange={handleOpenChange}>
+        <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
             <AlertDialogContent className="dark:bg-gray-800">
                 <AlertDialogHeader>
                     <AlertDialogTitle>{text}</AlertDialogTitle>
@@ -61,10 +84,14 @@ export const BtnLogout = React.memo(function BtnLogout({
                     <AlertDialogCancel className="cursor-pointer flex-1" onClick={handleCancel}>
                         {t('cancel')}
                     </AlertDialogCancel>
-                    <AlertDialogAction className="cursor-pointer flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleContinue} >
-                        <LogOut />
-                        {t('continue')}
-                    </AlertDialogAction>
+                    <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="cursor-pointer flex-1 bg-red-600 hover:bg-red-700 text-white inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        {isLoggingOut ? 'Logging out...' : t('continue')}
+                    </button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

@@ -4,17 +4,36 @@ import { useAuthContext } from "@/components/providers/auth-provider";
 
 // Re-export hook to maintain compatibility with existing components
 export function useAuth() {
-  const { user, profile, loading, error, signOut, refreshProfile } = useAuthContext();
+  const {
+    user,
+    profile,
+    customUser,
+    userId,
+    authId,
+    loading,
+    error,
+    signOut,
+    isAuthenticated,
+    refreshProfile,
+  } = useAuthContext();
 
   return {
     user,
     profile,
-    userId: profile?.id, // XID relasi
-    authId: user?.id, // UUID auth
+    userId,
+    authId,
     loading,
     error,
     signOut,
-    isAuthenticated: !!user,
+    isAuthenticated,
     refreshProfile,
+    // For backward compatibility
+    myquraniUser: customUser ? {
+      id: Number(customUser.userId),
+      email: customUser.email,
+      name: customUser.name,
+      role: 'member',
+    } : null,
+    isMyQuraniAuth: !!customUser,
   };
 }

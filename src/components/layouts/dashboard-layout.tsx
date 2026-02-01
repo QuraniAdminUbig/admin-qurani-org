@@ -69,8 +69,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Badge MUNCUL LAGI jika ada notifikasi baru masuk
   const showMobileBadge = useMemo(() => unreadCount > 0 && !isOnNotificationsPage && !hasVisitedNotifications, [unreadCount, isOnNotificationsPage, hasVisitedNotifications])
 
-  // Show loading only while checking session, not when profile is missing
-  // Profile might not exist for new users who need to go to /required page
+  // Handle redirect for unauthenticated users
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [loading, isAuthenticated, router]);
+
+  // Show loading only while checking session
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -79,8 +85,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     )
   }
 
+  // Show loading while redirecting to login
   if (!isAuthenticated) {
-    router.push("/login")
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>

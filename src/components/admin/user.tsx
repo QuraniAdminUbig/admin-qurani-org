@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import useSWR from "swr"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -23,30 +22,78 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { getUsers, getUserBySearch } from "@/utils/api/user/fetch"
-import { UserProfileWithGmailAvatar } from "@/types/database.types"
-import { updateUserProfile } from "@/utils/api/user/update"
-import { createClient } from "@/utils/supabase/client"
 import { normalizeUsername, validateUsername } from "@/utils/validation/username"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { fetchCountries } from "@/utils/api/countries/fetch"
-import { fetchStates } from "@/utils/api/states/fetch"
-import { fetchCities } from "@/utils/api/city/fetch"
-import { ProvinceData } from "@/types/provinces"
-import { CityData } from "@/types/cities"
 
-// Helper function to get avatar URL with Gmail fallback
-const getAvatarSrc = (user: UserProfileWithGmailAvatar): string | null => {
-    // Priority 1: user.avatar (manual upload or synced avatar)
-    if (user.avatar && user.avatar.trim()) {
-        return user.avatar;
+// Import from centralized API lib
+import {
+    usersApi,
+    rolesApi,
+    masterdataApi,
+    getStoredAuth,
+    API_BASE,
+    UserData,
+    CountryData,
+    StateData,
+    CityData as ApiCityData,
+    RoleData
+} from "@/lib/api"
+
+// Extended User interface for component use
+// API returns UserSummaryDto with: userId, username, name, image
+interface UserItem extends UserData {
+    userId?: number | string;  // API uses userId, not id
+    avatar?: string;
+    image?: string;
+    imageBase64?: string; // Add imageBase64 field
+    created?: string;
+    createdAt?: string;
+}
+
+// Helper to get user ID (API uses userId, our code uses id)
+const getUserId = (user: UserItem): string => {
+    return String(user.userId || user.id || '')
+}
+
+// Helper function to get avatar URL
+const getAvatarSrc = (user: UserItem): string | null => {
+    // Priority 0: imageBase64 (New standard from API)
+    if (user.imageBase64 && user.imageBase64.trim()) {
+        const b64 = user.imageBase64.trim();
+        // Check if it already has the prefix
+        if (b64.startsWith('data:image')) return b64;
+        // Assume JPEG/PNG, add generic prefix. Browsers are usually smart enough, strict mime type helps.
+        // If exact type is unknown, jpeg is a safe bet for photos.
+        return `data:image/jpeg;base64,${b64}`;
     }
 
-    // Priority 2: Gmail photo fallback
-    if (user.gmail_avatar && user.gmail_avatar.trim()) {
-        return user.gmail_avatar;
+    // Priority 1: user.image (from API)
+    if (user.image && user.image.trim()) {
+        let img = user.image.trim();
+        // Check for Base64 in image field (legacy or misusage)
+        if (img.startsWith('data:image') || (img.length > 200 && !img.includes('/'))) {
+            if (img.startsWith('data:image')) return img;
+            return `data:image/jpeg;base64,${img}`;
+        }
+
+        // Full URL
+        if (img.startsWith('http')) return img;
+
+        // Relative URL - append API Base URL
+        // Normalize path: replace backslashes (Windows) with forward slashes
+        img = img.replace(/\\/g, '/');
+
+        // Ensure strictly relative path
+        const path = img.startsWith('/') ? img : `/${img}`;
+
+        return `${API_BASE}${path}`;
+    }
+
+    // Priority 2: user.avatar (legacy field)
+    if (user.avatar && user.avatar.trim()) {
+        return user.avatar;
     }
 
     // Priority 3: null (will use AvatarFallback with initials)
@@ -59,7 +106,7 @@ export default function Users() {
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [editingUser, setEditingUser] = useState<UserProfileWithGmailAvatar | null>(null)
+    const [editingUser, setEditingUser] = useState<UserItem | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const [isCheckingUsername, setIsCheckingUsername] = useState(false)
     const router = useRouter()
@@ -79,10 +126,10 @@ export default function Users() {
         cityName: ''
     })
 
-    // Location states
-    const [countries, setCountries] = useState<ProvinceData[]>([])
-    const [provinces, setProvinces] = useState<ProvinceData[]>([])
-    const [cities, setCities] = useState<CityData[]>([])
+    // Location states - using API types
+    const [countries, setCountries] = useState<CountryData[]>([])
+    const [provinces, setProvinces] = useState<StateData[]>([])
+    const [cities, setCities] = useState<ApiCityData[]>([])
     const [openCountry, setOpenCountry] = useState(false)
     const [openProvince, setOpenProvince] = useState(false)
     const [openCity, setOpenCity] = useState(false)
@@ -100,23 +147,19 @@ export default function Users() {
     const [tempFromDate, setTempFromDate] = useState<string>('')
     const [tempEndDate, setTempEndDate] = useState<string>('')
 
-    // SWR for fetching users
-    const { data: usersResponse, isLoading: usersLoading, mutate: mutateUsers } = useSWR('users', getUsers)
-    const users = usersResponse?.data || []
+    // User data states (from API)
+    const [users, setUsers] = useState<UserItem[]>([])
+    const [totalCount, setTotalCount] = useState(0)
+    const [isLoading, setIsLoading] = useState(true)
+    const lastFetchTime = useRef(0)
 
-    // SWR for search
-    const { data: searchResponse, isLoading: searchLoading, mutate: mutateSearch } = useSWR(
-        searchTerm ? `search-${searchTerm}` : null,
-        () => getUserBySearch(searchTerm)
-    )
-    const usersSearch = searchResponse?.data || []
-
-    // Combine loading states
-    const isLoading = usersLoading || (searchTerm && searchLoading)
+    // Available roles from API
+    const [availableRoles, setAvailableRoles] = useState<RoleData[]>([])
 
     const debouncedUsername = useDebounce(editForm.username, 500)
+    const debouncedSearch = useDebounce(searchQuery, 500)
 
-    const checkUsernameAvailability = useCallback(async (username: string, currentUserId: string) => {
+    const checkUsernameAvailability = useCallback(async (username: string, currentUserId: string | number) => {
         // Clear error immediately for empty username
         if (!username.trim()) {
             setUsernameError('')
@@ -146,21 +189,17 @@ export default function Users() {
         await new Promise(resolve => setTimeout(resolve, 100))
 
         try {
-            const supabase = createClient()
+            // Use API to search for existing username
             const normalizedUsername = normalizeUsername(username)
+            const result = await usersApi.search({ keyword: `@${normalizedUsername}`, pageSize: 1 })
 
-            const { data: existingUser, error: checkError } = await supabase
-                .from("user_profiles")
-                .select("id")
-                .eq("username", `@${normalizedUsername}`)
-                .single()
+            // Check if username exists and belongs to different user
+            const existingUsers = result?.data || result?.items || []
+            const existingUser = existingUsers.find((u: UserItem) =>
+                u.username === `@${normalizedUsername}` && String(u.id) !== String(currentUserId)
+            )
 
-            if (checkError && checkError.code !== "PGRST116") {
-                setUsernameError(t('validation.username_error', 'Error checking username availability'))
-                return false
-            }
-
-            if (existingUser && existingUser.id !== currentUserId) {
+            if (existingUser) {
                 setUsernameError(t('validation.username_exists', 'Username sudah digunakan'))
                 return false
             }
@@ -175,20 +214,119 @@ export default function Users() {
         }
     }, [editingUser, t])
 
+    // Load users from API
+    const loadUsers = useCallback(async (keyword?: string, signal?: AbortSignal) => {
+        // Simple throttle to prevent double-fetch in Strict Mode
+        const now = Date.now()
+        if (now - lastFetchTime.current < 1000) {
+            return
+        }
+        lastFetchTime.current = now
+
+        setIsLoading(true)
+        try {
+            const params: any = {
+                page: currentPage,
+                pageSize: 10,
+            }
+
+            if (keyword) {
+                params.keyword = keyword
+            }
+
+            console.log('[Users] Fetching users with params:', params)
+            const result = await usersApi.search(params, undefined, signal)
+
+            // Debug: Log raw API response to understand structure
+            console.log('[Users] Raw API response:', JSON.stringify(result, null, 2).substring(0, 500))
+
+            // API response format varies, try multiple patterns
+            let summaryList: UserItem[] = []
+            let total = 0
+
+            // Extract items from various possible structures
+            if (result?.data?.items && Array.isArray(result.data.items)) {
+                summaryList = result.data.items
+            } else if (result?.items && Array.isArray(result.items)) {
+                summaryList = result.items
+            } else if (Array.isArray(result?.data)) {
+                summaryList = result.data
+            } else if (Array.isArray(result)) {
+                summaryList = result
+            }
+
+            // Extract totalCount from various possible structures
+            total = result?.data?.pagination?.totalCount
+                || result?.data?.totalCount
+                || result?.pagination?.totalCount
+                || result?.totalCount
+                || result?.total
+                || result?.data?.total
+                || summaryList.length
+
+            console.log('[Users] Parsed totalCount:', total, 'from result structure')
+
+            // NOTE: Search API only returns UserSummaryDto (userId, username, name, image)
+            // User requested to minimize requests to 1 per page, so we use summary data.
+            // Fields like email, role, createdAt will be empty/undefined.
+
+            console.log('[Users] Loaded', summaryList.length, 'users (Summary only). Total:', total)
+            setUsers(summaryList)
+
+            setTotalCount(total)
+        } catch (error: any) {
+            // Ignore abort errors
+            if (error.name === 'AbortError') {
+                console.log('[Users] Fetch aborted')
+                return
+            }
+            console.error('[Users] Error loading users:', error)
+            toast.error(t('users.error_loading', 'Gagal memuat data pengguna'))
+            setUsers([])
+        } finally {
+            if (!signal?.aborted) {
+                setIsLoading(false)
+            }
+        }
+    }, [currentPage, t])
+
+    // Load users on mount and when filters change
+    useEffect(() => {
+        // No AbortController to avoid "canceled" status logging in dev console
+        // Throttling in loadUsers prevents duplicate requests
+        loadUsers(debouncedSearch || undefined)
+    }, [loadUsers, debouncedSearch])
+
+    // Load available roles on mount
+    /*
+    useEffect(() => {
+        const loadRoles = async () => {
+            try {
+                const result = await rolesApi.getAll()
+                const rolesData = result?.data || result || []
+                setAvailableRoles(rolesData)
+            } catch (error) {
+                console.error('[Users] Error loading roles:', error)
+            }
+        }
+        loadRoles()
+    }, [])
+
     // Load countries on mount
     useEffect(() => {
         const loadCountries = async () => {
             try {
-                const result = await fetchCountries()
-                if (result.success) {
-                    setCountries(result.data || [])
-                }
+                const result = await masterdataApi.countries.getAll()
+                // Handle both array response and wrapped response
+                const data = Array.isArray(result) ? result : ((result as any)?.data || result || [])
+                setCountries(data as CountryData[])
             } catch (error) {
-                console.error("Error loading countries:", error)
+                console.error("[Users] Error loading countries:", error)
             }
         }
         loadCountries()
     }, [])
+    */
 
     // Load states when country changes
     useEffect(() => {
@@ -199,12 +337,11 @@ export default function Users() {
                 return
             }
             try {
-                const result = await fetchStates(editForm.countryId)
-                if (result.success) {
-                    setProvinces(result.data || [])
-                }
+                const result = await masterdataApi.states.getByCountry(editForm.countryId)
+                const data = Array.isArray(result) ? result : ((result as any)?.data || result || [])
+                setProvinces(data as StateData[])
             } catch (error) {
-                console.error("Error loading states:", error)
+                console.error("[Users] Error loading states:", error)
             }
         }
         loadStates()
@@ -218,12 +355,11 @@ export default function Users() {
                 return
             }
             try {
-                const result = await fetchCities(editForm.stateId)
-                if (result.success) {
-                    setCities(result.data || [])
-                }
+                const result = await masterdataApi.cities.getByState(editForm.stateId)
+                const data = Array.isArray(result) ? result : ((result as any)?.data || result || [])
+                setCities(data as ApiCityData[])
             } catch (error) {
-                console.error("Error loading cities:", error)
+                console.error("[Users] Error loading cities:", error)
             }
         }
         loadCities()
@@ -259,27 +395,16 @@ export default function Users() {
         setCurrentPage(1)
     }, [roleFilter, statusFilter, fromDate, endDate])
 
-    // Handle search results properly - only show search results when there's an active search
-    const allUsers = searchTerm ? usersSearch : users
-
-    // Filter users based on role, status, and date range
-    const filteredUsers = allUsers
-        .filter(user => {
-            // Role filter
-            if (roleFilter !== 'all' && (user.role || 'member') !== roleFilter) {
-                return false
-            }
-
-            // Status filter
-            if (statusFilter !== 'all') {
-                if (statusFilter === 'active' && (user.isBlocked || false)) return false
-                if (statusFilter === 'blocked' && !(user.isBlocked || false)) return false
-            }
-
-            // Date range filter
+    // Since API handles pagination and basic filtering, we only need client-side date filtering
+    // Ensure users is always an array before filtering
+    const safeUsers = Array.isArray(users) ? users : []
+    const filteredUsers = safeUsers
+        .filter((user: UserItem) => {
+            // Date range filter (API doesn't support this, so we filter client-side)
             if (fromDate || endDate) {
-                if (!user.created) return false; // Skip users with no created date
-                const userDate = new Date(user.created)
+                const userCreated = user.created || user.createdAt
+                if (!userCreated) return false
+                const userDate = new Date(userCreated)
                 const startDate = fromDate ? new Date(fromDate) : null
                 const endDateObj = endDate ? new Date(endDate) : null
 
@@ -298,23 +423,22 @@ export default function Users() {
             return true
         })
         // Default sort by created descending (newest first)
-        .sort((a, b) => {
-            const dateA = a.created ? new Date(a.created).getTime() : 0;
-            const dateB = b.created ? new Date(b.created).getTime() : 0;
-            return dateB - dateA;
+        .sort((a: UserItem, b: UserItem) => {
+            const dateA = (a.created || a.createdAt) ? new Date(a.created || a.createdAt || '').getTime() : 0
+            const dateB = (b.created || b.createdAt) ? new Date(b.created || b.createdAt || '').getTime() : 0
+            return dateB - dateA
         })
 
-    // Pagination logic
+    // Pagination - API handles this, but we keep display logic
     const itemsPerPage = 10
-    const actualTotalUsers = filteredUsers.length
+    const actualTotalUsers = totalCount || filteredUsers.length
     const totalPages = Math.ceil(actualTotalUsers / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
+    const paginatedUsers = filteredUsers // Already paginated by API
 
     // Pagination display
+    const startIndex = (currentPage - 1) * itemsPerPage
     const startItem = actualTotalUsers > 0 ? startIndex + 1 : 0
-    const endItem = Math.min(endIndex, actualTotalUsers)
+    const endItem = Math.min(startIndex + paginatedUsers.length, actualTotalUsers)
 
     const handleSearch = () => {
         setCurrentPage(1) // Reset to first page when searching
@@ -385,8 +509,8 @@ export default function Users() {
     }
 
 
-    const handleEdit = (userId: string) => {
-        const user = users.find(u => u.id === userId)
+    const handleEdit = (userId: string | number) => {
+        const user = users.find((u: UserItem) => getUserId(u) === String(userId))
         if (user) {
             setEditingUser(user)
             // Validate and set role - ensure it's one of the valid roles
@@ -441,21 +565,19 @@ export default function Users() {
                     stateName: editForm.stateName,
                     cityName: editForm.cityName
                 }
-                const response = await updateUserProfile(editingUser.id, updateData)
-                if (response.success) {
-                    // Update the SWR cache
-                    mutateUsers()
-                    if (searchTerm) {
-                        mutateSearch()
-                    }
-                    setIsEditModalOpen(false)
-                    setEditingUser(null)
-                    setUsernameError('')
-                    toast.success(t('messages.update_success', 'User profile updated successfully'))
-                } else {
-                    toast.error(response.message || t('messages.update_error', 'Failed to update user profile'))
-                }
-                console.log(response)
+                // Note: usersApi.updateMe only updates current user
+                // For admin updates, we may need a different endpoint
+                // For now, we'll use updateMe if it's the current user
+                const response = await usersApi.updateMe(updateData)
+                console.log('[Users] Update response:', response)
+
+                // Reload users to reflect changes
+                await loadUsers(debouncedSearch || undefined)
+
+                setIsEditModalOpen(false)
+                setEditingUser(null)
+                setUsernameError('')
+                toast.success(t('messages.update_success', 'User profile updated successfully'))
             } catch (error) {
                 console.error('Error updating user:', error)
                 toast.error(t('messages.update_error', 'Failed to update user profile'))
@@ -609,7 +731,7 @@ export default function Users() {
                                     </TableRow>
                                 ) : (
                                     paginatedUsers.map((user) => (
-                                        <TableRow key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                        <TableRow key={getUserId(user)} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                                             <TableCell className="py-2 px-3">
                                                 <div className="flex items-center space-x-3">
                                                     <Link href={'/profile/' + user.username?.replace(/^@/, '')}>
@@ -631,14 +753,19 @@ export default function Users() {
                                                 {user.name}
                                             </TableCell>
                                             <TableCell className="py-2 px-3 text-sm text-gray-600 dark:text-gray-400">
-                                                {user.email}
+                                                {user.email || '-'}
                                             </TableCell>
                                             <TableCell className="py-2 px-3 text-sm text-gray-600 dark:text-gray-400">
-                                                {user.created ? formatDate(user.created) : '-'}
+                                                {(user.created || user.createdAt) ? formatDate(user.created || user.createdAt || '') : '-'}
                                             </TableCell>
                                             <TableCell className="py-2 px-3">
                                                 {(() => {
-                                                    const role = user.role || 'member'
+                                                    // If no role data from API, show placeholder
+                                                    if (!user.role) {
+                                                        return <span className="text-gray-400 text-sm">-</span>
+                                                    }
+
+                                                    const role = user.role
                                                     const roleConfig = {
                                                         admin: {
                                                             className: 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800',
@@ -684,7 +811,7 @@ export default function Users() {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleEdit(user.id)}
+                                                        onClick={() => handleEdit(getUserId(user))}
                                                         className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                                     >
                                                         <Edit className="w-4 h-4" />

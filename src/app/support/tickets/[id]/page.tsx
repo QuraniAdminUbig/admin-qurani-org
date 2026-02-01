@@ -1,37 +1,153 @@
+'use client';
+
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import TicketDetailClient from "./TicketDetailClient"
-import { fetchTicketHeaderById, fetchTicketRepliesPage, fetchRelatedTickets } from "@/utils/api/tickets/fetch"
-import { fetchRegularUsers } from "@/utils/api/users/fetch-users"
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 
-export default async function TicketDetailRoute({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params
-    const idInt = parseInt(id)
+export default function TicketDetailRoute() {
+    const params = useParams();
+    const ticketId = params?.id as string;
 
-    // Data Fetching in Parallel (SSR)
-    const [ticketHeaderResult, repliesResult, relatedResult, usersResult] = await Promise.all([
-        fetchTicketHeaderById(idInt),
-        fetchTicketRepliesPage(idInt, 20, 0), // Fetch first 20 replies
-        fetchRelatedTickets(idInt),
-        fetchRegularUsers()
-    ])
+    const [initialTicket, setInitialTicket] = useState<any>(null);
+    const [initialReplies, setInitialReplies] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const initialTicket = (ticketHeaderResult.success && ticketHeaderResult.data) || null
-    const initialReplies = repliesResult.success && repliesResult.data ? repliesResult.data : []
-    const initialRelatedTickets = relatedResult.success && relatedResult.data ? relatedResult.data : []
-    const initialUsers = usersResult.users || []
+    useEffect(() => {
+        const controller = new AbortController();
+
+        async function loadTicketData() {
+            const { ticketsApi, getStoredAuth } = await import('@/lib/api');
+            const auth = getStoredAuth();
+
+            if (!auth?.accessToken) {
+                console.error('No auth token');
+                setIsLoading(false);
+                return;
+            }
+
+            // Try to get ticket from localStorage first
+            const cachedTicket = localStorage.getItem(`ticket_cache_${ticketId}`);
+            let ticketData: any = null;
+
+            if (cachedTicket) {
+                try {
+                    const parsedTicket = JSON.parse(cachedTicket);
+                    setInitialTicket(parsedTicket);
+                    ticketData = parsedTicket;
+                } catch (e) {
+                    console.error('Failed to parse cached data:', e);
+                }
+            }
+
+            // Department mapping
+            const departmentMap: Record<string, string> = {
+                '1': 'TECHNICAL', '2': 'BILLING', '3': 'SALES', '4': 'GENERAL', '5': 'SUPPORT',
+            };
+
+            // Try to fetch ticket detail with replies from API
+            // We'll try multiple endpoints in case one fails
+            let apiData: any = null;
+
+            // Method 1: Try /api/v1/tickets/{id} (admin endpoint)
+            try {
+                const result = await ticketsApi.getTicketById(ticketId, auth.accessToken, { signal: controller.signal });
+
+                if (result?.data || (result && !result.error)) {
+                    apiData = result?.data || result;
+                }
+            } catch (e1) {
+                // Ignore initial error, will try my ticket endpoint next
+            }
+
+            // Method 2: Try /api/v1/tickets/my/{id} (user's own ticket)
+            if ((!apiData || !apiData.id) && !controller.signal.aborted) {
+                try {
+                    const result = await ticketsApi.getMyTicketById(ticketId, auth.accessToken, { signal: controller.signal });
+
+                    if (result?.data || (result && !result.error)) {
+                        apiData = result?.data || result;
+                    }
+                } catch (e2) {
+                    // Both methods failed
+                }
+            }
+
+            if (controller.signal.aborted) return;
+
+            // Process API data if we got it
+            if (apiData && apiData.id) {
+                // Build ticket object from API response
+                const ticket = {
+                    id: apiData.id,
+                    ticket_number: apiData.ticketKey || `#${apiData.id}`,
+                    subject: apiData.subject,
+                    contact: apiData.name || apiData.email || ticketData?.contact || 'Unknown',
+                    department: departmentMap[String(apiData.department)] || ticketData?.department || 'GENERAL',
+                    project: null,
+                    service: null,
+                    priority: apiData.priorityName || ticketData?.priority || 'Medium',
+                    status: apiData.statusName || ticketData?.status || 'Open',
+                    last_reply: apiData.lastReply,
+                    submitted_date: apiData.date,
+                    body: apiData.message || ticketData?.body || null,
+                };
+                setInitialTicket(ticket);
+
+                // Extract replies from API response
+                const replies = apiData.replies || [];
+
+                // Convert API replies to our format
+                const formattedReplies = replies.map((r: any) => ({
+                    id: r.id,
+                    ticket_id: ticketId,
+                    author: r.name || r.email || (r.isStaffReply ? 'Staff' : 'User'),
+                    message: r.message || '',
+                    date: r.date || r.createdAt,
+                    attachments: r.attachments ? JSON.stringify(r.attachments.map((a: any) => a.url || a)) : null,
+                }));
+
+                setInitialReplies(formattedReplies);
+            } else {
+                // Fallback Removed: No longer fetching full list to find ticket (avoids 'api lama' heavy request)
+                if (!ticketData) {
+                    console.log('[TicketDetail] Could not load ticket details');
+                }
+            }
+
+            setIsLoading(false);
+        }
+
+        if (ticketId) {
+            loadTicketData();
+        }
+
+        return () => controller.abort();
+    }, [ticketId]);
+
+    if (isLoading) {
+        return (
+            <DashboardLayout>
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout>
             <I18nProvider namespaces={["support"]}>
                 <TicketDetailClient
-                    ticketId={id}
+                    ticketId={ticketId}
                     initialTicket={initialTicket}
                     initialReplies={initialReplies}
-                    initialRelatedTickets={initialRelatedTickets}
-                    initialUsers={initialUsers}
+                    initialRelatedTickets={[]}
+                    initialUsers={[]}
                 />
             </I18nProvider>
         </DashboardLayout>
     )
 }
+

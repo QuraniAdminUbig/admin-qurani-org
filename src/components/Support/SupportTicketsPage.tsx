@@ -41,7 +41,8 @@ import Link from "next/link"
 import { fetchTickets, fetchTicketStats, type TicketListItem } from "@/utils/api/tickets/fetch"
 import { bulkUpdateTickets } from "@/utils/api/tickets/update"
 import { bulkDeleteTickets } from "@/utils/api/tickets/delete"
-import { createClient } from "@/utils/supabase/client"
+// DISABLED: Supabase realtime subscriptions
+// import { createClient } from "@/utils/supabase/client"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/hooks/use-translation"
 
@@ -100,104 +101,237 @@ export default function SupportTicketsPage() {
     closed: 0
   })
 
-  const loadTickets = useCallback(async () => {
+  const loadTickets = useCallback(async (signal?: AbortSignal, forceRefresh: boolean = false) => {
+    // Use a static cache key for initial/default view (no filters)
+    const isDefaultView = currentPage === 1 && statusFilters.length === 0 && priorityFilters.length === 0 && !searchQuery;
+    const cacheKey = isDefaultView
+      ? 'tickets_cache_default'
+      : `tickets_cache_${currentPage}_${statusFilters.join(',')}_${priorityFilters.join(',')}_${searchQuery}`;
+
+    // Try to use cached data if not forcing refresh
+    // DISABLED CACHE: Always fetch fresh data to show request in network tab
+    /*
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        console.log('[Tickets] Checking cache:', cacheKey, '| Found:', !!cached);
+        if (cached) {
+          const { tickets: cachedTickets, totalCount: cachedTotal, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+          // Cache valid for 5 minutes (300000ms) - Allow empty lists
+          if (age < 300000) {
+            console.log('[Tickets] Using cached data, age:', Math.round(age / 1000), 'sec, count:', cachedTickets?.length);
+            setTickets(cachedTickets || []);
+            setTotalCount(cachedTotal || 0);
+            setIsLoading(false);
+            return;
+          } else {
+            console.log('[Tickets] Cache expired, age:', Math.round(age / 1000), 'sec');
+          }
+        }
+      } catch (e) {
+        console.error('[Tickets] Cache read error:', e);
+      }
+    }
+    */
+
+    console.log('[Tickets] Fetching from API...', { currentPage, statusFilters, priorityFilters, searchQuery });
     setIsLoading(true)
     try {
       const singleStatus = statusFilters.length === 1 ? statusFilters[0] : undefined
       const singlePriority = priorityFilters.length === 1 ? priorityFilters[0] : undefined
-      const singleDepartment = departmentFilters.length === 1 ? departmentFilters[0] : undefined
 
       const limit = itemsPerPage
       const offset = (currentPage - 1) * limit
+      const page = currentPage
 
-      // PARALLEL Fetch for speed
-      const [result, statsResult] = await Promise.all([
-        fetchTickets({
-          status: singleStatus,
-          priority: singlePriority,
-          department: singleDepartment,
-          search: searchQuery || undefined,
-          limit,
-          offset,
-          startDate: dateRange.start || undefined,
-          endDate: dateRange.end || undefined
-        }),
-        fetchTicketStats() // Refresh stats to stay accurate
-      ])
+      // Try client-side API first (uses localStorage tokens like My-Qurani example)
+      try {
+        const { ticketsApi, getStoredAuth } = await import('@/lib/api');
+        const auth = getStoredAuth();
 
-      if (result.success && result.data) {
-        setTickets(result.data)
-        setTotalCount(result.totalCount || 0)
-      } else {
-        console.error("Failed to fetch tickets:", result.error)
-        setTickets([])
-        setTotalCount(0)
+        if (auth?.accessToken) {
+          // Map status name to number
+          const statusMap: Record<string, number> = {
+            'Open': 1, 'In Progress': 2, 'Answered': 3, 'On Hold': 4, 'Closed': 5
+          };
+          const priorityMap: Record<string, number> = {
+            'Low': 1, 'Medium': 2, 'High': 3
+          };
+
+          const params = {
+            page,
+            pageSize: limit,
+            status: singleStatus ? statusMap[singleStatus] : undefined,
+            priority: singlePriority ? priorityMap[singlePriority] : undefined,
+          };
+
+          // Department mapping (ID → Name) - API returns string IDs
+          const departmentMap: Record<string, string> = {
+            '1': 'TECHNICAL',
+            '2': 'BILLING',
+            '3': 'SALES',
+            '4': 'GENERAL',
+            '5': 'SUPPORT',
+          };
+
+          // Format date for display (e.g., "21/Dec/2024 06:00")
+          const formatLastReply = (dateStr: string | null): string => {
+            if (!dateStr) return '-';
+            try {
+              const date = new Date(dateStr);
+              if (isNaN(date.getTime())) return '-';
+              const day = date.getDate().toString().padStart(2, '0');
+              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const month = months[date.getMonth()];
+              const year = date.getFullYear();
+              const hours = date.getHours().toString().padStart(2, '0');
+              const mins = date.getMinutes().toString().padStart(2, '0');
+              return `${day}/${month}/${year} ${hours}:${mins}`;
+            } catch {
+              return '-';
+            }
+          };
+
+          // Helper to convert API response to local format
+          const convertTickets = (data: any) => {
+            const ticketData = Array.isArray(data) ? data : (data.data || data || []);
+            return ticketData.map((t: any) => ({
+              id: t.id,
+              ticket_number: t.ticketKey || `#${t.id}`,
+              subject: t.subject,
+              contact: t.name || t.email || 'Unknown',
+              department: departmentMap[String(t.department)] || 'GENERAL',
+              project: null,
+              service: null,
+              priority: t.priorityName || 'Medium',
+              status: t.statusName || 'Open',
+              last_reply: formatLastReply(t.lastReply),
+              submitted_date: t.date,
+              body: t.message || null,
+            }));
+          };
+
+          // Try /api/v1/tickets first (admin endpoint - all tickets)
+          let result = await ticketsApi.getTickets(
+            { ...params, keyword: searchQuery || undefined },
+            auth.accessToken,
+            { signal }
+          );
+
+          // API response format: { success, data: { items: [...], totalCount, ... } }
+          let responseData = result?.data || result;
+          // Check for items array (MyQurani API format), then data array, then direct array
+          let tickets = responseData?.items || responseData?.data || (Array.isArray(responseData) ? responseData : []);
+          let total = responseData?.totalCount || tickets.length;
+
+          // If no tickets from admin endpoint, try /api/v1/tickets/my (user's own tickets)
+          if (tickets.length === 0 && (!signal || !signal.aborted)) {
+            try {
+              result = await ticketsApi.getMyTickets(params, auth.accessToken, { signal });
+              responseData = result?.data || result;
+              tickets = responseData?.items || responseData?.data || (Array.isArray(responseData) ? responseData : []);
+              total = responseData?.totalCount || tickets.length;
+            } catch (myTicketsError) {
+              // Ignore
+            }
+          }
+
+          if (signal?.aborted) return;
+
+          // Always save to cache (even if empty) to prevent refetching
+          const convertedTickets = tickets.length > 0 ? convertTickets(tickets) : [];
+
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({
+              tickets: convertedTickets,
+              totalCount: total,
+              timestamp: Date.now()
+            }));
+            console.log('[Tickets] Saved to cache:', cacheKey, '| count:', convertedTickets.length);
+          } catch (e) {
+            console.error('[Tickets] Cache write error:', e);
+          }
+
+          if (tickets.length > 0) {
+            setTickets(convertedTickets);
+            setTotalCount(total);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (clientError) {
+        console.error('[Tickets] Client API failed:', clientError);
       }
 
-      if (statsResult.success && statsResult.data) {
-        setStatusCounts({
-          all: statsResult.data.total,
-          open: statsResult.data.open,
-          in_progress: statsResult.data.in_progress,
-          answered: statsResult.data.answered,
-          on_hold: statsResult.data.on_hold,
-          closed: statsResult.data.closed
-        })
-      }
+      if (signal?.aborted) return;
+
+      // Only set empty if client API didn't find tickets
+      setTickets([]);
+      setTotalCount(0);
 
     } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') return;
       console.error("Error loading tickets:", error)
     } finally {
-      setIsLoading(false)
+      if (!signal?.aborted) setIsLoading(false)
     }
-  }, [priorityFilters, searchQuery, statusFilters, departmentFilters, dateRange, currentPage, itemsPerPage])
+  }, [priorityFilters, searchQuery, statusFilters, currentPage, itemsPerPage])
 
-  // Silent reload for background updates (no loading state)
+  // Silent reload for background updates - just call loadTickets
   const loadTicketsSilently = useCallback(async () => {
-    try {
-      const singleStatus = statusFilters.length === 1 ? statusFilters[0] : undefined
-      const singlePriority = priorityFilters.length === 1 ? priorityFilters[0] : undefined
-      const singleDepartment = departmentFilters.length === 1 ? departmentFilters[0] : undefined
+    await loadTickets();
+  }, [loadTickets]);
 
-      const limit = itemsPerPage
-      const offset = (currentPage - 1) * limit
+  const isLoadingRef = useRef(false);
 
-      const [result, statsResult] = await Promise.all([
-        fetchTickets({
-          status: singleStatus,
-          priority: singlePriority,
-          department: singleDepartment,
-          search: searchQuery || undefined,
-          limit,
-          offset,
-          startDate: dateRange.start || undefined,
-          endDate: dateRange.end || undefined
-        }),
-        fetchTicketStats()
-      ])
-
-      if (result.success && result.data) {
-        setTickets(result.data)
-        setTotalCount(result.totalCount || 0)
-      }
-
-      if (statsResult.success && statsResult.data) {
-        setStatusCounts({
-          all: statsResult.data.total,
-          open: statsResult.data.open,
-          in_progress: statsResult.data.in_progress,
-          answered: statsResult.data.answered,
-          on_hold: statsResult.data.on_hold,
-          closed: statsResult.data.closed
-        })
-      }
-    } catch (error) {
-      console.error("Error loading tickets silently:", error)
-    }
-  }, [priorityFilters, searchQuery, statusFilters, departmentFilters, currentPage, itemsPerPage, dateRange])
   useEffect(() => {
-    loadTickets()
-  }, [loadTickets])
+    const controller = new AbortController();
+
+    // Prevent duplicate calls
+    if (isLoadingRef.current) return;
+
+    // Only auto-load on mount or when filters change
+    const load = async () => {
+      isLoadingRef.current = true;
+      await loadTickets(controller.signal);
+      isLoadingRef.current = false;
+    };
+
+    load();
+
+    return () => {
+      controller.abort();
+      isLoadingRef.current = false;
+    };
+  }, [statusFilters, priorityFilters, departmentFilters, searchQuery, currentPage, dateRange, loadTickets]);
+
+  // NOTE: Stats loading DISABLED to reduce API requests (6 calls per load)
+  // Stats will show as 0 - re-enable when a single stats endpoint is available
+  /*
+  // Load stats only once on mount (separate from ticket loading to avoid duplicates)
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const statsResult = await fetchTicketStats();
+        if (statsResult.success && statsResult.data) {
+          setStatusCounts({
+            all: statsResult.data.total,
+            open: statsResult.data.open,
+            in_progress: statsResult.data.in_progress,
+            answered: statsResult.data.answered,
+            on_hold: statsResult.data.on_hold,
+            closed: statsResult.data.closed
+          });
+        }
+      } catch (error) {
+        console.error('[Tickets] Failed to load stats:', error);
+      }
+    };
+    loadStats();
+  }, []); // Only run once on mount
+  */
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -209,62 +343,71 @@ export default function SupportTicketsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // NOTE: Supabase realtime subscriptions DISABLED to eliminate Supabase requests
+  // TODO: Replace with MyQurani API websocket/polling when available
+  /*
+  // Realtime subscription for ticket replies - run only once on mount
   useEffect(() => {
-    let supabase
+    let supabase: ReturnType<typeof createClient> | null = null;
+    let channel: any = null;
+
     try {
-      supabase = createClient()
+      supabase = createClient();
+      channel = supabase
+        .channel("realtime-support-ticket-replies")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "ticket_replies" },
+          (payload) => {
+            console.log(" New ticket reply received:", payload);
+            loadTicketsSilently();
+          }
+        )
+        .subscribe((status) => {
+          console.log("Realtime subscription (replies) status:", status);
+        });
     } catch (error) {
-      console.error("Failed to init realtime client:", error)
-      return
+      console.error("Failed to init realtime client:", error);
     }
-    const channel = supabase
-      .channel("realtime-support-ticket-replies")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "ticket_replies" },
-        (payload) => {
-          console.log("🔔 New ticket reply received:", payload)
-          // Silent reload - no loading state, just update data in background
-          loadTicketsSilently()
-        }
-      )
-      .subscribe((status) => {
-        console.log("🔔 Realtime subscription (replies) status:", status)
-      })
 
     return () => {
-      supabase?.removeChannel(channel)
-    }
-  }, [loadTicketsSilently])
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
 
-  // Realtime subscription for new tickets (with loading state)
+  // Realtime subscription for new tickets - run only once on mount
   useEffect(() => {
-    let supabase
+    let supabase: ReturnType<typeof createClient> | null = null;
+    let channel: any = null;
+
     try {
-      supabase = createClient()
+      supabase = createClient();
+      channel = supabase
+        .channel("realtime-support-tickets")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "tickets" },
+          (payload) => {
+            console.log(" New ticket received:", payload);
+            loadTickets();
+          }
+        )
+        .subscribe((status) => {
+          console.log(" Realtime subscription (tickets) status:", status);
+        });
     } catch (error) {
-      console.error("Failed to init realtime client:", error)
-      return
+      console.error("Failed to init realtime client:", error);
     }
-    const channel = supabase
-      .channel("realtime-support-tickets")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "tickets" },
-        (payload) => {
-          console.log("🔔 New ticket received:", payload)
-          // Full reload with loading state for new tickets
-          loadTickets()
-        }
-      )
-      .subscribe((status) => {
-        console.log("🔔 Realtime subscription (tickets) status:", status)
-      })
 
     return () => {
-      supabase?.removeChannel(channel)
-    }
-  }, [loadTickets])
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
+  */
 
   // --- Handlers ---
 

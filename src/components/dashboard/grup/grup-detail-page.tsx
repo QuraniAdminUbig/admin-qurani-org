@@ -33,7 +33,14 @@ function GrupDetailContent({ groupId }: GrupDetailPageProps) {
     const isOwner = group ? checkRole(userId ?? "", group) === "owner" : false
     const isAdmin = group ? checkRole(userId ?? "", group) === "admin" : false
     const userRole = isOwner ? "owner" : isAdmin ? "admin" : "member"
-    const isMember = group ? group.grup_members.some((member: { user_id: string }) => member.user_id === userId) : false
+
+    // Use is_member from API directly (more reliable), fallback to checking grup_members array
+    const isMember = group ? (
+        group.is_member === true ||
+        isOwner ||
+        isAdmin ||
+        (group.grup_members && group.grup_members.some((member: { user_id: string }) => member.user_id === userId))
+    ) : false
 
     // Loading state - check both auth and group loading
     if (loading || authLoading) {
@@ -66,7 +73,9 @@ function GrupDetailContent({ groupId }: GrupDetailPageProps) {
         router.push(`/groups/detail/${groupId}`)
         return null
     }
-    if (!isMember || !!group.deleted_at) {
+    // For Admin Panel: Allow viewing all groups except deleted ones
+    // Note: This is an admin panel, so we don't restrict by membership
+    if (group?.deleted_at) {
         return (
             <div className="min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center">
                 <div className="relative w-full max-w-md">
@@ -104,7 +113,7 @@ function GrupDetailContent({ groupId }: GrupDetailPageProps) {
         <div className="min-h-screen max-w-7xl mx-auto">
             <div className="space-y-4 pt-4">
                 <GrupDetail
-                    group={group}
+                    group={group!}
                     userRole={userRole}
                     onUpdate={handleGroupUpdate}
                 />

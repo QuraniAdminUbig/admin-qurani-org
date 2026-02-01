@@ -39,7 +39,7 @@ import {
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
-import { getUserByUsername } from "@/utils/api/user/fetch"
+import { usersApi } from "@/lib/api"
 import { UserProfile } from "@/types/database.types"
 import { Database } from "@/types/database"
 import { getInitials } from "@/utils/helpers/get-initials"
@@ -642,14 +642,53 @@ function UserProfileContent() {
       // Fetch user profile if not cached
       if (!cachedProfile) {
         promises.push(
-          getUserByUsername(userName).then(result => {
-            if (result.success && result.data) {
-              ClientCache.set(cacheKeys.userProfile, result.data, 300000) // 5 minutes cache
-              setUserId(result.data.id) // Set userId from the fetched profile
-              return { type: 'profile', data: result.data }
-            }
-            throw new Error(result.message || t('profile.failed_fetch_profile', 'Failed to fetch user profile'))
-          })
+          // Try fetching from new API first
+          usersApi.search({ keyword: userName })
+            .then(async (res) => {
+              const searchData = res.data || res;
+              // Handle diverse response structures (items array, data array, or direct array)
+              let users: any[] = [];
+              if (Array.isArray(searchData)) {
+                users = searchData;
+              } else if (searchData.items && Array.isArray(searchData.items)) {
+                users = searchData.items;
+              } else if (searchData.data && Array.isArray(searchData.data)) {
+                users = searchData.data;
+              }
+
+              // Find exact match (case insensitive, ignore @)
+              const cleanTarget = userName.toLowerCase().replace('@', '');
+              const targetUser = users.find((u: any) =>
+                u.username?.toLowerCase().replace('@', '') === cleanTarget
+              );
+
+              if (targetUser) {
+                // Found in API! Fetch full details
+                const userIdToFetch = targetUser.userId || targetUser.id;
+                console.log(`[Profile] Found user in API: ${targetUser.username} (${userIdToFetch}), fetching detail...`);
+
+                if (!userIdToFetch) {
+                  throw new Error(t('profile.failed_fetch_profile', 'User ID invalid'));
+                }
+
+                const detailRes = await usersApi.getById(userIdToFetch);
+                const detailData = detailRes.data || detailRes;
+
+                if (detailData) {
+                  ClientCache.set(cacheKeys.userProfile, detailData, 300000);
+                  setUserId(detailData.id || detailData.userId);
+                  return { type: 'profile', data: detailData };
+                }
+              }
+
+              // Not found in API or fetch detail failed
+              console.log(`[Profile] User ${userName} not found in API search.`);
+              throw new Error(t('profile.failed_fetch_profile', 'Failed to fetch user profile: User not found in API'));
+            })
+            .catch(err => {
+              console.error("[Profile] API Fetch Error:", err);
+              throw new Error(t('profile.failed_fetch_profile', 'Failed to fetch user profile'));
+            })
         )
       }
 
@@ -1059,6 +1098,31 @@ function UserProfileContent() {
   const endIndex = startIndex + itemsPerPage
   const paginatedRecaps = recaps.slice(startIndex, endIndex)
   const startItem = totalRecaps > 0 ? startIndex + 1 : 0
+
+  // Safe avatar source getter to prevent duplicate requests to username path
+  const safeGetAvatarSource = useCallback(() => {
+    if (!userProfile) return null;
+
+    // Check both avatar and image fields
+    const imgSource = userProfile.avatar || (userProfile as any).image;
+
+    if (!imgSource || imgSource.trim() === '') return null;
+
+    // If it's already a full URL or data URI, return as is
+    if (imgSource.startsWith('http') || imgSource.startsWith('data:')) {
+      return imgSource;
+    }
+
+    // If it's a relative path, prepend API URL
+    // Ensure we don't return just the username which causes recursive fetch
+    if (imgSource === userProfile.username || imgSource === userProfile.nickname) {
+      return null;
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_MYQURANI_API_URL || '';
+    const normalizedPath = imgSource.replace(/\\/g, '/');
+    return `${apiUrl}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+  }, [userProfile]);
   const endItem = Math.min(endIndex, totalRecaps)
 
   const [activeTab, setActiveTab] = useState<TabType>('profile');
@@ -1503,6 +1567,9 @@ function UserProfileContent() {
     )
   }
 
+
+
+
   if (userProfile)
 
     return (
@@ -1528,7 +1595,7 @@ function UserProfileContent() {
                     className="relative cursor-pointer transition-all duration-300 hover:scale-105"
                     onClick={handleAvatarClick}
                   >
-                    <Avatar className={`h-32 w-32 ring-4 ring-slate-200 dark:ring-slate-700 transition-all duration-500 ${getAvatarSource()
+                    <Avatar className={`h-32 w-32 ring-4 ring-slate-200 dark:ring-slate-700 transition-all duration-500 ${safeGetAvatarSource()
                       ? 'group-hover:ring-emerald-300 dark:group-hover:ring-emerald-600 group-hover:shadow-2xl group-hover:shadow-emerald-500/25'
                       : ''
                       }`}>
@@ -1538,14 +1605,14 @@ function UserProfileContent() {
                         </div>
                       ) : (
                         <>
-                          {getAvatarSource() ? (
+                          {safeGetAvatarSource() ? (
                             <>
                               <AvatarImage
-                                src={getAvatarSource() || undefined}
+                                src={safeGetAvatarSource() || undefined}
                                 alt={userProfile.name || 'User'}
                                 className="object-cover transition-transform duration-300 group-hover:scale-110"
                                 onError={() => {
-                                  console.error('Main avatar image failed to load:', getAvatarSource())
+                                  // console.error('Main avatar image failed to load')
                                   setImageLoadError(true)
                                 }}
                                 onLoad={() => {

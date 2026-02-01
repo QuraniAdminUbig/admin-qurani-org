@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchStates } from "@/utils/api/states/fetch";
 import { fetchCities } from "@/utils/api/city/fetch";
 import { fetchCountries } from "@/utils/api/countries/fetch";
@@ -8,7 +8,7 @@ import { CityData } from "@/types/cities";
 import { ProvinceData } from "@/types/provinces";
 import { CountryData } from "@/types/countries";
 
-export function useLocationData() {
+export function useLocationData(enabled: boolean = true) {
   const [states, setStates] = useState<ProvinceData[]>([]);
   const [cities, setCities] = useState<CityData[]>([]);
   const [countries, setCountries] = useState<CountryData[]>([]);
@@ -46,90 +46,123 @@ export function useLocationData() {
     name: string;
   }>({ id: 0, name: "" });
 
-  const loadStates = useCallback(async () => {
-    const countryId =
-      selectedCountry.id !== 0 ? selectedCountry.id : currentCountry.id;
-    const result = await fetchStates(countryId);
-    if (result.success) {
-      setStates(result.data || []);
-      setSelectedState({ id: 0, name: "" });
-      setCities([]);
+  // Refs to prevent double fetching in strict mode or re-renders
+  const countriesLoadedRef = useRef(false);
+
+  // Load countries on mount only once with caching
+  useEffect(() => {
+    if (!enabled || countriesLoadedRef.current) return;
+
+    // Check cache first
+    const cached = localStorage.getItem("countries_cache");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCountries(parsed);
+          countriesLoadedRef.current = true;
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse countries cache", e);
+      }
+    }
+
+    const load = async () => {
+      countriesLoadedRef.current = true;
+      const result = await fetchCountries();
+      if (result.success) {
+        const data = result.data || [];
+        setCountries(data);
+        localStorage.setItem("countries_cache", JSON.stringify(data));
+      }
+    };
+
+    load();
+  }, []); // Run once on mount
+
+  // Load states when country changes (with caching)
+  useEffect(() => {
+    if (!enabled) {
+      setStates([]);
+      return;
+    }
+    const countryId = selectedCountry.id !== 0 ? selectedCountry.id : currentCountry.id;
+    if (countryId && countryId !== 0) {
+      const cacheKey = `states_cache_${countryId}`;
+
+      // Check cache first
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setStates(parsed);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse states cache", e);
+        }
+      }
+
+      const load = async () => {
+        const result = await fetchStates(countryId);
+        if (result.success) {
+          const data = result.data || [];
+          setStates(data);
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+        }
+      };
+      load();
+    } else {
+      setStates([]);
     }
   }, [selectedCountry.id, currentCountry.id]);
 
-  const loadCities = useCallback(async () => {
-    const stateId = selectedState.id ? selectedState.id : currentState.id;
+  // Load cities when state changes (with caching)
+  useEffect(() => {
+    if (!enabled) {
+      // Don't clear cities if disabled to preserve current state display
+      return;
+    }
+    const stateId = selectedState.id !== 0 ? selectedState.id : currentState.id;
+    if (stateId && stateId !== 0) {
+      const cacheKey = `cities_cache_${stateId}`;
 
-    try {
-      const result = await fetchCities(stateId);
-      if (result.success) {
-        setCities(result.data || []);
-        setSelectedCity({ id: 0, name: "", timezone: "" });
+      // Check cache first
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCities(parsed);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse cities cache", e);
+        }
       }
-    } catch (error) {
-      console.error("Error loading cities:", error);
-      setCities([]);
+
+      const load = async () => {
+        const result = await fetchCities(stateId);
+        if (result.success) {
+          const data = result.data || [];
+          setCities(data);
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+        }
+      };
+      load();
+    } else {
+      // Don't clear cities immediately
     }
   }, [selectedState.id, currentState.id]);
 
-  const loadCountries = useCallback(async () => {
-    const result = await fetchCountries();
-    if (result.success) {
-      setCountries(result.data || []);
-    }
-  }, []);
-
-  // Load countries on mount
+  // Update city name after cities are loaded (sync name if only ID provided)
   useEffect(() => {
-    loadCountries();
-  }, [loadCountries]);
-
-  // Load states when country changes
-  useEffect(() => {
-    loadStates();
-  }, [loadStates]);
-
-  // Load states when selectedCountry changes
-  useEffect(() => {
-    if (selectedCountry.id !== 0) {
-      loadStates();
-      setSelectedState({ id: 0, name: "" });
-      setSelectedCity({ id: 0, name: "", timezone: "" });
-      setCities([]);
-    }
-  }, [selectedCountry.id, loadStates]);
-
-  // Load cities when selectedState changes
-  useEffect(() => {
-    if (selectedState.id !== 0) {
-      loadCities();
-    }
-  }, [selectedState.id, loadCities]);
-
-  // Load initial cities based on currentState
-  useEffect(() => {
-    if (currentState.id !== 0 && cities.length === 0) {
-      const loadInitialCities = async () => {
-        try {
-          const result = await fetchCities(currentState.id);
-          if (result.success) {
-            setCities(result.data || []);
-          }
-        } catch (error) {
-          console.error("Error loading initial cities:", error);
-        }
-      };
-      loadInitialCities();
-    }
-  }, [currentState.id, cities.length]);
-
-  // Update city name after cities are loaded
-  useEffect(() => {
-    if (currentCity.id !== 0 && currentCity.name === "" && cities.length > 0) {
-      const cityName =
-        cities.find((city) => city.id === currentCity.id)?.name || "";
-      if (cityName) {
-        setCurrentCity((prev) => ({ ...prev, name: cityName }));
+    if (currentCity.id !== 0 && !currentCity.name && cities.length > 0) {
+      const foundCity = cities.find((city) => city.id === currentCity.id);
+      if (foundCity) {
+        setCurrentCity((prev) => ({ ...prev, name: foundCity.name || "" }));
       }
     }
   }, [currentCity.id, currentCity.name, cities]);

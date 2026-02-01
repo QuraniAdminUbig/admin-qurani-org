@@ -14,9 +14,9 @@ const CACHE_TTL_MS = 60 * 1000
 
 let cachedSummary:
   | {
-      data: AdminDashboardSummary
-      expiresAt: number
-    }
+    data: AdminDashboardSummary
+    expiresAt: number
+  }
   | null = null
 
 type ProfileLocationRow = {

@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { fetchStatesById } from "../states/fetch";
 import { fetchCityById } from "../city/fetch";
+const API_BASE_URL = process.env.NEXT_PUBLIC_MYQURANI_API_URL || "https://api.myqurani.com";
 
 async function checkStateWithCountry(
   stateId: number,
@@ -103,25 +104,55 @@ export const updateUserProfile = async (
     };
   }
 
-  // Update user profile
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .update(updateData)
-    .eq("id", userId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating user profile:", error);
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-
-  return {
-    success: true,
-    message: "Profile updated successfully",
-    data,
+  // Update user profile via API
+  const finalPayload = {
+    name: fullName,
+    nickname,
+    username,
+    gender,
+    birthDate: date_of_birth,
+    job,
+    hp: phoneNumber, // Assuming 'hp' based on profile route helper
+    bio,
+    avatar: profilePhotoUrl,
+    countryId,
+    stateId,
+    cityId,
+    countryName,
+    stateName: statesName,
+    cityName,
+    timezone,
   };
+
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("myqurani_access_token")?.value;
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/Users/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(finalPayload)
+    });
+
+    if (!response.ok) {
+      console.error("API Update Error:", response.status);
+      return { success: false, message: `Failed to update profile: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      message: "Profile updated successfully",
+      data
+    };
+
+  } catch (err) {
+    console.error("Update Profile Error:", err);
+    return { success: false, message: "Failed to connect to server" };
+  }
 };

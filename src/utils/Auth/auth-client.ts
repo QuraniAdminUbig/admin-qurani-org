@@ -1,21 +1,22 @@
 "use client";
 
-import { login } from "./login";
+import { loginMyQurani } from "./login";
 import signup from "./register";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { getDictionaries, getStoredLocale } from "@/lib/i18n";
 
-// Helper function untuk mendapatkan translated message di luar React context
+/**
+ * Helper function to get translated message outside React context
+ */
 async function getTranslatedMessage(key: string, fallback: string): Promise<string> {
   try {
     const locale = getStoredLocale();
     const dictionary = await getDictionaries(['common'], locale);
-    
-    // Navigate through nested object (e.g., "auth.admin_access_required")
+
     const keys = key.split('.');
     let value: unknown = dictionary;
-    
+
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
         value = (value as Record<string, unknown>)[k];
@@ -24,28 +25,30 @@ async function getTranslatedMessage(key: string, fallback: string): Promise<stri
         break;
       }
     }
-    
+
     return typeof value === 'string' ? value : fallback;
   } catch {
     return fallback;
   }
 }
 
+/**
+ * Login with toast notifications using MyQurani API
+ */
 export async function loginWithToast(formData: FormData) {
-  const res = await login(formData);
+  const res = await loginMyQurani(formData);
+
   if (res.success) {
     toast.success("Login successful! Redirecting to dashboard...");
   } else {
-    // Map specific error messages untuk internationalization
-    let errorMessage = res.error;
-    
-    // Khusus untuk error admin access, gunakan dictionary
-    if (res.error?.includes("Admin privileges required")) {
-      errorMessage = await getTranslatedMessage("auth.admin_access_required", "Access denied");
+    if (res.error?.includes("permission") || res.error?.includes("Access denied")) {
+      const errorMessage = await getTranslatedMessage("auth.admin_access_required", res.error || "Access denied");
+      toast.error(errorMessage);
+    } else {
+      toast.error(res.error || "Login failed");
     }
-    
-    toast.error(errorMessage);
   }
+
   return res;
 }
 
@@ -77,8 +80,17 @@ export function validatePassword(password: string): {
       message: "Password must be at least 6 characters",
     };
   }
-  if (!/[A-Za-z]/.test(password)) {
-    return { isValid: false, message: "Password must contain letters" };
+  if (!/[A-Z]/.test(password)) {
+    return {
+      isValid: false,
+      message: "Password must contain at least one uppercase letter"
+    };
+  }
+  if (!/[a-z]/.test(password)) {
+    return {
+      isValid: false,
+      message: "Password must contain at least one lowercase letter"
+    };
   }
   return { isValid: true };
 }

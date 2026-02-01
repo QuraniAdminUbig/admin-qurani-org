@@ -19,14 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useI18n } from "@/components/providers/i18n-provider"
-import { 
-  Ticket, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Ticket,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Loader2
 } from "lucide-react"
+import { fetchTicketStats } from "@/utils/api/tickets/fetch"
 
 interface StatCard {
   title: string
@@ -135,11 +137,49 @@ const chartData = [
 export default function SupportDashboard() {
   const { t, locale } = useI18n()
   const [timeRange, setTimeRange] = React.useState("90d")
+
+  // State for ticket statistics from API
+  const [stats, setStats] = React.useState({
+    total: 0,
+    open: 0,
+    in_progress: 0,
+    answered: 0,
+    on_hold: 0,
+    closed: 0,
+  })
+  const [statsLoading, setStatsLoading] = React.useState(true)
+  const [statsError, setStatsError] = React.useState<string | null>(null)
+
+  // Fetch ticket statistics from API
+  React.useEffect(() => {
+    async function loadStats() {
+      setStatsLoading(true)
+      setStatsError(null)
+      try {
+        const result = await fetchTicketStats()
+        if (result.success && result.data) {
+          setStats(result.data)
+        } else {
+          setStatsError(result.error || 'Failed to load ticket stats')
+        }
+      } catch (error) {
+        console.error('[SupportDashboard] Error loading stats:', error)
+        setStatsError(error instanceof Error ? error.message : 'Unknown error')
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+    loadStats()
+  }, [])
+
+  // Calculate resolved as closed + answered
+  const resolvedCount = stats.closed + stats.answered
+
   const ticketStats: StatCard[] = [
     {
       title: t("support.dashboard.cards.tickets", "Tickets"),
-      value: 156,
-      change: 12,
+      value: stats.total,
+      change: 0, // TODO: Calculate change from previous period
       changeType: "increase",
       icon: <Ticket className="w-6 h-6" />,
       color: "text-blue-600 dark:text-blue-400",
@@ -147,8 +187,8 @@ export default function SupportDashboard() {
     },
     {
       title: t("support.dashboard.cards.open_tickets", "Open Tickets"),
-      value: 24,
-      change: 5,
+      value: stats.open,
+      change: 0,
       changeType: "increase",
       icon: <AlertCircle className="w-6 h-6" />,
       color: "text-red-600 dark:text-red-400",
@@ -156,8 +196,8 @@ export default function SupportDashboard() {
     },
     {
       title: t("support.dashboard.cards.in_progress", "In Progress"),
-      value: 18,
-      change: 3,
+      value: stats.in_progress,
+      change: 0,
       changeType: "decrease",
       icon: <Clock className="w-6 h-6" />,
       color: "text-yellow-600 dark:text-yellow-400",
@@ -165,8 +205,8 @@ export default function SupportDashboard() {
     },
     {
       title: t("support.dashboard.cards.resolved", "Resolved"),
-      value: 114,
-      change: 8,
+      value: resolvedCount,
+      change: 0,
       changeType: "increase",
       icon: <CheckCircle className="w-6 h-6" />,
       color: "text-green-600 dark:text-green-400",
@@ -214,6 +254,11 @@ export default function SupportDashboard() {
       </div>
 
       {/* Ticket Stats Cards */}
+      {statsError && (
+        <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-900/40 dark:text-red-400">
+          {t("support.dashboard.error.stats", "Failed to load ticket statistics")}: {statsError}
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {ticketStats.map((stat, index) => (
           <Card key={index} className="bg-white dark:bg-gray-800 border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -223,21 +268,31 @@ export default function SupportDashboard() {
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     {stat.title}
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                    {stat.value}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2">
-                    {stat.changeType === "increase" ? (
-                      <ArrowUpRight className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <ArrowDownRight className="w-4 h-4 text-red-500" />
-                    )}
-                    <span className={`text-sm font-medium ${
-                      stat.changeType === "increase" ? "text-green-500" : "text-red-500"
-                    }`}>
-                      {stat.change}%
-                    </span>
-                  </div>
+                  {statsLoading ? (
+                    <div className="flex items-center mt-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                        {stat.value}
+                      </p>
+                      {/* Only show change indicator if we have change data */}
+                      {stat.change !== 0 && (
+                        <div className="flex items-center gap-1 mt-2">
+                          {stat.changeType === "increase" ? (
+                            <ArrowUpRight className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <ArrowDownRight className="w-4 h-4 text-red-500" />
+                          )}
+                          <span className={`text-sm font-medium ${stat.changeType === "increase" ? "text-green-500" : "text-red-500"
+                            }`}>
+                            {stat.change}%
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className={`w-14 h-14 ${stat.bgColor} rounded-xl flex items-center justify-center ${stat.color}`}>
                   {stat.icon}

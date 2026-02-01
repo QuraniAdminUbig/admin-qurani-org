@@ -3,6 +3,8 @@
 import { MonthRecap, MonthUser } from "@/types/recap";
 import { createClient } from "@/utils/supabase/server";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_MYQURANI_API_URL || "https://api.myqurani.com";
+
 interface RecapDataItem {
   city_id: number | null;
   total_recaps: number;
@@ -22,16 +24,28 @@ export interface CityData {
 }
 
 export async function fetchCities(stateId: number) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("cities")
-    .select("id, name, latitude, longitude, timezone")
-    .eq("state_id", stateId)
-    .order("name", { ascending: true });
-  if (error) {
-    return { success: false, message: "Error fetching cities" };
+  try {
+    const url = `${API_BASE_URL}/api/v1/Cities/state/${stateId}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+      next: { revalidate: 3600 }
+    });
+
+    if (!response.ok) {
+      console.error("[fetchCities] API Error:", response.status, url);
+      return { success: false, message: "Error fetching cities" };
+    }
+
+    const data = await response.json();
+    return { success: true, message: "Cities fetched successfully", data };
+  } catch (error) {
+    console.error("[fetchCities] Error:", error);
+    return { success: false, message: "Error fetching cities", error };
   }
-  return { success: true, message: "Cities fetched successfully", data };
 }
 
 export async function fetchCitiesWithRecapData(
@@ -299,21 +313,30 @@ export async function fetchCitiesWithUserData(
 }
 
 export async function fetchCityById(id: number) {
-  const supabase = await createClient();
+  try {
+    const url = `${API_BASE_URL}/api/v1/Cities/${id}`;
 
-  const { data, error } = await supabase
-    .from("cities")
-    .select("id, name, state_id")
-    .eq("id", id)
-    .single();
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+      next: { revalidate: 3600 }
+    });
 
-  if (error) {
-    return { success: false, message: error.message };
+    if (!response.ok) {
+      console.error("[fetchCityById] API Error:", response.status);
+      return { success: false, message: `Failed to fetch city: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      message: "City fetched successfully",
+      data,
+    };
+  } catch (error) {
+    console.error("[fetchCityById] Error:", error);
+    return { success: false, message: error instanceof Error ? error.message : "Unknown error" };
   }
-
-  return {
-    success: true,
-    message: "City fetched successfully",
-    data,
-  };
 }

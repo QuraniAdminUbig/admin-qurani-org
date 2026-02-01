@@ -40,4 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.cursor
+# PWA generated files (should not be committed, generated during build)
 public/sw.js
+public/workbox-*.js

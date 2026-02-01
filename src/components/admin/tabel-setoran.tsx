@@ -141,17 +141,41 @@ export function HasilSetoranTableContent() {
     // Constants for pagination
     const PAGE_SIZE = 10
 
+    // Helper to get token from localStorage
+    const getClientToken = (): string | null => {
+        if (typeof window === 'undefined') return null
+        try {
+            const stored = localStorage.getItem('myqurani_auth')
+            if (!stored) return null
+            const auth = JSON.parse(stored)
+            return auth?.accessToken || null
+        } catch {
+            return null
+        }
+    }
+
     // Fetcher function for infinite scroll - fetch ALL data for admin
     const fetchRecaps = useCallback(async (limit: number, offset: number) => {
         try {
+            // Get token from localStorage to pass to server action
+            const clientToken = getClientToken()
+            console.log('[fetchRecaps] Calling getRecapAllAdmin with limit:', limit, 'offset:', offset, 'hasToken:', !!clientToken)
+
             // Use admin function to get ALL data without user filtering
-            const res = await getRecapAllAdmin(limit, offset)
+            const res = await getRecapAllAdmin(limit, offset, clientToken || undefined)
+            console.log('[fetchRecaps] Response:', res.success, res.message)
 
             if (!res.success) {
-                toast.error(res.message)
-                throw new Error(res.message)
+                console.error('[fetchRecaps] Failed:', res.message)
+                toast.error(res.message || "Gagal memuat data")
+                // Return empty data instead of throwing to prevent UI crash
+                return {
+                    data: [] as IRecap[],
+                    count: 0
+                }
             }
 
+            console.log('[fetchRecaps] Got', res.data?.length, 'items')
             return {
                 data: res.data as IRecap[],
                 count: res.count || 0
@@ -159,7 +183,11 @@ export function HasilSetoranTableContent() {
         } catch (error) {
             console.error("Error fetching recaps:", error)
             toast.error("Gagal memuat data hasil setoran")
-            throw error
+            // Return empty data instead of throwing
+            return {
+                data: [] as IRecap[],
+                count: 0
+            }
         }
     }, [])
 

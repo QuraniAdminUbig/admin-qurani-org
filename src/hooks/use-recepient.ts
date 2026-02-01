@@ -12,7 +12,14 @@ export type NotificationRecipient = {
 
 const fetcher = async (url: string): Promise<NotificationRecipient[]> => {
   const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch recipients");
+  if (!res.ok) {
+    // Silently return empty array for auth errors
+    if (res.status === 401 || res.status === 403) {
+      console.log('[Recipients] Auth failed, returning empty array');
+      return [];
+    }
+    throw new Error("Failed to fetch recipients");
+  }
   const data = await res.json();
   return data.recipients ?? [];
 };
@@ -34,6 +41,7 @@ export function useNotificationRecipients(userId?: string) {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 1000 * 60 * 5, // cache 5 menit
+      errorRetryCount: 0, // Don't retry on error
     }
   );
 

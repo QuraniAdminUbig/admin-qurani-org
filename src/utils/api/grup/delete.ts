@@ -1,5 +1,16 @@
 "use server";
 
+/**
+ * ============================================
+ * Groups Delete API (LEGACY - Supabase)
+ * ============================================
+ * API Source: Supabase (Local Database)
+ * Status: DEPRECATED - Should migrate to MyQurani API
+ * 
+ * MyQurani Alternative: groupsApi.delete() in lib/api.ts
+ * ============================================
+ */
+
 import { createClient } from "../../supabase/server";
 
 export async function deleteGrup(grupId: string) {

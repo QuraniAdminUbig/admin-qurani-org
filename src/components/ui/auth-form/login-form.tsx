@@ -13,8 +13,8 @@ import { LoadingOverlay } from "@/components/ui/loading-overlay"
 import { toast } from "sonner"
 import { LogIn } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { createClient } from "@/utils/supabase/client"
 import { loginWithToast } from "@/utils/Auth/auth-client"
+import { getGoogleOAuthUrl } from "@/services/api/oauth"
 import { useI18n } from "@/components/providers/i18n-provider"
 import Image from "next/image"
 
@@ -64,20 +64,35 @@ export function LoginForm({
 
     try {
       await withLoading(async () => {
+        // 1. Try new client-side API login (stores in localStorage like My-Qurani example)
+        try {
+          const { authApi } = await import('@/lib/api');
+          const user = await authApi.login(data.username, data.password);
+
+          if (user) {
+            toast.success("Login successful!");
+            const destination = redirectPath || "/dashboard";
+            router.replace(destination);
+            return;
+          }
+        } catch (apiError: any) {
+          console.log("Client API login failed:", apiError.message);
+          // Try fallback
+        }
+
+        // 2. Fallback to server action (old flow)
         const formData = new FormData();
         formData.append('username', data.username);
         formData.append('password', data.password);
 
-        // Call the server action through client wrapper
         const res = await loginWithToast(formData);
-        // Navigate to dashboard after success
         if (res?.success) {
           const destination = redirectPath || "/dashboard";
           router.replace(destination);
         }
       });
     } catch {
-      // Error already handled by loginWithToast
+      // Error already handled
     }
   };
 
@@ -87,30 +102,31 @@ export function LoginForm({
       setError(null);
       toast.loading(t("auth.redirecting_to_google"));
 
+      // Store redirect path for after OAuth
       const redirectPathUrl = redirectPath || "/dashboard";
       localStorage.setItem("redirectPath", redirectPathUrl);
 
-      const supabase = createClient();
+      // Build callback URL for OAuth
+      const callbackUrl = `${window.location.origin}/oauth/callback`;
 
-      // Gunakan window.location.origin untuk dynamic URL
-      const redirectUrl = `${window.location.origin}/auth/callback`;
+      // Get Google OAuth URL from MyQurani API
+      const result = await getGoogleOAuthUrl(callbackUrl);
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-        toast.error(error.message);
+      if (!result.success || !result.url) {
+        throw new Error(result.error || "Failed to get OAuth URL");
       }
-    } catch {
-      const errorMessage = t("auth.google_signin_error");
+
+      // Store state for verification
+      if (result.state) {
+        localStorage.setItem("oauth_state", result.state);
+      }
+
+      // Redirect to Google OAuth
+      window.location.href = result.url;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t("auth.google_signin_error");
       setError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -124,8 +140,8 @@ export function LoginForm({
       />
       <div className="flex justify-center gap-2 mb-5">
         <Link href="/" className="flex items-center font-medium">
-            <Image src="/icons/Qurani - Logo Green.png" alt="Qurani" width={120} height={120} className="dark:hidden" />
-            <Image src="/icons/Qurani - Logo White.png" alt="Qurani" width={120} height={120} className="dark:block hidden" />
+          <Image src="/icons/Qurani - Logo Green.png" alt="Qurani" width={120} height={120} className="dark:hidden" />
+          <Image src="/icons/Qurani - Logo White.png" alt="Qurani" width={120} height={120} className="dark:block hidden" />
         </Link>
       </div>
       <form className={cn("flex flex-col gap-6 border border-slate-200 dark:border-slate-700/50 shadow-xl rounded-2xl p-6 w-full sm:max-w-md mx-auto", className)} onSubmit={handleEmailLogin} {...props}>

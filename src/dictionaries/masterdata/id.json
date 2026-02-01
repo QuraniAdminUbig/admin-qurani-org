@@ -1,0 +1,41 @@
+{
+    "masterdata": {
+        "countries": {
+            "title": "Negara",
+            "search_placeholder": "Cari berdasarkan nama, kode ISO...",
+            "no_results": "Tidak ada negara ditemukan",
+            "region": "Wilayah",
+            "delete_country_title": "Hapus Negara",
+            "delete_state_title": "Hapus Provinsi",
+            "delete_confirm": "Apakah Anda yakin ingin menghapus item ini? Tindakan ini tidak dapat dibatalkan.",
+            "create_country": "Buat Negara",
+            "edit_country": "Edit Negara",
+            "country_name": "Nama Negara",
+            "iso2_code": "Kode ISO2",
+            "iso3_code": "Kode ISO3",
+            "phone_code": "Kode Telepon",
+            "currency": "Mata Uang",
+            "capital": "Ibukota",
+            "subregion": "Sub-wilayah",
+            "population": "Populasi",
+            "states": "Provinsi",
+            "cities": "Kota",
+            "unknown_region": "Wilayah Tidak Diketahui",
+            "loading": "Memuat negara...",
+            "load_more": "Memuat lebih banyak negara...",
+            "all_loaded": "Semua negara telah dimuat",
+            "showing": "Menampilkan",
+            "of": "dari",
+            "countries": "negara",
+            "page": "Halaman",
+            "items_per_page": "item per halaman",
+            "name_required": "Nama negara wajib diisi",
+            "create_success": "Negara berhasil dibuat",
+            "create_error": "Gagal membuat negara",
+            "update_success": "Negara berhasil diperbarui",
+            "update_error": "Gagal memperbarui negara",
+            "delete_success": "\"{name}\" berhasil dihapus",
+            "delete_error": "Gagal menghapus negara"
+        }
+    }
+}

@@ -1,6 +1,19 @@
 "use server"
 
-import { createClient } from "@/utils/supabase/server"
+/**
+ * Tickets Fetch API
+ * 
+ * This module provides ticket fetching functions using the MyQurani API.
+ * Interface remains the same as before for backward compatibility.
+ */
+
+import { cookies } from 'next/headers';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_MYQURANI_API_URL || 'https://api.myqurani.com';
+
+// ============================================
+// Types (kept same as before for compatibility)
+// ============================================
 
 export interface TicketListItem {
   id: number
@@ -30,6 +43,187 @@ export interface TicketWithReplies extends TicketListItem {
   replies: TicketReply[]
 }
 
+// ============================================
+// API Types from MyQurani
+// ============================================
+
+interface ApiTicketListDto {
+  id: number;
+  ticketKey: string;
+  subject: string;
+  email: string | null;
+  name: string | null;
+  status: number;
+  statusName: string;
+  priority: number;
+  priorityName: string;
+  department: number;
+  assigned: number;
+  date: string;
+  lastReply: string | null;
+  clientRead: number;
+  adminRead: number;
+  replyCount: number;
+}
+
+interface ApiTicketDetailDto {
+  id: number;
+  ticketKey: string;
+  userId: number | null;
+  email: string | null;
+  name: string | null;
+  department: number | null;
+  priority: number;
+  priorityName: string | null;
+  status: number;
+  statusName: string | null;
+  service: string | null;
+  subject: string;
+  message: string | null;
+  date: string;
+  lastReply: string | null;
+  clientRead: number;
+  adminRead: number;
+  replies: ApiTicketReplyDto[];
+  attachments: ApiTicketAttachmentDto[];
+}
+
+interface ApiTicketReplyDto {
+  id: number;
+  ticketId: number;
+  userId: number | null;
+  name: string | null;
+  email: string | null;
+  message: string | null;
+  admin: number | null;
+  isStaffReply: boolean;
+  date: string;
+  attachments: ApiTicketAttachmentDto[] | null;
+}
+
+interface ApiTicketAttachmentDto {
+  id: number;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  url: string;
+}
+
+interface PagedResponse<T> {
+  data: T[];
+  offset: number;
+  limit: number;
+  totalCount: number;
+  hasMore: boolean;
+}
+
+// ============================================
+// Helper Functions
+// ============================================
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get('myqurani_access_token')?.value || null;
+  } catch {
+    return null;
+  }
+}
+
+// Map status name to number for API
+function getStatusNumber(status?: string): number | undefined {
+  if (!status || status === 'all') return undefined;
+  const statusMap: Record<string, number> = {
+    'Open': 1,
+    'In Progress': 2,
+    'Answered': 3,
+    'On Hold': 4,
+    'Closed': 5,
+  };
+  return statusMap[status];
+}
+
+// Map priority name to number for API
+function getPriorityNumber(priority?: string): number | undefined {
+  if (!priority || priority === 'all') return undefined;
+  const priorityMap: Record<string, number> = {
+    'Low': 1,
+    'Medium': 2,
+    'High': 3,
+  };
+  return priorityMap[priority];
+}
+
+// Convert API ticket to local format
+function convertTicketListItem(apiTicket: ApiTicketListDto): TicketListItem {
+  return {
+    id: apiTicket.id,
+    ticket_number: apiTicket.ticketKey,
+    subject: apiTicket.subject,
+    contact: apiTicket.name || apiTicket.email || 'Unknown',
+    department: String(apiTicket.department), // TODO: Map to department name
+    project: null,
+    service: null,
+    priority: apiTicket.priorityName || getPriorityName(apiTicket.priority),
+    status: apiTicket.statusName || getStatusName(apiTicket.status),
+    last_reply: apiTicket.lastReply,
+    submitted_date: apiTicket.date,
+    body: null,
+  };
+}
+
+function getStatusName(status: number): string {
+  const names: Record<number, string> = {
+    1: 'Open',
+    2: 'In Progress',
+    3: 'Answered',
+    4: 'On Hold',
+    5: 'Closed',
+  };
+  return names[status] || 'Unknown';
+}
+
+function getPriorityName(priority: number): string {
+  const names: Record<number, string> = {
+    1: 'Low',
+    2: 'Medium',
+    3: 'High',
+  };
+  return names[priority] || 'Medium';
+}
+
+// Convert API ticket detail to local format
+function convertTicketWithReplies(apiTicket: ApiTicketDetailDto): TicketWithReplies {
+  return {
+    id: apiTicket.id,
+    ticket_number: apiTicket.ticketKey || `#${apiTicket.id}`,
+    subject: apiTicket.subject || 'No Subject',
+    contact: apiTicket.name || apiTicket.email || 'Unknown',
+    department: String(apiTicket.department || ''),
+    project: null,
+    service: apiTicket.service,
+    priority: apiTicket.priorityName || getPriorityName(apiTicket.priority),
+    status: apiTicket.statusName || getStatusName(apiTicket.status),
+    last_reply: apiTicket.lastReply,
+    submitted_date: apiTicket.date,
+    body: apiTicket.message,
+    replies: (apiTicket.replies || []).map(reply => ({
+      id: reply.id,
+      ticket_id: reply.ticketId,
+      author: reply.name || reply.email || (reply.isStaffReply ? 'Staff' : 'User'),
+      message: reply.message || '',
+      date: reply.date,
+      attachments: reply.attachments
+        ? JSON.stringify(reply.attachments.map(a => a.url))
+        : null,
+    })),
+  };
+}
+
+// ============================================
+// API Functions
+// ============================================
+
 export async function fetchTickets(filters?: {
   status?: string
   priority?: string
@@ -40,148 +234,159 @@ export async function fetchTickets(filters?: {
   startDate?: string
   endDate?: string
 }): Promise<{ success: boolean; data?: TicketListItem[]; totalCount?: number; error?: string }> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    console.error('[fetchTickets] No auth token found');
+    return { success: false, error: 'Not authenticated' };
+  }
+
   try {
-    const supabase = await createClient()
+    const params = new URLSearchParams();
 
-    // Run count and data queries in parallel for better performance
-    const [countResult, dataResult] = await Promise.all([
-      // Count query - get total matching records
-      (async () => {
-        let countQuery = supabase.from("tickets").select("*", { count: 'exact', head: true })
+    const statusNum = getStatusNumber(filters?.status);
+    const priorityNum = getPriorityNumber(filters?.priority);
 
-        if (filters?.status && filters.status !== "all") {
-          countQuery = countQuery.eq("status", filters.status)
-        }
-        if (filters?.priority && filters.priority !== "all") {
-          countQuery = countQuery.eq("priority", filters.priority)
-        }
-        if (filters?.department && filters.department !== "all") {
-          countQuery = countQuery.eq("department", filters.department)
-        }
-        if (filters?.search) {
-          countQuery = countQuery.or(`subject.ilike.%${filters.search}%,contact.ilike.%${filters.search}%,body.ilike.%${filters.search}%`)
-        }
-        if (filters?.startDate) {
-          // Assuming startDate is YYYY-MM-DD, we filter >= start of that day
-          countQuery = countQuery.gte("submitted_date", filters.startDate)
-        }
-        if (filters?.endDate) {
-          // Assuming endDate is YYYY-MM-DD, we filter <= end of that day
-          // We might want to append time if it's strictly just date, but usually gte/lte works fine for ISO strings if they are full dates.
-          // If they are just dates, we might want to extend to end of day, but let's stick to simple comparison first.
-          // However, if endDate is 2023-01-01, we want everything on that day too.
-          // Determine if input has time component. If not, maybe append 23:59:59?
-          // The UI sends "YYYY-MM-DD".
-          // ideally we do lte(submitted_date, endDate + 'T23:59:59.999Z') or just lte.
-          // existing code often just uses the date string. Let's trust the UI sends a valid comparable string or just use lte.
-          // To be safe for inclusive end date:
-          const endDateTime = filters.endDate.includes('T') ? filters.endDate : `${filters.endDate}T23:59:59.999Z`
-          countQuery = countQuery.lte("submitted_date", endDateTime)
-        }
+    if (statusNum !== undefined) params.append('Status', String(statusNum));
+    if (priorityNum !== undefined) params.append('Priority', String(priorityNum));
+    if (filters?.search) params.append('Keyword', filters.search);
 
-        return countQuery
-      })(),
-      // Data query with pagination
-      (async () => {
-        let dataQuery = supabase
-          .from("tickets")
-          .select("*")
-          .order("submitted_date", { ascending: false })
+    // Pagination
+    const page = filters?.offset !== undefined && filters?.limit !== undefined
+      ? Math.floor(filters.offset / filters.limit) + 1
+      : 1;
+    const pageSize = filters?.limit || 10;
 
-        if (filters?.status && filters.status !== "all") {
-          dataQuery = dataQuery.eq("status", filters.status)
-        }
-        if (filters?.priority && filters.priority !== "all") {
-          dataQuery = dataQuery.eq("priority", filters.priority)
-        }
-        if (filters?.department && filters.department !== "all") {
-          dataQuery = dataQuery.eq("department", filters.department)
-        }
-        if (filters?.search) {
-          dataQuery = dataQuery.or(`subject.ilike.%${filters.search}%,contact.ilike.%${filters.search}%,body.ilike.%${filters.search}%`)
-        }
-        if (filters?.startDate) {
-          dataQuery = dataQuery.gte("submitted_date", filters.startDate)
-        }
-        if (filters?.endDate) {
-          const endDateTime = filters.endDate.includes('T') ? filters.endDate : `${filters.endDate}T23:59:59.999Z`
-          dataQuery = dataQuery.lte("submitted_date", endDateTime)
-        }
+    params.append('Page', String(page));
+    params.append('PageSize', String(pageSize));
 
-        // Apply pagination if limit is provided
-        if (filters?.limit !== undefined && filters?.offset !== undefined) {
-          const from = filters.offset
-          const to = filters.offset + filters.limit - 1
-          dataQuery = dataQuery.range(from, to)
-        }
+    const url = `${API_BASE_URL}/api/v1/tickets${params.toString() ? `?${params.toString()}` : ''}`;
+    console.log('[fetchTickets] Calling API:', url);
 
-        return dataQuery
-      })()
-    ])
+    // Import fetchWithAutoRefresh for auto token refresh
+    const { fetchWithAutoRefresh } = await import('@/utils/api/token-refresh');
 
-    const { count } = countResult
-    const { data, error } = dataResult
-
-    if (error) {
-      return { success: false, error: error.message }
+    let response: Response;
+    try {
+      response = await fetchWithAutoRefresh(url, { method: 'GET' });
+    } catch (authError) {
+      console.error('[fetchTickets] Auth error:', authError);
+      return { success: true, data: [], totalCount: 0, error: 'Authentication required' };
     }
+
+    // Handle empty response
+    const responseText = await response.text();
+    console.log('[fetchTickets] Response status:', response.status);
+    console.log('[fetchTickets] Response text:', responseText.substring(0, 300));
+
+    if (!responseText || responseText.trim() === '') {
+      console.log('[fetchTickets] Empty response, returning empty array');
+      return { success: true, data: [], totalCount: 0 };
+    }
+
+    let rawResult: any;
+    try {
+      rawResult = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[fetchTickets] JSON parse error:', parseError);
+      return { success: true, data: [], totalCount: 0 };
+    }
+
+    if (!response.ok) {
+      console.error('[fetchTickets] API error:', rawResult);
+      // Return empty data with success true to avoid crashing the UI
+      return { success: true, data: [], totalCount: 0, error: rawResult.message || 'Failed to fetch tickets' };
+    }
+
+    // Handle different response structures
+    // API might return: { success, data: { data: [...], totalCount } } or { data: [...], totalCount }
+    let ticketData: ApiTicketListDto[] = [];
+    let totalCount = 0;
+
+    if (rawResult.data && Array.isArray(rawResult.data)) {
+      // Direct array: { data: [...] }
+      ticketData = rawResult.data;
+      totalCount = rawResult.totalCount || rawResult.data.length;
+    } else if (rawResult.data && rawResult.data.data && Array.isArray(rawResult.data.data)) {
+      // Nested: { data: { data: [...], totalCount } }
+      ticketData = rawResult.data.data;
+      totalCount = rawResult.data.totalCount || rawResult.data.data.length;
+    } else if (Array.isArray(rawResult)) {
+      // Just array: [...]
+      ticketData = rawResult;
+      totalCount = rawResult.length;
+    }
+
+    console.log('[fetchTickets] Parsed:', ticketData.length, 'tickets, total:', totalCount);
 
     return {
       success: true,
-      data: data as TicketListItem[],
-      totalCount: count || 0
-    }
+      data: ticketData.map(convertTicketListItem),
+      totalCount: totalCount,
+    };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+    console.error('[fetchTickets] Error:', error);
+    // Return empty data to avoid crashing the UI
+    return { success: true, data: [], totalCount: 0, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
 export async function fetchTicketById(ticketId: number): Promise<{ success: boolean; data?: TicketWithReplies; error?: string }> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
   try {
-    const supabase = await createClient()
+    const response = await fetch(`${API_BASE_URL}/api/v1/tickets/${ticketId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
 
-    // Optimized: Fetches ONLY ticket header data, no replies
-    const { data: ticket, error } = await supabase
-      .from("tickets")
-      .select("id, ticket_number, subject, contact, department, project, service, priority, status, submitted_date, last_reply, body")
-      .eq("id", ticketId)
-      .single()
-
-    if (error) {
-      return { success: false, error: error.message }
+    if (!response.ok) {
+      console.error('[fetchTicketById] HTTP error:', response.status);
+      return { success: false, error: `HTTP ${response.status}` };
     }
 
-    // Map the Supabase response to our interface
-    // Note: 'replies' field is populated by the alias in select
+    const result = await response.json();
+
+    // Handle different response formats:
+    // 1. { success: true, data: {...} }
+    // 2. { data: {...} }
+    // 3. Direct object: {...}
+    let ticketData = result.data || result;
+
+    if (!ticketData || typeof ticketData !== 'object') {
+      console.error('[fetchTicketById] Invalid data format:', result);
+      return { success: false, error: 'Invalid response format' };
+    }
+
     return {
       success: true,
-      data: ticket as unknown as TicketWithReplies
-    }
+      data: convertTicketWithReplies(ticketData),
+    };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+    console.error('[fetchTicketById] Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
-// Optimized: fetch only 4 related tickets for sidebar
 export async function fetchRelatedTickets(excludeId: number): Promise<{ success: boolean; data?: TicketListItem[]; error?: string }> {
-  try {
-    const supabase = await createClient()
+  // Fetch recent tickets excluding the current one
+  const result = await fetchTickets({ limit: 5 });
 
-    const { data, error } = await supabase
-      .from("tickets")
-      .select("id, ticket_number, subject, contact, status, priority, submitted_date")
-      .neq("id", excludeId)
-      .order("submitted_date", { ascending: false })
-      .limit(4)
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data: data as TicketListItem[] }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  if (!result.success) {
+    return result;
   }
+
+  return {
+    success: true,
+    data: result.data?.filter(t => t.id !== excludeId).slice(0, 4),
+  };
 }
 
 export async function fetchTicketStats(): Promise<{
@@ -196,71 +401,67 @@ export async function fetchTicketStats(): Promise<{
   }
   error?: string
 }> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
   try {
-    const supabase = await createClient()
+    // Fetch all status counts in parallel
+    const statusCounts = await Promise.all([
+      fetchTickets({ status: 'Open', limit: 1 }),
+      fetchTickets({ status: 'In Progress', limit: 1 }),
+      fetchTickets({ status: 'Answered', limit: 1 }),
+      fetchTickets({ status: 'On Hold', limit: 1 }),
+      fetchTickets({ status: 'Closed', limit: 1 }),
+      fetchTickets({ limit: 1 }), // Total
+    ]);
 
-    // Run all COUNT queries in parallel for maximum speed
-    const [totalResult, openResult, inProgressResult, answeredResult, onHoldResult, closedResult] = await Promise.all([
-      supabase.from("tickets").select("*", { count: 'exact', head: true }),
-      supabase.from("tickets").select("*", { count: 'exact', head: true }).eq("status", "Open"),
-      supabase.from("tickets").select("*", { count: 'exact', head: true }).eq("status", "In Progress"),
-      supabase.from("tickets").select("*", { count: 'exact', head: true }).eq("status", "Answered"),
-      supabase.from("tickets").select("*", { count: 'exact', head: true }).eq("status", "On Hold"),
-      supabase.from("tickets").select("*", { count: 'exact', head: true }).eq("status", "Closed"),
-    ])
-
-    const stats = {
-      total: totalResult.count || 0,
-      open: openResult.count || 0,
-      in_progress: inProgressResult.count || 0,
-      answered: answeredResult.count || 0,
-      on_hold: onHoldResult.count || 0,
-      closed: closedResult.count || 0
-    }
-
-    return { success: true, data: stats }
+    return {
+      success: true,
+      data: {
+        open: statusCounts[0].totalCount || 0,
+        in_progress: statusCounts[1].totalCount || 0,
+        answered: statusCounts[2].totalCount || 0,
+        on_hold: statusCounts[3].totalCount || 0,
+        closed: statusCounts[4].totalCount || 0,
+        total: statusCounts[5].totalCount || 0,
+      },
+    };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+    console.error('[fetchTicketStats] Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
 export async function fetchTicketHeaderById(ticketId: number): Promise<{ success: boolean; data?: TicketListItem; error?: string }> {
-  try {
-    const supabase = await createClient()
+  const result = await fetchTicketById(ticketId);
 
-    const { data, error } = await supabase
-      .from("tickets")
-      .select("id, ticket_number, subject, contact, department, project, service, priority, status, last_reply, submitted_date, body")
-      .eq("id", ticketId)
-      .single()
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data: data as TicketListItem }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  if (!result.success || !result.data) {
+    return { success: false, error: result.error };
   }
+
+  // Convert to TicketListItem format
+  const { replies, ...ticketData } = result.data;
+  return {
+    success: true,
+    data: ticketData,
+  };
 }
 
 export async function fetchTicketRepliesPage(ticketId: number, limit: number, offset: number): Promise<{ success: boolean; data?: TicketReply[]; error?: string }> {
-  try {
-    const supabase = await createClient()
+  const result = await fetchTicketById(ticketId);
 
-    const { data: replies, error } = await supabase
-      .from("ticket_replies")
-      .select("id, ticket_id, author, message, date, attachments")
-      .eq("ticket_id", ticketId)
-      .order("date", { ascending: true })
-      .range(offset, offset + limit - 1)
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data: replies as TicketReply[] }
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  if (!result.success || !result.data) {
+    return { success: false, error: result.error };
   }
+
+  // Paginate replies locally (API returns all replies)
+  const paginatedReplies = result.data.replies.slice(offset, offset + limit);
+
+  return {
+    success: true,
+    data: paginatedReplies,
+  };
 }

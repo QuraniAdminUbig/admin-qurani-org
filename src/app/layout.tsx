@@ -12,6 +12,9 @@ import { Suspense } from "react";
 import DynamicTitle from "@/components/dinamicTitle";
 import { UnifiedNotificationToast } from "@/components/UnifiedNotificationToast";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { SWRProvider } from "@/components/providers/swr-provider";
+import { DevServiceWorkerCleanup } from "@/components/DevServiceWorkerCleanup";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,11 +46,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="/videos" />
         <link rel="preload" href="/videos/V-utama.mp4" as="video" type="video/mp4" />
 
-        {/* Preload critical fonts untuk performa */}
-        <link rel="preload" href="/fonts/indopak-nastaleeq.woff" as="font" type="font/woff" crossOrigin="anonymous" />
-        <link rel="preload" href="/fonts/surah-name-v4.woff" as="font" type="font/woff" crossOrigin="anonymous" />
-        <link rel="preload" href="/" as="font" type="font/woff2" crossOrigin="anonymous" />
-
+        {/* Note: Quran fonts (indopak-nastaleeq, surah-name) are loaded conditionally in Quran/Recitation pages only */}
       </head>
       <body
         cz-shortcut-listen="true"
@@ -57,6 +56,7 @@ export default function RootLayout({
           <TopLoadingBar />
         </Suspense>
         <Toaster position="top-right" richColors />
+        <DevServiceWorkerCleanup />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -64,12 +64,14 @@ export default function RootLayout({
         >
           <I18nProvider namespaces={["common", "navigation", "search", "profile"]}>
             <DynamicTitle />
-            <AuthProvider>
-              <UnifiedNotificationToast />
-              <PresenceProvider>
-                {children}
-              </PresenceProvider>
-            </AuthProvider>
+            <SWRProvider>
+              <AuthProvider>
+                <UnifiedNotificationToast />
+                <PresenceProvider>
+                  {children}
+                </PresenceProvider>
+              </AuthProvider>
+            </SWRProvider>
           </I18nProvider>
           <SpeedInsights />
         </ThemeProvider>

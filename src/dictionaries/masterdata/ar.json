@@ -1,0 +1,41 @@
+{
+    "masterdata": {
+        "countries": {
+            "title": "البلدان",
+            "search_placeholder": "البحث بالاسم، رمز ISO...",
+            "no_results": "لم يتم العثور على بلدان",
+            "region": "المنطقة",
+            "delete_country_title": "حذف البلد",
+            "delete_state_title": "حذف الولاية",
+            "delete_confirm": "هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.",
+            "create_country": "إنشاء بلد",
+            "edit_country": "تعديل البلد",
+            "country_name": "اسم البلد",
+            "iso2_code": "رمز ISO2",
+            "iso3_code": "رمز ISO3",
+            "phone_code": "رمز الهاتف",
+            "currency": "العملة",
+            "capital": "العاصمة",
+            "subregion": "المنطقة الفرعية",
+            "population": "السكان",
+            "states": "الولايات",
+            "cities": "المدن",
+            "unknown_region": "منطقة غير معروفة",
+            "loading": "جاري تحميل البلدان...",
+            "load_more": "جاري تحميل المزيد من البلدان...",
+            "all_loaded": "تم تحميل جميع البلدان",
+            "showing": "عرض",
+            "of": "من",
+            "countries": "بلدان",
+            "page": "صفحة",
+            "items_per_page": "عنصر لكل صفحة",
+            "name_required": "اسم البلد مطلوب",
+            "create_success": "تم إنشاء البلد بنجاح",
+            "create_error": "فشل في إنشاء البلد",
+            "update_success": "تم تحديث البلد بنجاح",
+            "update_error": "فشل في تحديث البلد",
+            "delete_success": "تم حذف \"{name}\" بنجاح",
+            "delete_error": "فشل في حذف البلد"
+        }
+    }
+}

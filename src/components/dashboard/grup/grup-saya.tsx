@@ -41,11 +41,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Users, Settings, Crown, Shield, Component, Filter, ClockAlert, ArchiveRestore, MoreVerticalIcon, FlagIcon, AlertCircle, Check, RotateCcw, Search } from "lucide-react"
+import { Plus, Users, Settings, Crown, Shield, Component, Filter, ClockAlert, ArchiveRestore, MoreVerticalIcon, FlagIcon, AlertCircle, Check, RotateCcw, Search, BadgeCheck, Trash2 } from "lucide-react"
 import { useForm } from "@/hooks/handleChange"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import { motion, useInView } from "motion/react"
+import { groupsApi } from "@/lib/api"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { insertGrup } from "@/utils/api/grup/insert"
@@ -107,6 +108,12 @@ export function GrupSaya() {
   const [isRestore, setIsRestore] = useState<boolean>(false)
   const [openDialogReport, setOpenDialogReport] = useState<boolean>(false)
   const [isLoadingReport, setIsLoadingReport] = useState<boolean>(false)
+
+  // Delete group states
+  const [openDeleteDialog, setOpenDeleteDialog] = useState<boolean>(false)
+  const [groupToDelete, setGroupToDelete] = useState<MappedGroup | null>(null)
+  const [isDeleting, setIsDeleting] = useState<boolean>(false)
+
   const categoryList = CATEGORY_LIST
 
   // Filter states
@@ -163,37 +170,9 @@ export function GrupSaya() {
   });
   const [tempLocationFilter, setTempLocationFilter] = useState(locationFilter);
 
-  useEffect(() => {
-    const getDataUserProfile = async () => {
-      try {
-        const supabase = createClient();
 
-        const { data: userProfile, error } = await supabase
-          .from("user_profiles")
-          .select("countryId, stateId, cityId, countryName, stateName, cityName")
-          .eq("id", userId)
-          .single();
-
-        if (error) return
-
-        if (userProfile) {
-          setLocationData({
-            country_id: userProfile.countryId,
-            states_id: userProfile.stateId,
-            city_id: userProfile.cityId,
-            country_name: userProfile.countryName,
-            states_name: userProfile.stateName,
-            city_name: userProfile.cityName,
-          });
-        }
-
-      } catch (error) {
-        console.error("Error fetching user profile data:", error);
-      }
-    }
-
-    getDataUserProfile()
-  }, [router, userId])
+  // Note: User location data query removed - columns may not exist in Supabase table
+  // Location filtering for groups uses API-based data instead
 
   const { data, handleChange, resetForm, setFormData } = useForm({
     name: "",
@@ -226,84 +205,7 @@ export function GrupSaya() {
     }
   }, [locationData, data.country_name, setFormData]);
 
-  // Effect untuk load countries
-  useEffect(() => {
-    const loadCountries = async () => {
-      try {
-        const result = await fetchCountries()
-        if (result.success) {
-          setCountries(result.data || [])
-        }
-      } catch (error) {
-        console.error("Error loading provinces:", error)
-      }
-    }
-    loadCountries()
-  }, [])
-
-  useEffect(() => {
-    const fetchStatesLoad = async () => {
-      if (!data.country_id || data.country_id === "0") {
-        setProvinces([]);
-        setCities([]);
-        return;
-      }
-      const result = await fetchStates(parseInt(data.country_id, 10));
-      if (result.success) {
-        setProvinces(result.data || []);
-      } else {
-        toast.error(result.message || "Error fetching provinces");
-      }
-    };
-    fetchStatesLoad();
-  }, [data.country_id]);
-
-  useEffect(() => {
-    const fetchCitiesLoad = async () => {
-      if (!data.province_id || data.province_id === "0") {
-        setCities([]);
-        return;
-      }
-      const result = await fetchCities(Number(data.province_id));
-      setCities(result.data || []);
-    };
-    fetchCitiesLoad();
-  }, [data.province_id]);
-
-  useEffect(() => {
-    if (!isFilterModalOpen) {
-      return;
-    }
-    const loadFilterProvinces = async () => {
-      if (!tempLocationFilter.country_id || tempLocationFilter.country_id === "0") {
-        setFilterProvinces([]);
-        setFilterCities([]);
-        return;
-      }
-      const result = await fetchStates(parseInt(tempLocationFilter.country_id, 10));
-      if (result.success) {
-        setFilterProvinces(result.data || []);
-      } else {
-        toast.error(result.message || "Error fetching provinces");
-      }
-    };
-    loadFilterProvinces();
-  }, [tempLocationFilter.country_id, isFilterModalOpen]);
-
-  useEffect(() => {
-    if (!isFilterModalOpen) {
-      return;
-    }
-    const loadFilterCities = async () => {
-      if (!tempLocationFilter.province_id || tempLocationFilter.province_id === "0") {
-        setFilterCities([]);
-        return;
-      }
-      const result = await fetchCities(Number(tempLocationFilter.province_id));
-      setFilterCities(result.data || []);
-    };
-    loadFilterCities();
-  }, [tempLocationFilter.province_id, isFilterModalOpen]);
+  // LEGACY FETCH REMOVED by request to fix 'groups' duplicates */
 
   const handleChangeReport = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -403,6 +305,45 @@ export function GrupSaya() {
     error: groupsError,
     refresh: refreshGroups
   } = useGroupsData({ userId, showAll: showAllGroups });
+
+  // Local state to track verified groups - persisted in localStorage
+  const VERIFIED_GROUPS_STORAGE_KEY = 'admin_verified_groups';
+
+  // Initialize from localStorage
+  const [localVerifiedGroups, setLocalVerifiedGroups] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(VERIFIED_GROUPS_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          console.log('[Verify] Loaded verified groups from localStorage:', parsed);
+          return new Set(parsed);
+        }
+      } catch (e) {
+        console.error('[Verify] Error loading from localStorage:', e);
+      }
+    }
+    return new Set();
+  });
+
+  // Persist to localStorage whenever localVerifiedGroups changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (localVerifiedGroups.size > 0) {
+          const toStore = Array.from(localVerifiedGroups);
+          localStorage.setItem(VERIFIED_GROUPS_STORAGE_KEY, JSON.stringify(toStore));
+          console.log('[Verify] Saved verified groups to localStorage:', toStore);
+        } else {
+          // If empty, remove from localStorage (all groups unverified)
+          localStorage.removeItem(VERIFIED_GROUPS_STORAGE_KEY);
+          console.log('[Verify] Cleared verified groups from localStorage');
+        }
+      } catch (e) {
+        console.error('[Verify] Error with localStorage:', e);
+      }
+    }
+  }, [localVerifiedGroups, VERIFIED_GROUPS_STORAGE_KEY]);
 
   // SWR mutations (only needed for restore functionality)
   const {
@@ -677,6 +618,81 @@ export function GrupSaya() {
   const handleViewDetails = (groupId: string) => {
     router.push(`/groups/detail/${groupId}`)
   }
+
+  // Admin function to verify/unverify a group (toggle)
+  const [isVerifying, setIsVerifying] = useState<string | null>(null)
+
+  const handleVerifyGroup = useCallback(async (groupId: string, currentlyVerified: boolean) => {
+    setIsVerifying(groupId)
+    try {
+      const newStatus = currentlyVerified ? 0 : 1 // Toggle: if verified, unverify; if not, verify
+      console.log('[Verify] Starting verify:', { groupId, currentlyVerified, newStatus })
+
+      await groupsApi.verify(groupId, newStatus)
+
+      // Update local verified state immediately for instant UI feedback
+      console.log('[Verify] API success, updating local state...')
+      setLocalVerifiedGroups(prev => {
+        const updated = new Set(prev)
+        if (newStatus === 1) {
+          updated.add(groupId)
+          console.log('[Verify] Added to verified set:', groupId)
+        } else {
+          updated.delete(groupId)
+          console.log('[Verify] Removed from verified set:', groupId)
+        }
+        console.log('[Verify] New verified set:', Array.from(updated))
+        return updated
+      })
+
+      if (newStatus === 1) {
+        toast.success(t('grup saya.toast.verify_success', 'Group verified successfully'))
+      } else {
+        toast.success(t('grup saya.toast.unverify_success', 'Group verification removed'))
+      }
+
+      // NOTE: Not calling refreshGroups() here because it would overwrite localVerifiedGroups
+      // since API search doesn't return isVerified field. Local state is the source of truth.
+    } catch (error) {
+      console.error('Error verifying group:', error)
+      toast.error(t('grup saya.toast.verify_error', 'An error occurred while verifying the group'))
+    } finally {
+      setIsVerifying(null)
+    }
+  }, [t, setLocalVerifiedGroups])
+
+  // Handler to open delete confirmation dialog
+  const handleOpenDeleteDialog = useCallback((group: MappedGroup) => {
+    setGroupToDelete(group)
+    setOpenDeleteDialog(true)
+  }, [])
+
+  // Handler to confirm and execute delete
+  const handleConfirmDelete = useCallback(async () => {
+    if (!groupToDelete) return
+
+    setIsDeleting(true)
+    try {
+      console.log('[Delete Group] Deleting group:', groupToDelete.id, groupToDelete.name)
+
+      // Call Delete API
+      await groupsApi.delete(groupToDelete.id)
+
+      toast.success(t('grup saya.toast.delete_success', 'Group deleted successfully'))
+
+      // Refresh groups list to reflect the deletion
+      await refreshGroups()
+
+      setOpenDeleteDialog(false)
+      setGroupToDelete(null)
+    } catch (error) {
+      console.error('Error deleting group:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(t('grup saya.toast.delete_error', 'Failed to delete group: ') + errorMessage)
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [groupToDelete, t, refreshGroups])
 
   // Image crop states
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null)
@@ -1186,10 +1202,10 @@ export function GrupSaya() {
                             {/* Group Type Badge */}
                             {group.type && (
                               <Badge className={`px-2 py-1 rounded-full text-[10px] sm:text-xs font-semibold tracking-wide uppercase backdrop-blur border ${group.type === 'public'
-                                  ? 'border-blue-400/40 bg-blue-900/30 text-blue-300'
-                                  : group.type === 'private'
-                                    ? 'border-orange-400/40 bg-orange-900/30 text-orange-300'
-                                    : 'border-red-400/40 bg-red-900/30 text-red-300'
+                                ? 'border-blue-400/40 bg-blue-900/30 text-blue-300'
+                                : group.type === 'private'
+                                  ? 'border-orange-400/40 bg-orange-900/30 text-orange-300'
+                                  : 'border-red-400/40 bg-red-900/30 text-red-300'
                                 }`}>
                                 {group.type}
                               </Badge>
@@ -1220,6 +1236,14 @@ export function GrupSaya() {
                                 >
                                   <FlagIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                   {t('grup saya.report.report')}
+                                </DropdownMenuItem>
+                                {/* Delete Group - Admin Only */}
+                                <DropdownMenuItem
+                                  onSelect={() => handleOpenDeleteDialog(group)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 cursor-pointer rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+                                  {t('grup saya.actions.delete', 'Delete Group')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1322,13 +1346,36 @@ export function GrupSaya() {
                             {t('grup saya.card.restore')}
                           </Button>
                         ) : (
-                          <Button
-                            onClick={() => handleViewDetails(group.id)}
-                            className="w-full rounded-lg shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 border-0 text-white"
-                          >
-                            <Settings className="h-4 w-4 mr-2" />
-                            {t('grup saya.card.details', 'Details')}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleViewDetails(group.id)}
+                              className="flex-1 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 border-0 text-white"
+                            >
+                              <Settings className="h-4 w-4 mr-2" />
+                              {t('grup saya.card.details', 'Details')}
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                const isCurrentlyVerified = group.isVerified || localVerifiedGroups.has(group.id)
+                                handleVerifyGroup(group.id, isCurrentlyVerified)
+                              }}
+                              disabled={isVerifying === group.id}
+                              variant="outline"
+                              className={`rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${(group.isVerified || localVerifiedGroups.has(group.id))
+                                ? 'border-green-500 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                                : 'border-gray-300 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/20'
+                                }`}
+                              title={(group.isVerified || localVerifiedGroups.has(group.id))
+                                ? t('grup saya.card.unverify_tooltip', 'Remove verification')
+                                : t('grup saya.card.verify_tooltip', 'Verify this group')}
+                            >
+                              {isVerifying === group.id ? (
+                                <div className={`h-4 w-4 border-2 ${(group.isVerified || localVerifiedGroups.has(group.id)) ? 'border-green-600' : 'border-gray-400'} border-t-transparent rounded-full animate-spin`} />
+                              ) : (
+                                <BadgeCheck className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1995,6 +2042,45 @@ export function GrupSaya() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Group Confirmation Dialog */}
+      <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
+        <AlertDialogContent className="dark:bg-gray-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              {t('grup saya.delete.dialog_title', 'Delete Group')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('grup saya.delete.dialog_description_before', 'Are you sure you want to delete')} <strong className="text-gray-900 dark:text-white">{groupToDelete?.name}</strong>?
+              {t('grup saya.delete.dialog_description_after', ' This action cannot be undone and all group data will be permanently removed.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row gap-2">
+            <AlertDialogCancel
+              className="flex-1 cursor-pointer"
+              onClick={() => {
+                setOpenDeleteDialog(false)
+                setGroupToDelete(null)
+              }}
+            >
+              {t('grup saya.delete.cancel', 'Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              {t('grup saya.delete.confirm', 'Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

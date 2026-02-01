@@ -77,8 +77,11 @@ function ProfilePageContent() {
   const [isSearching, setIsSearching] = useState(false)
 
   // Custom hooks
-  const { profile, loading, refresh } = useUserProfile(userId)
-  const { recipients, refreshRecipients } = useNotificationRecipients(userId)
+  const { profile, loading, refresh } = useUserProfile(userId ? "me" : null)
+  // DISABLED: Recipients feature not used, saves network request
+  // const { recipients, refreshRecipients } = useNotificationRecipients(userId ? "me" : undefined)
+  const recipients: any[] = [] // Empty placeholder
+  const refreshRecipients = () => { } // No-op
   const {
     usernameError,
     setUsernameError,
@@ -177,12 +180,12 @@ function ProfilePageContent() {
     return () => clearTimeout(searchTimeout)
   }, [searchQuery, userId, t])
 
-  // Load notification recipients
-  useEffect(() => {
-    if (userId) {
-      refreshRecipients()
-    }
-  }, [userId, refreshRecipients])
+  // DISABLED: Recipients refresh - saves network request
+  // useEffect(() => {
+  //   if (userId) {
+  //     refreshRecipients()
+  //   }
+  // }, [userId, refreshRecipients])
 
   // Load profile data
   useEffect(() => {

@@ -209,6 +209,41 @@ export function RegisterForm({
 
         try {
             await withLoading(async () => {
+                // 1. Try MyQurani API register first
+                try {
+                    const { authApi } = await import('@/lib/api');
+                    const result = await authApi.register({
+                        email: data.email.trim(),
+                        password: data.password,
+                        username: data.username.trim().toLowerCase(),
+                        name: data.full_name.trim(),
+                        countryId: parseInt(data.country_id) || 0,
+                        stateId: parseInt(data.province_id) || 0,
+                        cityId: parseInt(data.city_id) || 0,
+                        timezone: data.timezone,
+                    });
+
+                    if (result) {
+                        toast.success(t("register.success", "Registration successful!"));
+                        // If got token, redirect to dashboard
+                        if (result.accessToken) {
+                            router.replace('/dashboard');
+                        } else {
+                            // Otherwise redirect to login
+                            router.replace('/login');
+                        }
+                        return;
+                    }
+                } catch (apiError: any) {
+                    console.log("MyQurani API register failed:", apiError.message);
+                    // Rethrow if it's a specific error (like "email already exists")
+                    if (apiError.message && !apiError.message.includes('fetch')) {
+                        throw apiError;
+                    }
+                    // Otherwise try fallback
+                }
+
+                // 2. Fallback to Supabase (old flow)
                 const formData = new FormData();
                 formData.append('email', data.email.trim());
                 formData.append('password', data.password);
@@ -222,12 +257,11 @@ export function RegisterForm({
                 formData.append('city_name', data.city_name);
                 formData.append('timezone', data.timezone);
 
-                // Call the server action through client wrapper
                 await registerWithToast(formData);
                 router.replace('/login');
             });
-        } catch {
-            // Error already handled by registerWithToast
+        } catch (err: any) {
+            toast.error(err.message || t("register.failed", "Registration failed"));
         }
     };
 

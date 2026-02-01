@@ -1,9 +1,10 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react"
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { User } from "@supabase/supabase-js"
 import { createClient } from "@/utils/supabase/client"
 import useSWR from "swr"
+import { getStoredAuth, clearStoredAuth, authApi, API_BASE, type AuthData } from "@/lib/api"
 
 interface UserProfile {
     id: string
@@ -11,126 +12,324 @@ interface UserProfile {
     username: string
     email: string
     avatar: string
-    role?: string // Added role field
+    role?: string
 }
 
 interface AuthContextType {
     user: User | null
     profile: UserProfile | null
+    customUser: AuthData | null
+    userId: string | undefined
+    authId: string | null
     loading: boolean
     error: string | null
     signOut: () => Promise<void>
-    refreshProfile: () => Promise<void>
+    isAuthenticated: boolean
+    refreshProfile: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Helper function to normalize avatar URL (handle relative paths from API)
+const normalizeAvatarUrl = (url: string | null | undefined): string => {
+    if (!url || !url.trim()) return "";
+    const img = url.trim();
+    // Already a full URL or data URI
+    if (img.startsWith('http') || img.startsWith('data:')) return img;
+    // Relative path - prepend API base URL
+    const normalizedPath = img.replace(/\\/g, '/'); // Fix Windows backslashes
+    return `${API_BASE}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
-    const [sessionLoading, setSessionLoading] = useState(true)
-    const [authError, setAuthError] = useState<string | null>(null)
+    const [customUser, setCustomUser] = useState<AuthData | null>(null)
+    const [authLoading, setAuthLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const initialized = useRef(false)
 
     const supabase = useMemo(() => createClient(), [])
 
-    // 1. Initial Session Check (Run Once)
+    // Synchronize customUser from localStorage on mount (like My-Qurani example)
     useEffect(() => {
-        const initAuth = async () => {
+        const stored = getStoredAuth();
+        if (stored) {
+            console.log('[AuthProvider] Found stored auth in localStorage:', stored.username);
+            setCustomUser(stored);
+
+            // Ensure cookies are set for middleware
+            const expires = new Date(stored.expiresAt).toUTCString();
+            document.cookie = `myqurani_access_token=${stored.accessToken}; expires=${expires}; path=/; SameSite=Lax`;
+            document.cookie = `myqurani_user=${encodeURIComponent(JSON.stringify({
+                id: stored.userId,
+                email: stored.email,
+                username: stored.username,
+                name: stored.name,
+                role: 'member',
+            }))}; expires=${expires}; path=/; SameSite=Lax`;
+        }
+
+        // Listen for auth changes (from login/logout in other tabs)
+        const handleAuthChange = () => {
+            console.log('[AuthProvider] Auth change event received');
+            setCustomUser(getStoredAuth());
+        };
+
+        window.addEventListener('auth-change', handleAuthChange);
+        return () => window.removeEventListener('auth-change', handleAuthChange);
+    }, []);
+
+    // Fetch user profile from API - only called if no cached profile
+    const fetchUserProfile = useCallback(
+        async (authId: string): Promise<UserProfile | null> => {
+            // Priority 0: Check cached profile in localStorage (from previous login)
+            // This prevents 'me' request on every page load
             try {
-                const { data: { session }, error } = await supabase.auth.getSession()
-                if (error) throw error
-                setUser(session?.user ?? null)
-            } catch (err) {
-                setAuthError(err instanceof Error ? err.message : "Failed to get session")
-            } finally {
-                setSessionLoading(false)
+                const cachedProfile = localStorage.getItem('myqurani_user_profile');
+                if (cachedProfile) {
+                    const parsed = JSON.parse(cachedProfile);
+                    // Verify cached profile matches current user
+                    if (parsed.id?.toString() === authId || parsed.userId?.toString() === authId) {
+                        console.log('[AuthProvider] Using cached user profile, no API call needed');
+                        return {
+                            id: parsed.id?.toString() || authId,
+                            name: parsed.name || parsed.username,
+                            username: parsed.username,
+                            email: parsed.email,
+                            avatar: normalizeAvatarUrl(parsed.avatar || parsed.image),
+                            role: parsed.role || "member",
+                        } as UserProfile;
+                    }
+                }
+            } catch (e) {
+                console.log('[AuthProvider] No valid cached profile, will fetch from API');
             }
-        }
 
-        initAuth()
+            // Priority 1: Custom API if customUser exists (only on login or cache miss)
+            const stored = getStoredAuth();
+            if (stored?.accessToken) {
+                try {
+                    console.log('[AuthProvider] Fetching profile from API (first time or cache miss)');
+                    const { userApi } = await import('@/lib/api');
+                    const result = await userApi.getMe(stored.accessToken);
+                    const userData = result.data || result;
+                    if (userData) {
+                        const profile = {
+                            id: userData.id?.toString() || authId,
+                            name: userData.name || userData.username,
+                            username: userData.username,
+                            email: userData.email,
+                            avatar: normalizeAvatarUrl(userData.avatar || userData.image),
+                            role: userData.role || "member",
+                        } as UserProfile;
 
-        // 2. Realtime Auth Listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null)
-            if (session?.user) {
-                setAuthError(null)
+                        // Cache the profile for future page loads
+                        localStorage.setItem('myqurani_user_profile', JSON.stringify({
+                            ...profile,
+                            userId: authId,
+                            cachedAt: new Date().toISOString(),
+                        }));
+                        console.log('[AuthProvider] Profile cached for future use');
+
+                        return profile;
+                    }
+                } catch (e) {
+                    console.warn("[AuthProvider] Custom API getMe failed, falling back to Supabase:", e);
+                }
             }
-        })
 
-        return () => subscription.unsubscribe()
-    }, [supabase])
+            // Priority 2: Supabase direct query (fallback)
+            const { data, error } = await supabase
+                .from("user_profiles")
+                .select("*")
+                .eq("auth", authId)
+                .maybeSingle();
 
-    // 3. User Profile Fetching with SWR (Cached)
-    const fetcher = async (userId: string) => {
-        const { data, error } = await supabase
-            .from("user_profiles")
-            .select("id, name, username, email, avatar, role")
-            .eq("auth", userId)
-            .single()
+            if (error) {
+                console.error("Error fetching profile:", error);
+                throw error;
+            }
 
-        if (error) throw error
-        return data
-    }
+            return data;
+        },
+        [supabase]
+    );
 
-    const { data: profile, error: profileError, mutate } = useSWR(
-        user?.id ? `profile-${user.id}` : null,
-        () => fetcher(user!.id),
+    const {
+        data: profile,
+        error: profileError,
+        mutate,
+    } = useSWR(
+        (user?.id || customUser?.userId) ? `user-profile-${user?.id || customUser?.userId}` : null,
+        (user?.id || customUser?.userId) ? () => fetchUserProfile((user?.id || customUser?.userId!).toString()) : null,
         {
+            // Disable automatic revalidation to prevent duplicate 'me' requests
             revalidateOnFocus: false,
-            shouldRetryOnError: false
+            revalidateOnReconnect: false,
+            dedupingInterval: 300000, // 5 minutes - prevent duplicate requests
+            shouldRetryOnError: false,
+            revalidateIfStale: false,
         }
-    )
+    );
 
-    const signOut = useCallback(async () => {
-        try {
-            await supabase.auth.signOut()
-            setUser(null)
-            mutate(undefined, false) // Clear cache
-        } catch (err) {
-            console.error("Sign out failed", err)
-        }
-    }, [supabase, mutate])
-
-    const refreshProfile = useCallback(async () => {
-        await mutate()
-    }, [mutate])
-
-    const value = useMemo(() => ({
-        user,
-        profile: profile || null,
-        loading: sessionLoading || (!!user && !profile && !profileError),
-        error: authError || (profileError ? "Failed to load profile" : null),
-        signOut,
-        refreshProfile
-    }), [user, profile, sessionLoading, profileError, authError, signOut, refreshProfile])
-
-    // 4. Enforce Privileged Roles Access
-    // Allowed roles: admin, billing, support
+    // Initial Supabase auth check
     useEffect(() => {
-        if (!sessionLoading && user && profile) {
-            const userRole = profile.role || 'member'; // Default to member if undefined
-            const allowedRoles = ["admin", "billing", "support"]
+        if (initialized.current) return;
+        initialized.current = true;
 
-            if (!allowedRoles.includes(userRole)) {
-                console.warn("Unauthorized access attempt by:", userRole)
-                setAuthError("Akses Ditolak: Anda tidak memiliki izin untuk mengakses aplikasi ini.")
-                // Note: The actual logout and redirect is handled by middleware
-                // This is just for client-side UX feedback
+        const getInitialSession = async () => {
+            try {
+                // Skip Supabase if we have custom auth
+                if (getStoredAuth()) {
+                    console.log('[AuthProvider] Custom auth found, skipping Supabase');
+                    setAuthLoading(false);
+                    return;
+                }
+
+                // Try to get Supabase user
+                const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+
+                if (userError) {
+                    // Ignore "Auth session missing" error - it's expected when not logged in
+                    if (userError.message?.includes('session missing') || userError.message?.includes('Auth session missing')) {
+                        console.log('[AuthProvider] No Supabase session, this is OK');
+                    } else {
+                        console.error("Error getting user:", userError);
+                    }
+                } else {
+                    setUser(currentUser || null);
+                }
+            } catch (err) {
+                console.error("Error in getInitialSession:", err);
+                // Don't set error for expected "no session" cases
+            } finally {
+                setAuthLoading(false);
             }
-        }
-    }, [user, profile, sessionLoading])
+        };
 
+        getInitialSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+            try {
+                if (event === "SIGNED_IN") {
+                    setUser(session?.user ?? null);
+                    setError(null);
+                } else if (event === "SIGNED_OUT") {
+                    setUser(null);
+                    mutate(null, false);
+                    setError(null);
+                } else if (event === "TOKEN_REFRESHED") {
+                    setUser(session?.user ?? null);
+                }
+            } catch (err) {
+                console.error("Error in onAuthStateChange:", err);
+            } finally {
+                setAuthLoading(false);
+            }
+        });
+
+        return () => {
+            subscription?.unsubscribe();
+        };
+    }, [supabase, mutate]);
+
+    // Sign out function - clears everything and redirects to login
+    const signOut = useCallback(async () => {
+        setAuthLoading(true);
+        try {
+            // 1. Sign out from Custom API (calls API and clears localStorage + cookies)
+            try {
+                await authApi.logout();
+                console.log('[AuthProvider] Custom API logout successful');
+            } catch (err) {
+                console.warn("Custom API logout failed", err);
+                // Still clear local data even if API fails
+                clearStoredAuth();
+            }
+
+            // 2. Sign out from Supabase
+            await supabase.auth.signOut();
+
+            // 3. Clear state
+            setUser(null);
+            setCustomUser(null);
+            mutate(null, false);
+
+            // 4. Additionally clear any httpOnly cookies via API
+            try {
+                await fetch('/api/auth/force-logout', { method: 'POST' });
+            } catch {
+                // Ignore
+            }
+
+            // 5. Redirect to login page
+            console.log('[AuthProvider] Redirecting to login...');
+            window.location.href = '/login';
+        } catch (err) {
+            console.error("Sign out failed:", err);
+            setError("Failed to sign out");
+        } finally {
+            setAuthLoading(false);
+        }
+    }, [supabase, mutate]);
+
+    const isAuthenticated = useMemo(() => !!user || !!customUser, [user, customUser]);
+
+    const loading = authLoading || (!!user && !profile && !profileError);
+
+    // Build effective profile from custom user if available
+    const effectiveProfile = useMemo(() => {
+        if (profile) return profile;
+        if (customUser) {
+            return {
+                id: customUser.userId.toString(),
+                name: customUser.name || customUser.username,
+                username: customUser.username,
+                email: customUser.email,
+                avatar: normalizeAvatarUrl(customUser.image),
+                role: "member",
+            } as UserProfile;
+        }
+        return null;
+    }, [profile, customUser]);
+
+    const value = useMemo(
+        () => ({
+            user,
+            profile: effectiveProfile,
+            customUser,
+            userId: effectiveProfile?.id ?? undefined,
+            authId: user?.id ?? customUser?.userId?.toString() ?? null,
+            loading,
+            error: error || (profileError ? "Failed to load profile" : null),
+            signOut,
+            isAuthenticated,
+            refreshProfile: mutate,
+        }),
+        [
+            user,
+            effectiveProfile,
+            customUser,
+            loading,
+            error,
+            profileError,
+            isAuthenticated,
+            signOut,
+            mutate,
+        ]
+    );
 
     return (
         <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
-    )
+    );
 }
 
-export const useAuthContext = () => {
-    const context = useContext(AuthContext)
-    if (context === undefined) {
-        throw new Error("useAuthContext must be used within an AuthProvider")
+export function useAuthContext() {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error("useAuthContext must be used within AuthProvider");
     }
-    return context
+    return context;
 }

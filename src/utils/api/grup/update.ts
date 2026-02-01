@@ -1,5 +1,19 @@
 "use server";
 
+/**
+ * ============================================
+ * Groups Update API (LEGACY - Supabase)
+ * ============================================
+ * API Source: Supabase (Local Database)
+ * Status: DEPRECATED - Should migrate to MyQurani API
+ * 
+ * MyQurani Alternatives:
+ *   - groupsApi.update() for group updates
+ *   - groupsApi.updateMemberRole() for role changes
+ *   - groupsApi.uploadLogo() for photo uploads
+ * ============================================
+ */
+
 import { createClient } from "../../supabase/server";
 
 interface UpdateData {

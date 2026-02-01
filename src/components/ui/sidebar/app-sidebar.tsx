@@ -118,9 +118,24 @@ const getSidebarData = (
       icon: Database,
       items: [
         {
-          title: t("navigation.master_dashboard", "Dashboard"),
+          title: t("navigation.dashboard", "Dashboard"),
           url: "/master/dashboard",
           icon: RxDashboard,
+        },
+        {
+          title: t("navigation.countries", "Countries"),
+          url: "/master/countries",
+          icon: Database,
+        },
+        {
+          title: t("navigation.states", "States"),
+          url: "/master/states",
+          icon: Database,
+        },
+        {
+          title: t("navigation.cities", "Cities"),
+          url: "/master/cities",
+          icon: Database,
         },
         {
           title: t("navigation.manage_categories", "Group Categories"),

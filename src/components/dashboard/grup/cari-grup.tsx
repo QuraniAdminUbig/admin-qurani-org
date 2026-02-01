@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { fetchAllCategories } from "@/utils/api/grup/fetch"
+// import { fetchAllCategories } from "@/utils/api/grup/fetch"
 import type { Categories } from "@/types/grup"
 import { useRouter } from "next/navigation"
 import { CATEGORY_LIST } from "@/data/categories-data"
@@ -71,7 +71,8 @@ export function CariGrup() {
   const { userId } = useAuth()
   const [inputValue, setInputValue] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [categories, setCategories] = useState<CategoryWithName[]>([])
+  /* REMOVED UNUSED LEGACY FETCH */
+  // const [categories, setCategories] = useState<CategoryWithName[]>([])
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const router = useRouter()
   const [countries, setCountries] = useState<ProvinceData[]>([]);
@@ -106,30 +107,8 @@ export function CariGrup() {
   const hasError = !!searchError
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null)
 
-  const fetchCategories = async () => {
-    try {
-      const res = await fetchAllCategories()
-      if (res.status === 'error') {
-        toast.error(res.message)
-        return
-      }
-
-      if (res.data) {
-        // Map categories to include name from CATEGORY_LIST
-        const categoriesWithName: CategoryWithName[] = res.data.map((category: Categories) => {
-          const categoryName = CATEGORY_LIST.find((cat) => cat.id === Number(category.id))?.name || ""
-          return { ...category, name: categoryName }
-        })
-        setCategories(categoriesWithName)
-      }
-    } catch {
-      toast.error("error while fetching categories")
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
+  // REMOVED LEGACY FETCH CATEGORIES
+  // Use CATEGORY_LIST directly for dropdown logic
 
 
   // Effect untuk load countries
@@ -688,10 +667,10 @@ export function CariGrup() {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
                   <SelectItem value="all">{t("grup detail.filter.all")}</SelectItem>
-                  {categories
+                  {CATEGORY_LIST
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={String(category.id)}>
                         {category.name}
                       </SelectItem>
                     ))}
