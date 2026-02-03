@@ -44,11 +44,28 @@ import {
     Globe,
     Filter,
     RotateCcw,
+    MoreHorizontal,
+    Search,
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
-import { masterdataApi, CityData, CityRequest, CountryData } from "@/lib/api"
+import { masterdataApi, CityData, CityRequest, CountryData, StateData } from "@/lib/api"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function CitiesManager() {
     const { t } = useI18n()
@@ -69,6 +86,7 @@ export function CitiesManager() {
 
     // Filter state
     const [selectedCountryCode, setSelectedCountryCode] = useState<string>("ID")
+    const [searchQuery, setSearchQuery] = useState<string>("")
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -86,6 +104,19 @@ export function CitiesManager() {
 
     // Temp filter state for modal
     const [tempCountryCode, setTempCountryCode] = useState<string>("ID")
+    const [tempStateCode, setTempStateCode] = useState<string>("All")
+
+    // Filter states list (for state dropdown in filter modal)
+    const [filterStates, setFilterStates] = useState<StateData[]>([])
+    const [isLoadingFilterStates, setIsLoadingFilterStates] = useState(false)
+
+    // Applied filter state
+    const [selectedStateCode, setSelectedStateCode] = useState<string>("All")
+
+    // Form state for country/state dropdowns
+    const [formStates, setFormStates] = useState<StateData[]>([])
+    const [formSelectedCountryCode, setFormSelectedCountryCode] = useState<string>("")
+    const [isLoadingFormStates, setIsLoadingFormStates] = useState(false)
 
     // Form state for create/edit
     const [formData, setFormData] = useState<Partial<CityRequest>>({
@@ -150,13 +181,19 @@ export function CitiesManager() {
                 )
 
                 if (response && response.success && response.data) {
-                    const data = response.data as CityData[]
+                    let data = response.data as CityData[]
+
+                    // Client-side filter by state if state is selected
+                    if (selectedStateCode && selectedStateCode !== "All") {
+                        data = data.filter(city => city.stateCode === selectedStateCode)
+                    }
+
                     if (append) {
                         setCities(prev => [...prev, ...data])
                     } else {
                         setCities(data)
                     }
-                    setHasMoreServerData(data.length >= 100)
+                    setHasMoreServerData(response.data.length >= 100)
                     if (!append) {
                         setServerPage(2)
                     } else {
@@ -181,7 +218,7 @@ export function CitiesManager() {
             setIsLoading(false)
             setIsLoadingMore(false)
         }
-    }, [selectedCountryCode, serverPage])
+    }, [selectedCountryCode, selectedStateCode, serverPage])
 
     // Initial fetch
     useEffect(() => {
@@ -199,7 +236,7 @@ export function CitiesManager() {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoadingCountries, selectedCountryCode])
+    }, [isLoadingCountries, selectedCountryCode, selectedStateCode])
 
     // ====== PAGINATION / LAZY LOADING ======
     const filteredCities = useMemo(() => {
@@ -259,6 +296,60 @@ export function CitiesManager() {
     const goToPrevPage = () => goToPage(currentPage - 1)
     const goToNextPage = () => goToPage(currentPage + 1)
 
+    // ====== FORM HELPERS ======
+    const fetchFormStatesByCountry = useCallback(async (countryCode: string) => {
+        if (!countryCode) {
+            setFormStates([])
+            return
+        }
+
+        setIsLoadingFormStates(true)
+        try {
+            const response = await masterdataApi.states.getByCountryCode(countryCode)
+            if (response.success && response.data) {
+                const sorted = [...response.data].sort((a, b) => a.name.localeCompare(b.name))
+                setFormStates(sorted)
+            } else {
+                setFormStates([])
+            }
+        } catch (err) {
+            console.error("Error fetching states:", err)
+            setFormStates([])
+        } finally {
+            setIsLoadingFormStates(false)
+        }
+    }, [])
+
+    const handleFormCountryChange = (countryCode: string) => {
+        const selectedCountry = countries.find(c => c.iso2 === countryCode)
+        if (selectedCountry) {
+            setFormSelectedCountryCode(countryCode)
+            setFormData(prev => ({
+                ...prev,
+                countryId: selectedCountry.id,
+                country: selectedCountry.name,
+                countryCode: countryCode,
+                // Reset state when country changes
+                stateId: 0,
+                state: "",
+                stateCode: "",
+            }))
+            fetchFormStatesByCountry(countryCode)
+        }
+    }
+
+    const handleFormStateChange = (stateId: string) => {
+        const selectedState = formStates.find(s => s.id === Number(stateId))
+        if (selectedState) {
+            setFormData(prev => ({
+                ...prev,
+                stateId: selectedState.id,
+                state: selectedState.name,
+                stateCode: selectedState.iso2 || "",
+            }))
+        }
+    }
+
     // ====== CRUD HANDLERS ======
     const handleCreateCity = async () => {
         if (!formData.name) {
@@ -268,7 +359,30 @@ export function CitiesManager() {
 
         setIsSubmitting(true)
         try {
-            const response = await masterdataApi.cities.create(formData as CityRequest)
+            // Build request payload, only include optional fields if they have values
+            const requestData: CityRequest = {
+                name: formData.name,
+                stateId: formData.stateId || 0,
+                state: formData.state || "",
+                stateCode: formData.stateCode || "",
+                countryId: formData.countryId || 0,
+                country: formData.country || "",
+                countryCode: formData.countryCode || "",
+            }
+
+            // Only send latitude/longitude if user has filled them in
+            // API expects integer | string with pattern: ^-?(?:0|[1-9]\d*)$ (integers only)
+            // Decimal values like -7.1128 will be rejected by API
+            if (formData.latitude && formData.latitude.trim() !== "") {
+                requestData.latitude = formData.latitude.trim()
+            }
+            if (formData.longitude && formData.longitude.trim() !== "") {
+                requestData.longitude = formData.longitude.trim()
+            }
+
+            console.log("Creating city with data:", JSON.stringify(requestData, null, 2))
+
+            const response = await masterdataApi.cities.create(requestData)
             if (response.success || response.data) {
                 fetchCities(false)
                 setIsCreateModalOpen(false)
@@ -293,11 +407,16 @@ export function CitiesManager() {
             countryId: city.countryId,
             country: city.country,
             countryCode: city.countryCode,
-            latitude: city.latitude,
-            longitude: city.longitude,
+            latitude: city.latitude !== undefined ? String(city.latitude) : undefined,
+            longitude: city.longitude !== undefined ? String(city.longitude) : undefined,
             population: city.population,
             timezone: city.timezone,
         })
+        // Set country code for dropdown and fetch states
+        if (city.countryCode) {
+            setFormSelectedCountryCode(city.countryCode)
+            fetchFormStatesByCountry(city.countryCode)
+        }
         setIsEditModalOpen(true)
     }
 
@@ -309,7 +428,29 @@ export function CitiesManager() {
 
         setIsSubmitting(true)
         try {
-            const response = await masterdataApi.cities.update(editingCityId, formData as CityRequest)
+            // Build request payload, only include optional fields if they have values
+            const requestData: CityRequest = {
+                name: formData.name,
+                stateId: formData.stateId || 0,
+                state: formData.state || "",
+                stateCode: formData.stateCode || "",
+                countryId: formData.countryId || 0,
+                country: formData.country || "",
+                countryCode: formData.countryCode || "",
+            }
+
+            // Only send latitude/longitude if user has filled them in
+            // API expects integer | string with pattern: ^-?(?:0|[1-9]\d*)$ (integers only)
+            if (formData.latitude && formData.latitude.trim() !== "") {
+                requestData.latitude = formData.latitude.trim()
+            }
+            if (formData.longitude && formData.longitude.trim() !== "") {
+                requestData.longitude = formData.longitude.trim()
+            }
+
+            console.log("Updating city with data:", JSON.stringify(requestData, null, 2))
+
+            const response = await masterdataApi.cities.update(editingCityId, requestData)
             if (response.success || response.data) {
                 fetchCities(false)
                 setIsEditModalOpen(false)
@@ -358,30 +499,77 @@ export function CitiesManager() {
             countryId: 0,
             country: "",
             countryCode: "",
+            latitude: undefined,
+            longitude: undefined,
         })
+        setFormSelectedCountryCode("")
+        setFormStates([])
     }
 
     // ====== FILTER HANDLERS ======
+    const fetchFilterStatesByCountry = useCallback(async (countryCode: string) => {
+        if (!countryCode || countryCode === "All") {
+            setFilterStates([])
+            return
+        }
+
+        setIsLoadingFilterStates(true)
+        try {
+            const response = await masterdataApi.states.getByCountryCode(countryCode)
+            if (response.success && response.data) {
+                const sorted = [...response.data].sort((a, b) => a.name.localeCompare(b.name))
+                setFilterStates(sorted)
+            } else {
+                setFilterStates([])
+            }
+        } catch (err) {
+            console.error("Error fetching filter states:", err)
+            setFilterStates([])
+        } finally {
+            setIsLoadingFilterStates(false)
+        }
+    }, [])
+
+    const handleFilterCountryChange = (countryCode: string) => {
+        setTempCountryCode(countryCode)
+        setTempStateCode("All") // Reset state when country changes
+        if (countryCode && countryCode !== "All") {
+            fetchFilterStatesByCountry(countryCode)
+        } else {
+            setFilterStates([])
+        }
+    }
+
     const handleApplyFilter = () => {
         setSelectedCountryCode(tempCountryCode)
+        setSelectedStateCode(tempStateCode)
         setIsFilterModalOpen(false)
         setCurrentPage(1)
     }
 
     const handleResetFilter = () => {
         setTempCountryCode("All")
+        setTempStateCode("All")
         setSelectedCountryCode("All")
+        setSelectedStateCode("All")
+        setFilterStates([])
         setIsFilterModalOpen(false)
         setCurrentPage(1)
     }
 
     const handleCancelFilter = () => {
         setTempCountryCode(selectedCountryCode)
+        setTempStateCode(selectedStateCode)
         setIsFilterModalOpen(false)
     }
 
     const handleOpenFilterModal = () => {
         setTempCountryCode(selectedCountryCode)
+        setTempStateCode(selectedStateCode)
+        // Fetch states if country is selected
+        if (selectedCountryCode && selectedCountryCode !== "All") {
+            fetchFilterStatesByCountry(selectedCountryCode)
+        }
         setIsFilterModalOpen(true)
     }
 
@@ -446,20 +634,38 @@ export function CitiesManager() {
                 </Button>
             </div>
 
-            {/* Filter Bar */}
-            <div className="flex justify-end mb-6">
+            {/* Search and Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-6">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-xl">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                        placeholder="Search by city name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                    />
+                </div>
+
+                {/* Filter Button */}
                 <Button
                     variant="outline"
                     onClick={handleOpenFilterModal}
                     className={cn(
-                        "flex items-center gap-2",
-                        selectedCountryCode && selectedCountryCode !== "All" && "border-emerald-500 text-emerald-600"
+                        "flex items-center gap-2 shrink-0",
+                        (selectedCountryCode && selectedCountryCode !== "All") && "border-emerald-500 text-emerald-600"
                     )}
                 >
                     <Filter className="w-4 h-4" />
                     <span className="hidden sm:inline">
                         {selectedCountryCode && selectedCountryCode !== "All"
-                            ? countries.find(c => c.iso2 === selectedCountryCode)?.name || t("common.filter", "Filter")
+                            ? (() => {
+                                const countryName = countries.find(c => c.iso2 === selectedCountryCode)?.name || selectedCountryCode
+                                if (selectedStateCode && selectedStateCode !== "All") {
+                                    return `${countryName} - ${selectedStateCode}`
+                                }
+                                return countryName
+                            })()
                             : t("common.filter", "Filter")}
                     </span>
                 </Button>
@@ -535,9 +741,10 @@ export function CitiesManager() {
             </div>
 
             {/* Cities Grid */}
-            <div className={displayedCities.length === 0 ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}>
+            {/* Cities Table */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
                 {isLoading && cities.length === 0 ? (
-                    <div className="col-span-full text-center py-12">
+                    <div className="text-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
                         <p className="text-gray-500">Loading cities...</p>
                     </div>
@@ -547,72 +754,84 @@ export function CitiesManager() {
                         <p>{t("masterdata.cities.no_results", "No cities found")}</p>
                     </div>
                 ) : (
-                    displayedCities.map((city) => (
-                        <div key={city.id} className="relative group">
-                            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-                                {/* Card Header with Dark Gradient (like Group Cards) */}
-                                <div className="relative bg-gradient-to-r from-[#1a2e35] via-[#1e3a40] to-[#1a2e35] px-4 py-3">
-                                    {/* Subtle overlay for extra depth */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
-
-                                    <div className="relative flex items-center justify-between">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 rounded-full bg-transparent border-2 border-white/30 flex items-center justify-center text-white shadow-lg shrink-0">
-                                                <Building2 className="w-5 h-5" />
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <TableHead className="w-12">
+                                    <Checkbox />
+                                </TableHead>
+                                <TableHead className="min-w-[200px]">City Name</TableHead>
+                                <TableHead className="w-[150px]">State/Province</TableHead>
+                                <TableHead className="w-[150px]">Country</TableHead>
+                                <TableHead className="w-40">Coordinates</TableHead>
+                                <TableHead className="w-12"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {displayedCities.map((city) => (
+                                <TableRow
+                                    key={city.id}
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                >
+                                    <TableCell>
+                                        <Checkbox />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs shrink-0">
+                                                {city.name.substring(0, 2).toUpperCase()}
                                             </div>
-                                            <div className="min-w-0">
-                                                <h3 className="font-semibold text-white truncate drop-shadow-sm">
-                                                    {city.name}
-                                                </h3>
-                                                <p className="text-xs text-gray-400 truncate">
-                                                    {city.state || "—"}, {city.country || "—"}
-                                                </p>
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                                {city.name}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-gray-600 dark:text-gray-400">
+                                        {city.stateCode || "—"}
+                                    </TableCell>
+                                    <TableCell className="text-gray-600 dark:text-gray-400">
+                                        {city.countryCode || "—"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {city.latitude && city.longitude ? (
+                                            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded w-fit">
+                                                <MapPin className="w-3 h-3" />
+                                                <span>{city.latitude.toFixed(4)}, {city.longitude.toFixed(4)}</span>
                                             </div>
-                                        </div>
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 text-gray-300 hover:text-white rounded-full"
-                                                onClick={() => handleEditClick(city)}
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 text-red-400 rounded-full"
-                                                onClick={() => handleDeleteClick(city.id, city.name)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Card Body */}
-                                <div className="px-4 py-3">
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div>
-                                            <span className="text-gray-500">State:</span>
-                                            <span className="ml-1 font-medium text-gray-900 dark:text-white">{city.stateCode || "—"}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">Country:</span>
-                                            <span className="ml-1 font-medium text-gray-900 dark:text-white">{city.countryCode || "—"}</span>
-                                        </div>
-                                    </div>
-                                    {city.latitude && city.longitude && (
-                                        <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
-                                            <MapPin className="w-3 h-3" />
-                                            <span>{city.latitude?.toFixed(4)}, {city.longitude?.toFixed(4)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))
+                                        ) : (
+                                            <span className="text-gray-400 text-xs">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEditClick(city)}>
+                                                    <Pencil className="w-4 h-4 mr-2" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDeleteClick(city.id, city.name)}
+                                                    className="text-red-600 dark:text-red-400"
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 )}
             </div>
 
@@ -696,9 +915,10 @@ export function CitiesManager() {
                         <DialogTitle>{t("common.filter", "Filter")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
+                        {/* Country Dropdown */}
                         <div>
                             <Label>Country</Label>
-                            <Select value={tempCountryCode} onValueChange={setTempCountryCode}>
+                            <Select value={tempCountryCode} onValueChange={handleFilterCountryChange}>
                                 <SelectTrigger className="mt-1.5">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -712,6 +932,38 @@ export function CitiesManager() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {/* State Dropdown */}
+                        <div>
+                            <Label>State/Province</Label>
+                            <Select
+                                value={tempStateCode}
+                                onValueChange={setTempStateCode}
+                                disabled={!tempCountryCode || tempCountryCode === "All" || isLoadingFilterStates}
+                            >
+                                <SelectTrigger className="mt-1.5">
+                                    {isLoadingFilterStates ? (
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Loading...
+                                        </span>
+                                    ) : (
+                                        <SelectValue placeholder="Select State/Province" />
+                                    )}
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All States/Provinces</SelectItem>
+                                    {filterStates.map((state) => (
+                                        <SelectItem key={state.id} value={state.iso2 || state.id.toString()}>
+                                            {state.name} {state.iso2 ? `(${state.iso2})` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {tempCountryCode === "All" && (
+                                <p className="text-xs text-gray-500 mt-1">Select a country first</p>
+                            )}
                         </div>
                     </div>
                     <DialogFooter className="flex gap-2">
@@ -731,8 +983,9 @@ export function CitiesManager() {
                     <DialogHeader>
                         <DialogTitle>{t("masterdata.cities.create_city", "Create New City")}</DialogTitle>
                     </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                        <div className="col-span-2">
+                    <div className="grid gap-4 py-4">
+                        {/* City Name */}
+                        <div>
                             <Label htmlFor="name">City Name *</Label>
                             <Input
                                 id="name"
@@ -742,63 +995,85 @@ export function CitiesManager() {
                                 placeholder="e.g. Jakarta"
                             />
                         </div>
+
+                        {/* Country Dropdown */}
                         <div>
-                            <Label htmlFor="stateId">State ID *</Label>
-                            <Input
-                                id="stateId"
-                                type="number"
-                                value={formData.stateId || ""}
-                                onChange={(e) => setFormData({ ...formData, stateId: Number(e.target.value) })}
-                                className="mt-1.5"
-                            />
+                            <Label>Country *</Label>
+                            <Select
+                                value={formSelectedCountryCode}
+                                onValueChange={handleFormCountryChange}
+                            >
+                                <SelectTrigger className="mt-1.5">
+                                    <SelectValue placeholder="Select Country" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {countries.map((country) => (
+                                        <SelectItem key={country.id} value={country.iso2 || ""}>
+                                            {country.emoji} {country.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
+
+                        {/* State Dropdown */}
                         <div>
-                            <Label htmlFor="state">State Name *</Label>
-                            <Input
-                                id="state"
-                                value={formData.state || ""}
-                                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                className="mt-1.5"
-                            />
+                            <Label>State/Province *</Label>
+                            <Select
+                                value={formData.stateId?.toString() || ""}
+                                onValueChange={handleFormStateChange}
+                                disabled={!formSelectedCountryCode || isLoadingFormStates}
+                            >
+                                <SelectTrigger className="mt-1.5">
+                                    {isLoadingFormStates ? (
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Loading...
+                                        </span>
+                                    ) : (
+                                        <SelectValue placeholder="Select State/Province" />
+                                    )}
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {formStates.length === 0 ? (
+                                        <SelectItem value="none" disabled>
+                                            {formSelectedCountryCode ? "No states available" : "Select country first"}
+                                        </SelectItem>
+                                    ) : (
+                                        formStates.map((state) => (
+                                            <SelectItem key={state.id} value={state.id.toString()}>
+                                                {state.name} {state.iso2 ? `(${state.iso2})` : ""}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div>
-                            <Label htmlFor="stateCode">State Code *</Label>
-                            <Input
-                                id="stateCode"
-                                value={formData.stateCode || ""}
-                                onChange={(e) => setFormData({ ...formData, stateCode: e.target.value.toUpperCase() })}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="countryId">Country ID *</Label>
-                            <Input
-                                id="countryId"
-                                type="number"
-                                value={formData.countryId || ""}
-                                onChange={(e) => setFormData({ ...formData, countryId: Number(e.target.value) })}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="country">Country Name *</Label>
-                            <Input
-                                id="country"
-                                value={formData.country || ""}
-                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="countryCode">Country Code *</Label>
-                            <Input
-                                id="countryCode"
-                                value={formData.countryCode || ""}
-                                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value.toUpperCase() })}
-                                className="mt-1.5"
-                                placeholder="e.g. ID"
-                                maxLength={2}
-                            />
+
+                        {/* Coordinates */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="latitude">Latitude</Label>
+                                <Input
+                                    id="latitude"
+                                    type="text"
+                                    value={formData.latitude || ""}
+                                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value || undefined })}
+                                    className="mt-1.5"
+                                    placeholder="e.g. -7.1128"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="longitude">Longitude</Label>
+                                <Input
+                                    id="longitude"
+                                    type="text"
+                                    value={formData.longitude || ""}
+                                    onChange={(e) => setFormData({ ...formData, longitude: e.target.value || undefined })}
+                                    className="mt-1.5"
+                                    placeholder="e.g. 112.1635"
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
@@ -823,8 +1098,9 @@ export function CitiesManager() {
                     <DialogHeader>
                         <DialogTitle>{t("masterdata.cities.edit_city", "Edit City")}</DialogTitle>
                     </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                        <div className="col-span-2">
+                    <div className="grid gap-4 py-4">
+                        {/* City Name */}
+                        <div>
                             <Label htmlFor="edit-name">City Name *</Label>
                             <Input
                                 id="edit-name"
@@ -833,62 +1109,85 @@ export function CitiesManager() {
                                 className="mt-1.5"
                             />
                         </div>
+
+                        {/* Country Dropdown */}
                         <div>
-                            <Label htmlFor="edit-stateId">State ID</Label>
-                            <Input
-                                id="edit-stateId"
-                                type="number"
-                                value={formData.stateId || ""}
-                                onChange={(e) => setFormData({ ...formData, stateId: Number(e.target.value) })}
-                                className="mt-1.5"
-                            />
+                            <Label>Country *</Label>
+                            <Select
+                                value={formSelectedCountryCode}
+                                onValueChange={handleFormCountryChange}
+                            >
+                                <SelectTrigger className="mt-1.5">
+                                    <SelectValue placeholder="Select Country" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {countries.map((country) => (
+                                        <SelectItem key={country.id} value={country.iso2 || ""}>
+                                            {country.emoji} {country.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
+
+                        {/* State Dropdown */}
                         <div>
-                            <Label htmlFor="edit-state">State Name</Label>
-                            <Input
-                                id="edit-state"
-                                value={formData.state || ""}
-                                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                className="mt-1.5"
-                            />
+                            <Label>State/Province *</Label>
+                            <Select
+                                value={formData.stateId?.toString() || ""}
+                                onValueChange={handleFormStateChange}
+                                disabled={!formSelectedCountryCode || isLoadingFormStates}
+                            >
+                                <SelectTrigger className="mt-1.5">
+                                    {isLoadingFormStates ? (
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Loading...
+                                        </span>
+                                    ) : (
+                                        <SelectValue placeholder="Select State/Province" />
+                                    )}
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {formStates.length === 0 ? (
+                                        <SelectItem value="none" disabled>
+                                            {formSelectedCountryCode ? "No states available" : "Select country first"}
+                                        </SelectItem>
+                                    ) : (
+                                        formStates.map((state) => (
+                                            <SelectItem key={state.id} value={state.id.toString()}>
+                                                {state.name} {state.iso2 ? `(${state.iso2})` : ""}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div>
-                            <Label htmlFor="edit-stateCode">State Code</Label>
-                            <Input
-                                id="edit-stateCode"
-                                value={formData.stateCode || ""}
-                                onChange={(e) => setFormData({ ...formData, stateCode: e.target.value.toUpperCase() })}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="edit-countryId">Country ID</Label>
-                            <Input
-                                id="edit-countryId"
-                                type="number"
-                                value={formData.countryId || ""}
-                                onChange={(e) => setFormData({ ...formData, countryId: Number(e.target.value) })}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="edit-country">Country Name</Label>
-                            <Input
-                                id="edit-country"
-                                value={formData.country || ""}
-                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                                className="mt-1.5"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="edit-countryCode">Country Code</Label>
-                            <Input
-                                id="edit-countryCode"
-                                value={formData.countryCode || ""}
-                                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value.toUpperCase() })}
-                                className="mt-1.5"
-                                maxLength={2}
-                            />
+
+                        {/* Coordinates */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="edit-latitude">Latitude</Label>
+                                <Input
+                                    id="edit-latitude"
+                                    type="text"
+                                    value={formData.latitude || ""}
+                                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value || undefined })}
+                                    className="mt-1.5"
+                                    placeholder="e.g. -7.1128"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-longitude">Longitude</Label>
+                                <Input
+                                    id="edit-longitude"
+                                    type="text"
+                                    value={formData.longitude || ""}
+                                    onChange={(e) => setFormData({ ...formData, longitude: e.target.value || undefined })}
+                                    className="mt-1.5"
+                                    placeholder="e.g. 112.1635"
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

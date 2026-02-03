@@ -1,9 +1,19 @@
 "use client"
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 import {
     Dialog,
     DialogContent,
@@ -12,10 +22,11 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
     Select,
     SelectContent,
@@ -49,7 +60,8 @@ import {
     X,
     Loader2,
     RefreshCw,
-    AlertCircle
+    AlertCircle,
+    MoreHorizontal
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
@@ -65,34 +77,15 @@ const REGIONS = [
     "Oceania"
 ]
 
-// Format population number
-function formatPopulation(population: number | null | undefined): string {
-    if (!population) return "N/A"
-    if (population >= 1000000000) {
-        return `${(population / 1000000000).toFixed(1)}B`
-    }
-    if (population >= 1000000) {
-        return `${(population / 1000000).toFixed(0)}M`
-    }
-    if (population >= 1000) {
-        return `${(population / 1000).toFixed(0)}K`
-    }
-    return population.toString()
-}
-
-// Extended Country type with states (for UI display)
-interface CountryWithStates extends CountryData {
-    states?: { id: number; name: string; citiesCount: number }[]
-}
-
 export function CountriesManager() {
     const { t } = useI18n()
+    const router = useRouter()
 
     // AbortController ref for request cancellation
     const abortControllerRef = useRef<AbortController | null>(null)
 
     // Data state
-    const [countries, setCountries] = useState<CountryWithStates[]>([])
+    const [countries, setCountries] = useState<CountryData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -155,7 +148,7 @@ export function CountriesManager() {
             } else {
                 // Handle case where response.data is the array directly
                 if (Array.isArray(response)) {
-                    setCountries(response as CountryWithStates[])
+                    setCountries(response as CountryData[])
                 } else {
                     setError("Failed to load countries data")
                 }
@@ -312,7 +305,7 @@ export function CountriesManager() {
     }
 
     // Edit country handler
-    const handleEditClick = (country: CountryWithStates) => {
+    const handleEditClick = (country: CountryData) => {
         setEditingCountryId(country.id)
         setFormData({
             name: country.name,
@@ -553,141 +546,113 @@ export function CountriesManager() {
                 </div>
             </div>
 
-            {/* Countries List */}
-            <div className={displayedCountries.length === 0 ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-2 gap-6 p-1"}>
+            {/* Countries Table */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
                 {displayedCountries.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                         <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>{t("masterdata.countries.no_results", "No countries found")}</p>
                     </div>
                 ) : (
-                    displayedCountries.map((country) => (
-                        <div key={country.id} className="relative group h-full">
-                            {/* Main Card Content */}
-                            <div className="relative h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col">
-                                {/* Card Header with Dark Gradient (like Group Cards) */}
-                                <div className="relative bg-gradient-to-r from-[#1a2e35] via-[#1e3a40] to-[#1a2e35] px-5 py-4">
-                                    {/* Subtle overlay for extra depth */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
-
-                                    <div className="relative flex items-center justify-between">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            {/* Flag/ISO Badge */}
-                                            <div className="w-12 h-12 rounded-full bg-transparent border-2 border-white/30 flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <TableHead className="w-12">
+                                    <Checkbox />
+                                </TableHead>
+                                <TableHead className="min-w-[200px]">Country</TableHead>
+                                <TableHead className="w-20">ISO2</TableHead>
+                                <TableHead className="w-20">ISO3</TableHead>
+                                <TableHead className="w-24">Phone</TableHead>
+                                <TableHead className="w-32">Region</TableHead>
+                                <TableHead className="w-24 text-center">States</TableHead>
+                                <TableHead className="w-24 text-center">Cities</TableHead>
+                                <TableHead className="w-12"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {displayedCountries.map((country) => (
+                                <TableRow
+                                    key={country.id}
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                    onClick={() => router.push(`/master/countries/${country.id}`)}
+                                >
+                                    <TableCell>
+                                        <Checkbox />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-lg shrink-0">
                                                 {country.emoji || country.iso2 || "?"}
                                             </div>
-                                            {/* Name & Region */}
                                             <div className="min-w-0">
-                                                <h3 className="font-semibold text-white truncate text-lg drop-shadow-sm">
+                                                <p className="font-medium text-gray-900 dark:text-white truncate">
                                                     {country.name}
-                                                </h3>
-                                                <p className="text-sm text-gray-400 truncate">
-                                                    {country.region || "Unknown Region"} {country.subregion ? `• ${country.subregion}` : ""}
                                                 </p>
+                                                {country.capital && (
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                        Capital: {country.capital}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
-                                        {/* Action Buttons */}
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleEditClick(country)}
-                                                className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 text-gray-300 hover:text-white"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDeleteClick('country', country.id, country.name)}
-                                                className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 text-red-400"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Card Body - Info Grid */}
-                                <div className="px-5 py-4 flex-1">
-                                    <div className="grid grid-cols-3 gap-4 text-center">
-                                        <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">ISO2</p>
-                                            <p className="font-mono font-semibold text-gray-900 dark:text-white">{country.iso2 || "-"}</p>
-                                        </div>
-                                        <div className="border-l border-r border-gray-200 dark:border-gray-700">
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Phone</p>
-                                            <p className="font-mono font-semibold text-gray-900 dark:text-white">{country.phoneCode ? `+${country.phoneCode}` : "-"}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Currency</p>
-                                            <p className="font-mono font-semibold text-gray-900 dark:text-white">{country.currency || "-"}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Additional Info Row */}
-                                    <div className="mt-4 flex items-center justify-between text-sm">
-                                        <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                                            <Building2 className="w-4 h-4" />
-                                            <span>Capital: <strong className="text-gray-900 dark:text-white">{country.capital || "N/A"}</strong></span>
-                                        </div>
-                                        <div className="text-gray-600 dark:text-gray-400">
-                                            Population: <strong className="text-gray-900 dark:text-white">{formatPopulation(country.population)}</strong>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Card Footer - Stats Row */}
-                                <div className="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                                                <MapPin className="w-3.5 h-3.5" />
-                                                <span>{country.statesCount || 0} States</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
-                                                <Building2 className="w-3.5 h-3.5" />
-                                                <span>{country.citiesCount || 0} Cities</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Collapsible States Toggle */}
-                                        {country.states && country.states.length > 0 && (
-                                            <Collapsible>
-                                                <CollapsibleTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 px-2 text-xs"
-                                                        onClick={() => toggleCountryExpand(country.id)}
-                                                    >
-                                                        <span>{expandedCountries.has(country.id) ? "Hide" : "Show"} States</span>
-                                                        <ChevronRight className={cn(
-                                                            "w-3 h-3 ml-1 transition-transform",
-                                                            expandedCountries.has(country.id) && "rotate-90"
-                                                        )} />
-                                                    </Button>
-                                                </CollapsibleTrigger>
-                                                <CollapsibleContent className="mt-3">
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {getVisibleStates(country.states).map((state) => (
-                                                            <div
-                                                                key={state.id}
-                                                                className="flex items-center justify-between px-2 py-1.5 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
-                                                            >
-                                                                <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{state.name}</span>
-                                                                <span className="text-xs text-gray-400">{state.citiesCount}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </CollapsibleContent>
-                                            </Collapsible>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
+                                    </TableCell>
+                                    <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                        {country.iso2 || "-"}
+                                    </TableCell>
+                                    <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                        {country.iso3 || "-"}
+                                    </TableCell>
+                                    <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                        {country.phoneCode ? `+${country.phoneCode}` : "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                            {country.region || "Unknown"}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <span className="inline-flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                                            <MapPin className="w-3.5 h-3.5" />
+                                            {country.statesCount || 0}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                            <Building2 className="w-3.5 h-3.5" />
+                                            {country.citiesCount || 0}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEditClick(country)}>
+                                                    <Pencil className="w-4 h-4 mr-2" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDeleteClick('country', country.id, country.name)}
+                                                    className="text-red-600 dark:text-red-400"
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 )}
             </div>
 

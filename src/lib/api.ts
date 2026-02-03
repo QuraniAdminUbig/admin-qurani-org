@@ -1124,8 +1124,8 @@ export interface CityRequest {
     type?: string;
     level?: number;
     parentId?: number;
-    latitude?: number;
-    longitude?: number;
+    latitude?: string;
+    longitude?: string;
     native?: string;
     population?: number;
     timezone?: string;
@@ -1450,6 +1450,45 @@ export const masterdataApi = {
         // Get all currencies
         getAll: (token?: string) =>
             apiRequest<any[]>('/api/v1/Currencies', { token }),
+    },
+
+    // ========== Search ==========
+    search: {
+        // Search states by name
+        states: (params: { keyword: string; page?: number; pageSize?: number }, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            searchParams.append('keyword', params.keyword);
+            if (params.page) searchParams.append('page', params.page.toString());
+            if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+            return apiRequest<StatesApiResponse>(
+                `/api/v1/Search/states?${searchParams.toString()}`,
+                { token, signal }
+            );
+        },
+
+        // Search cities by name
+        cities: (params: { keyword: string; page?: number; pageSize?: number }, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            searchParams.append('keyword', params.keyword);
+            if (params.page) searchParams.append('page', params.page.toString());
+            if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+            return apiRequest<CitiesApiResponse>(
+                `/api/v1/Search/cities?${searchParams.toString()}`,
+                { token, signal }
+            );
+        },
+
+        // Search countries by name
+        countries: (params: { keyword: string; page?: number; pageSize?: number }, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            searchParams.append('keyword', params.keyword);
+            if (params.page) searchParams.append('page', params.page.toString());
+            if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+            return apiRequest<CountriesApiResponse>(
+                `/api/v1/Search/countries?${searchParams.toString()}`,
+                { token, signal }
+            );
+        },
     },
 };
 

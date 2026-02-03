@@ -17,10 +17,27 @@ import {
     ChevronRight,
     Globe,
     RotateCcw,
+    Search,
+    MoreHorizontal,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
     Dialog,
     DialogContent,
@@ -76,6 +93,12 @@ export function StatesManager() {
     // Filter states
     const [selectedCountryCode, setSelectedCountryCode] = useState<string>("all")
     const [selectedType, setSelectedType] = useState<string>("All")
+
+    // Search states
+    const [searchQuery, setSearchQuery] = useState<string>("")
+    const [searchResults, setSearchResults] = useState<StateData[] | null>(null)
+    const [isSearching, setIsSearching] = useState(false)
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1)
@@ -453,12 +476,24 @@ export function StatesManager() {
                 </Button>
             </div>
 
-            {/* Filter Bar */}
-            <div className="flex justify-end">
+            {/* Search and Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-xl">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                        placeholder="Search by name, state code..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                    />
+                </div>
+
+                {/* Filter Button */}
                 <Button
                     variant="outline"
                     onClick={handleOpenFilterModal}
-                    className="relative"
+                    className="relative shrink-0"
                 >
                     <Filter className="w-4 h-4 mr-2" />
                     {t("common.filter", "Filter")}
@@ -553,87 +588,88 @@ export function StatesManager() {
             ) : (
                 <>
                     {/* States Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {paginatedStates.map((state) => (
-                            <div
-                                key={state.id}
-                                className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-200"
-                            >
-                                {/* Card Header */}
-                                <div className="relative p-4 bg-gradient-to-br from-[#1a2e35] to-[#1e3a40]">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            {/* State ISO Badge */}
-                                            <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold text-sm backdrop-blur-sm">
-                                                {state.iso2 || state.countryCode?.slice(0, 2) || "ST"}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-white truncate">
+                    {/* States Table */}
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                    <TableHead className="w-12">
+                                        <Checkbox />
+                                    </TableHead>
+                                    <TableHead className="min-w-[200px]">State/Province</TableHead>
+                                    <TableHead className="w-[180px]">Country</TableHead>
+                                    <TableHead className="w-32">Type</TableHead>
+                                    <TableHead className="w-24">Code</TableHead>
+                                    <TableHead className="w-24 text-center">Cities</TableHead>
+                                    <TableHead className="w-12"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedStates.map((state) => (
+                                    <TableRow
+                                        key={state.id}
+                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                    >
+                                        <TableCell>
+                                            <Checkbox />
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
+                                                    {state.iso2 || (state.name ? state.name.substring(0, 2).toUpperCase() : "ST")}
+                                                </div>
+                                                <span className="font-medium text-gray-900 dark:text-white">
                                                     {state.name}
-                                                </h3>
-                                                <p className="text-xs text-white/70">
-                                                    {state.country || "Unknown Country"}
-                                                </p>
+                                                </span>
                                             </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
-                                                onClick={() => handleOpenEditModal(state)}
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                                                onClick={() => handleOpenDeleteDialog(state)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Card Body */}
-                                <div className="px-4 py-3">
-                                    <div className="grid grid-cols-2 gap-3 text-center">
-                                        <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Type</p>
-                                            <p className="font-medium text-gray-900 dark:text-white text-sm">
-                                                {state.type || "N/A"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Country</p>
-                                            <p className="font-mono font-medium text-gray-900 dark:text-white text-sm">
-                                                {state.countryCode || "N/A"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Card Footer */}
-                                <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center gap-3 text-xs">
-                                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                                            <Building2 className="w-3.5 h-3.5" />
-                                            <span>{state.citiesCount || 0} Cities</span>
-                                        </div>
-                                        {state.timezone && (
-                                            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                                                <Globe className="w-3.5 h-3.5" />
-                                                <span className="truncate max-w-[100px]">{state.timezone}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                                        </TableCell>
+                                        <TableCell className="text-gray-600 dark:text-gray-400">
+                                            {state.country || "Unknown"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                                {state.type || "State"}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                            {state.iso2 || state.countryCode || "-"}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                                <Building2 className="w-3.5 h-3.5" />
+                                                {state.citiesCount || 0}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleOpenEditModal(state)}>
+                                                        <Pencil className="w-4 h-4 mr-2" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleOpenDeleteDialog(state)}
+                                                        className="text-red-600 dark:text-red-400"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 mr-2" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
 
                     {/* Pagination Controls */}
