@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { handleGoogleCallback } from "@/services/api/oauth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
@@ -106,4 +106,19 @@ export default function OAuthCallbackPage() {
     }
 
     return null;
+}
+
+export default function OAuthCallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-950">
+                <LoadingSpinner />
+                <p className="mt-4 text-gray-600 dark:text-gray-400">
+                    Loading...
+                </p>
+            </div>
+        }>
+            <OAuthCallbackContent />
+        </Suspense>
+    );
 }

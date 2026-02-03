@@ -1,15 +1,16 @@
 import { CountryDetail } from "@/components/masterdata/country-detail"
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string
-    }
+    }>
 }
 
-export default function CountryDetailPage({ params }: PageProps) {
+export default async function CountryDetailPage({ params }: PageProps) {
+    const { id } = await params
     return (
         <div className="container mx-auto py-6 max-w-7xl">
-            <CountryDetail id={params.id} />
+            <CountryDetail id={id} />
         </div>
     )
 }

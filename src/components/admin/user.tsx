@@ -337,7 +337,7 @@ export default function Users() {
                 return
             }
             try {
-                const result = await masterdataApi.states.getByCountry(editForm.countryId)
+                const result = await masterdataApi.states.getByCountryId(editForm.countryId)
                 const data = Array.isArray(result) ? result : ((result as any)?.data || result || [])
                 setProvinces(data as StateData[])
             } catch (error) {
