@@ -11,14 +11,11 @@ import {
     Trash2,
     Filter,
     Loader2,
-    AlertCircle,
-    MapPin,
     Building2,
-    ChevronRight,
-    Globe,
-    RotateCcw,
     Search,
     MoreHorizontal,
+    AlertCircle,
+    MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

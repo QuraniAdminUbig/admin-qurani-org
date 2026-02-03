@@ -38,14 +38,13 @@ import {
     Trash2,
     MapPin,
     Building2,
-    X,
     Loader2,
-    AlertCircle,
-    Globe,
     Filter,
-    RotateCcw,
     MoreHorizontal,
     Search,
+    AlertCircle,
+    RotateCcw,
+    X,
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"

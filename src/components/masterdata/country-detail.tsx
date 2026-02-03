@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { masterdataApi, CountryData, StateData } from "@/lib/api"
+import { masterdataApi, CountryData } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -10,17 +10,13 @@ import {
     Loader2,
     ArrowLeft,
     MapPin,
-    Building2,
     Globe,
-    Phone,
     DollarSign,
     Search,
     MoreVertical,
-    Calendar,
     Flag
 } from "lucide-react"
 import { toast } from "sonner"
-import { format } from "date-fns"
 
 interface CountryDetailProps {
     id: string
@@ -29,7 +25,6 @@ interface CountryDetailProps {
 export function CountryDetail({ id }: CountryDetailProps) {
     const router = useRouter()
     const [country, setCountry] = useState<CountryData | null>(null)
-    const [states, setStates] = useState<StateData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
