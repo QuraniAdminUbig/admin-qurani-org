@@ -582,8 +582,8 @@ export function CountriesManager() {
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-lg shrink-0">
-                                                {country.emoji || country.iso2 || "?"}
+                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
+                                                {country.iso2 || "?"}
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-medium text-gray-900 dark:text-white truncate">

@@ -140,9 +140,7 @@ export async function uploadTicketAttachment(
     }
 }
 
-/**
- * Upload multiple files (max 2)
- */
+/** Upload multiple files (max 2)*/
 export async function uploadMultipleAttachments(
     files: File[],
     ticketId: number,

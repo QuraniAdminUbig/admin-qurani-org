@@ -101,38 +101,39 @@ export function CountryDetail({ id }: CountryDetailProps) {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header Banner */}
-            <div className="relative overflow-hidden rounded-2xl bg-[#2A1C1C] dark:bg-[#1a0f0f] border border-gray-200 dark:border-gray-800 shadow-sm">
-                {/* Gradient Overlay - using reddish/brownish tone from reference or custom dark gradient */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4A3B3B] to-[#2A1C1C]" />
+            {/* Header Banner */}
+            <div className="relative overflow-hidden rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 shadow-sm">
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/50 to-transparent dark:from-emerald-900/20" />
 
                 {/* Content */}
                 <div className="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
                     {/* Flag Avatar */}
                     <div className="relative shrink-0">
-                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center text-4xl md:text-5xl shadow-xl">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center text-4xl md:text-5xl shadow-lg shadow-emerald-200/50 dark:shadow-none border-4 border-white dark:border-gray-900">
                             {country.emoji || country.iso2}
                         </div>
                     </div>
 
                     {/* Text Info */}
-                    <div className="flex-1 min-w-0 text-white space-y-2">
+                    <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-center justify-between">
-                            <h1 className="text-2xl md:text-3xl font-bold truncate pr-4">
+                            <h1 className="text-2xl md:text-3xl font-bold truncate pr-4 text-gray-900 dark:text-white">
                                 {country.name}
                             </h1>
                             {/* Actions Menu Placeholder */}
-                            <Button size="icon" variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 rounded-full">
+                            <Button size="icon" variant="ghost" className="text-gray-500 hover:text-gray-900 hover:bg-emerald-100/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10 rounded-full">
                                 <MoreVertical className="w-5 h-5" />
                             </Button>
                         </div>
-                        <p className="text-white/70 text-sm md:text-base max-w-2xl">
-                            {country.region} {country.subregion && `• ${country.subregion}`}
+                        <p className="text-gray-600 dark:text-emerald-100 text-sm md:text-base max-w-2xl font-medium">
+                            {country.region} {country.subregion && <span className="text-emerald-400">•</span>} {country.subregion}
                         </p>
                         <div className="flex items-center gap-3 mt-2">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white border border-white/10 backdrop-blur-md">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm">
                                 {country.iso2} / {country.iso3}
                             </span>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white border border-white/10 backdrop-blur-md">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm">
                                 +{country.phoneCode}
                             </span>
                         </div>
@@ -177,8 +178,8 @@ export function CountryDetail({ id }: CountryDetailProps) {
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">States / Provinces</h3>
-                        <p className="text-sm text-gray-500">Administrative divisions of {country.name}</p>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">States & Cities</h3>
+
                     </div>
                     <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
