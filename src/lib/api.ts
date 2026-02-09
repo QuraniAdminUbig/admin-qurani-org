@@ -898,6 +898,39 @@ export const groupsApi = {
             token
         }),
 
+    // Alias for removeMember to match component usage
+    deleteMember: (groupId: string | number, memberId: string | number, token?: string) =>
+        apiRequest<{ success: boolean; data: boolean; message: string | null }>(
+            `/api/v1/Groups/${groupId}/members/${memberId}`,
+            { method: 'DELETE', token }
+        ),
+
+    /**
+     * Remove multiple members from a group
+     * Calls deleteMember for each member ID
+     */
+    deleteMembers: async (
+        groupId: string | number,
+        memberIds: (string | number)[],
+        token?: string
+    ): Promise<{ successCount: number; failCount: number; errors: string[] }> => {
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+
+        for (const memberId of memberIds) {
+            try {
+                await groupsApi.deleteMember(groupId, memberId, token);
+                successCount++;
+            } catch (error) {
+                failCount++;
+                errors.push(`Failed to remove member ${memberId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        }
+
+        return { successCount, failCount, errors };
+    },
+
     // Get group by invite code
     getByInviteCode: (inviteCode: string, token?: string) =>
         apiRequest<any>(`/api/v1/Groups/invite/${inviteCode}`, { token }),
@@ -1491,5 +1524,7 @@ export const masterdataApi = {
         },
     },
 };
+
+
 
 export { API_BASE };

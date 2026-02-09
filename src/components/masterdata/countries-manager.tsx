@@ -90,6 +90,12 @@ export function CountriesManager() {
     const [error, setError] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
+    // Search API state
+    const [searchResults, setSearchResults] = useState<CountryData[] | null>(null)
+    const [isSearching, setIsSearching] = useState(false)
+    const searchAbortRef = useRef<AbortController | null>(null)
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
     // UI states
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedRegion, setSelectedRegion] = useState("All")
@@ -177,27 +183,112 @@ export function CountriesManager() {
         }
     }, [fetchCountries])
 
-    // Filter countries (client-side filtering after API fetch)
-    const filteredCountries = useMemo(() => {
-        let filtered = [...countries]
+    // Search countries using API with debounce
+    const searchCountries = useCallback(async (keyword: string) => {
+        // Cancel any pending search request
+        if (searchAbortRef.current) {
+            searchAbortRef.current.abort()
+        }
 
-        // Search filter
-        if (searchQuery.trim()) {
+        // If keyword is empty or too short, clear search results
+        if (!keyword.trim() || keyword.trim().length < 3) {
+            setSearchResults(null)
+            setIsSearching(false)
+            return
+        }
+
+        // Create new AbortController for this search
+        searchAbortRef.current = new AbortController()
+        setIsSearching(true)
+
+        try {
+            const response = await masterdataApi.search.countries(
+                { keyword: keyword.trim(), pageSize: 50 },
+                undefined,
+                searchAbortRef.current.signal
+            )
+
+            // Handle different response formats
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const responseData = response.data as any
+            let searchItems: CountryData[] | null = null
+
+            if (response.success && responseData?.items) {
+                // Format: { success, data: { items: [...] } }
+                searchItems = responseData.items as CountryData[]
+            } else if (Array.isArray(responseData)) {
+                // Format: { success, data: [...] }
+                searchItems = responseData as CountryData[]
+            }
+
+            // If API returns results, use them. If empty, fallback to client-side filter.
+            if (searchItems && searchItems.length > 0) {
+                setSearchResults(searchItems)
+            } else {
+                // Fallback to client-side filter
+                setSearchResults(null)
+            }
+        } catch (err) {
+            // Don't set error if request was cancelled
+            if (err instanceof Error && err.name === 'AbortError') {
+                return
+            }
+            console.warn('Search error:', err)
+            // Fallback to client-side filtering on API error
+            setSearchResults(null)
+        } finally {
+            setIsSearching(false)
+        }
+    }, [])
+
+    // Debounced search effect
+    useEffect(() => {
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+        }
+
+        // Set new timeout for debounced search (500ms to reduce requests)
+        searchTimeoutRef.current = setTimeout(() => {
+            searchCountries(searchQuery)
+        }, 500)
+
+        // Cleanup
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current)
+            }
+        }
+    }, [searchQuery, searchCountries])
+
+    // Filter countries - use search API results if available, otherwise client-side filter
+    const filteredCountries = useMemo(() => {
+        // If we have search results from API, use them
+        let filtered: CountryData[]
+
+        if (searchQuery.trim().length >= 2 && searchResults !== null) {
+            // Use API search results
+            filtered = [...searchResults]
+        } else if (searchQuery.trim().length >= 2) {
+            // Fallback client-side filter while API is loading or on error
             const query = searchQuery.toLowerCase()
-            filtered = filtered.filter(country =>
+            filtered = countries.filter(country =>
                 country.name.toLowerCase().includes(query) ||
                 (country.iso2?.toLowerCase().includes(query)) ||
                 (country.iso3?.toLowerCase().includes(query))
             )
+        } else {
+            // No search query - show all countries
+            filtered = [...countries]
         }
 
-        // Region filter
+        // Region filter (always apply on top of search results)
         if (selectedRegion !== "All") {
             filtered = filtered.filter(country => country.region === selectedRegion)
         }
 
         return filtered
-    }, [countries, searchQuery, selectedRegion])
+    }, [countries, searchQuery, selectedRegion, searchResults])
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredCountries.length / itemsPerPage)
@@ -472,8 +563,11 @@ export function CountriesManager() {
                         placeholder={t("masterdata.countries.search_placeholder", "Search by name, ISO code...")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        className="pl-9 pr-9 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                     />
+                    {isSearching && (
+                        <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-500 w-4 h-4 animate-spin" />
+                    )}
                 </div>
                 <Button
                     variant="outline"
@@ -495,7 +589,15 @@ export function CountriesManager() {
                 <div className="flex items-center gap-4">
                     {/* Results Count */}
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing <strong className="text-gray-900 dark:text-white">{displayedCountries.length}</strong> of <strong className="text-gray-900 dark:text-white">{filteredCountries.length}</strong> countries
+                        {searchQuery.trim().length >= 2 ? (
+                            <>
+                                Found <strong className="text-gray-900 dark:text-white">{filteredCountries.length}</strong> results for &quot;<strong className="text-emerald-600">{searchQuery}</strong>&quot;
+                            </>
+                        ) : (
+                            <>
+                                Showing <strong className="text-gray-900 dark:text-white">{displayedCountries.length}</strong> of <strong className="text-gray-900 dark:text-white">{filteredCountries.length}</strong> countries
+                            </>
+                        )}
                     </span>
                 </div>
 

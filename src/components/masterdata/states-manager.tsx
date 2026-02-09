@@ -96,6 +96,7 @@ export function StatesManager() {
     const [searchResults, setSearchResults] = useState<StateData[] | null>(null)
     const [isSearching, setIsSearching] = useState(false)
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const searchAbortRef = useRef<AbortController | null>(null)
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1)
@@ -220,6 +221,93 @@ export function StatesManager() {
         }
     }, [selectedCountryCode, fetchStates])
 
+    // Search states using API with debounce
+    const searchStates = useCallback(async (keyword: string) => {
+        // Cancel any pending search request
+        if (searchAbortRef.current) {
+            searchAbortRef.current.abort()
+        }
+
+        // If keyword is empty or too short, clear search results
+        if (!keyword.trim() || keyword.trim().length < 2) {
+            setSearchResults(null)
+            setIsSearching(false)
+            return
+        }
+
+        // Create new AbortController for this search
+        searchAbortRef.current = new AbortController()
+        setIsSearching(true)
+
+        try {
+            const response = await masterdataApi.search.states(
+                { keyword: keyword.trim(), pageSize: 50 },
+                undefined,
+                searchAbortRef.current.signal
+            )
+
+            // Handle different response formats
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const responseData = response.data as any
+
+            // Debug: log the response to understand the format
+            console.log('[Search States] Response:', { success: response.success, data: responseData })
+
+            let searchItems: StateData[] | null = null
+
+            if (response.success && responseData?.items && Array.isArray(responseData.items)) {
+                // Format: { success, data: { items: [...] } }
+                searchItems = responseData.items as StateData[]
+            } else if (response.success && Array.isArray(responseData)) {
+                // Format: { success, data: [...] }
+                searchItems = responseData as StateData[]
+            } else if (responseData?.items && Array.isArray(responseData.items)) {
+                // Format: { data: { items: [...] } } without success field
+                searchItems = responseData.items as StateData[]
+            }
+
+            // If API returns results, use them. If empty, fallback to client-side filter.
+            // This handles cases where API search is too strict (e.g. case-sensitive)
+            if (searchItems && searchItems.length > 0) {
+                setSearchResults(searchItems)
+            } else {
+                // API returned empty or unknown format -> fallback to client-side filter
+                console.log('[Search States] API returned empty/unknown, using client-side filter')
+                setSearchResults(null)
+            }
+        } catch (err) {
+            // Don't set error if request was cancelled
+            if (err instanceof Error && err.name === 'AbortError') {
+                return
+            }
+            console.warn('Search error:', err)
+            // Fallback to client-side filtering on API error
+            setSearchResults(null)
+        } finally {
+            setIsSearching(false)
+        }
+    }, [])
+
+    // Debounced search effect
+    useEffect(() => {
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+        }
+
+        // Set new timeout for debounced search (300ms)
+        searchTimeoutRef.current = setTimeout(() => {
+            searchStates(searchQuery)
+        }, 300)
+
+        // Cleanup
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current)
+            }
+        }
+    }, [searchQuery, searchStates])
+
     // Enrich states with country names from countries lookup
     const enrichedStates = useMemo(() => {
         return states.map(state => {
@@ -237,10 +325,35 @@ export function StatesManager() {
         })
     }, [states, countries])
 
-    // Filter states by type
+    // Filter states - use search API results if available, otherwise client-side filter
     const filteredStates = useMemo(() => {
-        let result = enrichedStates
+        let result: StateData[]
 
+        if (searchQuery.trim().length >= 2 && searchResults !== null) {
+            // Use API search results, enrich them with country names
+            result = searchResults.map(state => {
+                if (!state.country && state.countryCode) {
+                    const countryData = countries.find(c => c.iso2 === state.countryCode)
+                    if (countryData) {
+                        return { ...state, country: countryData.name }
+                    }
+                }
+                return state
+            })
+        } else if (searchQuery.trim().length >= 2) {
+            // Fallback client-side filter while API is loading
+            const query = searchQuery.toLowerCase()
+            result = enrichedStates.filter(state =>
+                state.name.toLowerCase().includes(query) ||
+                state.countryCode?.toLowerCase().includes(query) ||
+                state.country?.toLowerCase().includes(query)
+            )
+        } else {
+            // No search query - use enriched states
+            result = enrichedStates
+        }
+
+        // Type filter (always apply on top of search results)
         if (selectedType && selectedType !== "All") {
             result = result.filter(state =>
                 state.type?.toLowerCase() === selectedType.toLowerCase()
@@ -248,7 +361,7 @@ export function StatesManager() {
         }
 
         return result
-    }, [enrichedStates, selectedType])
+    }, [enrichedStates, selectedType, searchQuery, searchResults, countries])
 
     // Paginated states
     const paginatedStates = useMemo(() => {
@@ -482,8 +595,11 @@ export function StatesManager() {
                         placeholder="Search by name, state code..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                        className="pl-9 pr-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
                     />
+                    {isSearching && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
+                    )}
                 </div>
 
                 {/* Filter Button */}
@@ -505,8 +621,16 @@ export function StatesManager() {
             {/* Results Summary and Pagination Controls */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Showing <span className="font-semibold text-gray-900 dark:text-white">{paginatedStates.length}</span> of{" "}
-                    <span className="font-semibold text-emerald-600">{filteredStates.length}</span> states
+                    {searchQuery.trim().length >= 2 ? (
+                        <>
+                            Found <span className="font-semibold text-gray-900 dark:text-white">{filteredStates.length}</span> results for &quot;<span className="font-semibold text-emerald-600">{searchQuery}</span>&quot;
+                        </>
+                    ) : (
+                        <>
+                            Showing <span className="font-semibold text-gray-900 dark:text-white">{paginatedStates.length}</span> of{" "}
+                            <span className="font-semibold text-emerald-600">{filteredStates.length}</span> states
+                        </>
+                    )}
                 </p>
 
                 <div className="flex items-center gap-2">

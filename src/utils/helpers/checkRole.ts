@@ -7,11 +7,12 @@ export const checkRole = (
 ): "owner" | "admin" | "member" | "none" => {
   if (!group) return "none";
 
-  if (userId === group.owner_id) {
+  // Use String comparison to handle type mismatch (string vs number)
+  if (String(userId) === String(group.owner_id)) {
     return "owner";
   }
 
-  const member = group.grup_members.find((m) => m.user_id === userId);
+  const member = group.grup_members.find((m) => String(m.user_id) === String(userId));
   if (member) {
     return member.role;
   }

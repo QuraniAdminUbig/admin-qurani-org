@@ -68,11 +68,9 @@ function GrupDetailContent({ groupId }: GrupDetailPageProps) {
         )
     }
 
-    // Redirect owner to manage page
-    if (isOwner) {
-        router.push(`/groups/detail/${groupId}`)
-        return null
-    }
+    // Note: For Admin Panel, we don't redirect owner to manage page
+    // All users can view group details regardless of their role
+
     // For Admin Panel: Allow viewing all groups except deleted ones
     // Note: This is an admin panel, so we don't restrict by membership
     if (group?.deleted_at) {

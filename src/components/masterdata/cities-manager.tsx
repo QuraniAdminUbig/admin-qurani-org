@@ -87,6 +87,12 @@ export function CitiesManager() {
     const [selectedCountryCode, setSelectedCountryCode] = useState<string>("ID")
     const [searchQuery, setSearchQuery] = useState<string>("")
 
+    // Search API state
+    const [searchResults, setSearchResults] = useState<CityData[] | null>(null)
+    const [isSearching, setIsSearching] = useState(false)
+    const searchAbortRef = useRef<AbortController | null>(null)
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(12)
@@ -237,10 +243,103 @@ export function CitiesManager() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoadingCountries, selectedCountryCode, selectedStateCode])
 
+    // Search cities using API with debounce
+    const searchCities = useCallback(async (keyword: string) => {
+        // Cancel any pending search request
+        if (searchAbortRef.current) {
+            searchAbortRef.current.abort()
+        }
+
+        // If keyword is empty or too short, clear search results
+        if (!keyword.trim() || keyword.trim().length < 2) {
+            setSearchResults(null)
+            setIsSearching(false)
+            return
+        }
+
+        // Create new AbortController for this search
+        searchAbortRef.current = new AbortController()
+        setIsSearching(true)
+
+        try {
+            const response = await masterdataApi.search.cities(
+                { keyword: keyword.trim(), pageSize: 50 },
+                undefined,
+                searchAbortRef.current.signal
+            )
+
+            // Handle different response formats
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const responseData = response.data as any
+            let searchItems: CityData[] | null = null
+
+            if (response.success && responseData?.items) {
+                // Format: { success, data: { items: [...] } }
+                searchItems = responseData.items as CityData[]
+            } else if (Array.isArray(responseData)) {
+                // Format: { success, data: [...] }
+                searchItems = responseData as CityData[]
+            }
+
+            // If API returns results, use them. If empty, fallback to client-side filter.
+            if (searchItems && searchItems.length > 0) {
+                setSearchResults(searchItems)
+            } else {
+                // Fallback to client-side filter
+                setSearchResults(null)
+            }
+        } catch (err) {
+            // Don't set error if request was cancelled
+            if (err instanceof Error && err.name === 'AbortError') {
+                return
+            }
+            console.warn('Search error:', err)
+            // Fallback to client-side filtering on API error
+            setSearchResults(null)
+        } finally {
+            setIsSearching(false)
+        }
+    }, [])
+
+    // Debounced search effect
+    useEffect(() => {
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+        }
+
+        // Set new timeout for debounced search (300ms)
+        searchTimeoutRef.current = setTimeout(() => {
+            searchCities(searchQuery)
+        }, 300)
+
+        // Cleanup
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current)
+            }
+        }
+    }, [searchQuery, searchCities])
+
     // ====== PAGINATION / LAZY LOADING ======
+    // Filter cities - use search API results if available, otherwise client-side filter
     const filteredCities = useMemo(() => {
+        if (searchQuery.trim().length >= 2 && searchResults !== null) {
+            // Use API search results
+            return searchResults
+        } else if (searchQuery.trim().length >= 2) {
+            // Fallback client-side filter while API is loading
+            const query = searchQuery.toLowerCase()
+            return cities.filter(city =>
+                city.name.toLowerCase().includes(query) ||
+                city.stateCode?.toLowerCase().includes(query) ||
+                city.state?.toLowerCase().includes(query) ||
+                city.countryCode?.toLowerCase().includes(query)
+            )
+        }
+        // No search query - use all cities
         return cities
-    }, [cities])
+    }, [cities, searchQuery, searchResults])
 
     const totalPages = Math.ceil(filteredCities.length / itemsPerPage)
 
@@ -642,8 +741,11 @@ export function CitiesManager() {
                         placeholder="Search by city name..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                        className="pl-9 pr-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
                     />
+                    {isSearching && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
+                    )}
                 </div>
 
                 {/* Filter Button */}
@@ -679,6 +781,10 @@ export function CitiesManager() {
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 Loading...
                             </span>
+                        ) : searchQuery.trim().length >= 2 ? (
+                            <>
+                                Found <strong className="text-gray-900 dark:text-white">{filteredCities.length}</strong> results for &quot;<strong className="text-emerald-600">{searchQuery}</strong>&quot;
+                            </>
                         ) : (
                             <>
                                 {t("masterdata.cities.showing", "Showing")}{" "}

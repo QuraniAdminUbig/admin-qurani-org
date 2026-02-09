@@ -346,6 +346,7 @@ export function KelolaGrup({ initialGroup, onUpdate, isOwner, userRole }: Kelola
         onEditGroup={handleOpenEditDialog}
         onDeleteGroup={handleDeleteGroup}
         isDeletingGroup={isDeletingGroup}
+        onMembersDeleted={refreshGroups}
       />
 
       {/* Mobile: Three square cards in one row without scroll */}

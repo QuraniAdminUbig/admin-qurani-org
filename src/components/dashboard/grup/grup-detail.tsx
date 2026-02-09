@@ -108,6 +108,7 @@ export function GrupDetail({ group, userRole }: GrupDetailProps) {
                 group={group}
                 userRole={userRole}
                 isOwner={false} // Hide edit options as requested
+                onMembersDeleted={() => router.refresh()}
             />
 
             {/* Group Statistics and Quick Actions */}
