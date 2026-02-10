@@ -229,7 +229,7 @@ export function StatesManager() {
         }
 
         // If keyword is empty or too short, clear search results
-        if (!keyword.trim() || keyword.trim().length < 2) {
+        if (!keyword.trim() || keyword.trim().length < 3) {
             setSearchResults(null)
             setIsSearching(false)
             return
@@ -295,10 +295,10 @@ export function StatesManager() {
             clearTimeout(searchTimeoutRef.current)
         }
 
-        // Set new timeout for debounced search (300ms)
+        // Set new timeout for debounced search (500ms)
         searchTimeoutRef.current = setTimeout(() => {
             searchStates(searchQuery)
-        }, 300)
+        }, 500)
 
         // Cleanup
         return () => {
@@ -329,7 +329,7 @@ export function StatesManager() {
     const filteredStates = useMemo(() => {
         let result: StateData[]
 
-        if (searchQuery.trim().length >= 2 && searchResults !== null) {
+        if (searchQuery.trim().length >= 3 && searchResults !== null) {
             // Use API search results, enrich them with country names
             result = searchResults.map(state => {
                 if (!state.country && state.countryCode) {
@@ -340,8 +340,8 @@ export function StatesManager() {
                 }
                 return state
             })
-        } else if (searchQuery.trim().length >= 2) {
-            // Fallback client-side filter while API is loading
+        } else if (searchQuery.trim().length >= 3) {
+            // Fallback client-side filter while API is loading or for short queries
             const query = searchQuery.toLowerCase()
             result = enrichedStates.filter(state =>
                 state.name.toLowerCase().includes(query) ||
@@ -621,7 +621,7 @@ export function StatesManager() {
             {/* Results Summary and Pagination Controls */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {searchQuery.trim().length >= 2 ? (
+                    {searchQuery.trim().length >= 3 ? (
                         <>
                             Found <span className="font-semibold text-gray-900 dark:text-white">{filteredStates.length}</span> results for &quot;<span className="font-semibold text-emerald-600">{searchQuery}</span>&quot;
                         </>

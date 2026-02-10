@@ -251,7 +251,7 @@ export function CitiesManager() {
         }
 
         // If keyword is empty or too short, clear search results
-        if (!keyword.trim() || keyword.trim().length < 2) {
+        if (!keyword.trim() || keyword.trim().length < 3) {
             setSearchResults(null)
             setIsSearching(false)
             return
@@ -308,10 +308,10 @@ export function CitiesManager() {
             clearTimeout(searchTimeoutRef.current)
         }
 
-        // Set new timeout for debounced search (300ms)
+        // Set new timeout for debounced search (500ms to reduce requests)
         searchTimeoutRef.current = setTimeout(() => {
             searchCities(searchQuery)
-        }, 300)
+        }, 500)
 
         // Cleanup
         return () => {
@@ -324,10 +324,10 @@ export function CitiesManager() {
     // ====== PAGINATION / LAZY LOADING ======
     // Filter cities - use search API results if available, otherwise client-side filter
     const filteredCities = useMemo(() => {
-        if (searchQuery.trim().length >= 2 && searchResults !== null) {
+        if (searchQuery.trim().length >= 3 && searchResults !== null) {
             // Use API search results
             return searchResults
-        } else if (searchQuery.trim().length >= 2) {
+        } else if (searchQuery.trim().length >= 3) {
             // Fallback client-side filter while API is loading
             const query = searchQuery.toLowerCase()
             return cities.filter(city =>
@@ -781,7 +781,7 @@ export function CitiesManager() {
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 Loading...
                             </span>
-                        ) : searchQuery.trim().length >= 2 ? (
+                        ) : searchQuery.trim().length >= 3 ? (
                             <>
                                 Found <strong className="text-gray-900 dark:text-white">{filteredCities.length}</strong> results for &quot;<strong className="text-emerald-600">{searchQuery}</strong>&quot;
                             </>

@@ -266,10 +266,10 @@ export function CountriesManager() {
         // If we have search results from API, use them
         let filtered: CountryData[]
 
-        if (searchQuery.trim().length >= 2 && searchResults !== null) {
+        if (searchQuery.trim().length >= 3 && searchResults !== null) {
             // Use API search results
             filtered = [...searchResults]
-        } else if (searchQuery.trim().length >= 2) {
+        } else if (searchQuery.trim().length >= 3) {
             // Fallback client-side filter while API is loading or on error
             const query = searchQuery.toLowerCase()
             filtered = countries.filter(country =>
@@ -589,7 +589,7 @@ export function CountriesManager() {
                 <div className="flex items-center gap-4">
                     {/* Results Count */}
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {searchQuery.trim().length >= 2 ? (
+                        {searchQuery.trim().length >= 3 ? (
                             <>
                                 Found <strong className="text-gray-900 dark:text-white">{filteredCountries.length}</strong> results for &quot;<strong className="text-emerald-600">{searchQuery}</strong>&quot;
                             </>
@@ -679,7 +679,7 @@ export function CountriesManager() {
                                     className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
                                     onClick={() => router.push(`/master/countries/${country.id}`)}
                                 >
-                                    <TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
                                         <Checkbox />
                                     </TableCell>
                                     <TableCell>
@@ -725,7 +725,7 @@ export function CountriesManager() {
                                             {country.citiesCount || 0}
                                         </span>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
