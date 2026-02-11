@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { masterdataApi, StateData, StateRequest, CountryData, CountriesApiResponse } from "@/lib/api"
 import { toast } from "sonner"
@@ -16,6 +17,7 @@ import {
     MoreHorizontal,
     AlertCircle,
     MapPin,
+    Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,9 +62,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+    PaginationEllipsis,
+} from "@/components/ui/pagination"
+import { Combobox } from "@/components/ui/combobox"
 
 // Items per page options
-const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
+
 
 // State types for filtering
 const STATE_TYPES = [
@@ -80,6 +92,7 @@ const STATE_TYPES = [
 
 export function StatesManager() {
     const { t } = useI18n()
+    const router = useRouter()
 
     // Data states
     const [states, setStates] = useState<StateData[]>([])
@@ -93,6 +106,7 @@ export function StatesManager() {
 
     // Search states
     const [searchQuery, setSearchQuery] = useState<string>("")
+    const [inputValue, setInputValue] = useState<string>("")
     const [searchResults, setSearchResults] = useState<StateData[] | null>(null)
     const [isSearching, setIsSearching] = useState(false)
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -100,10 +114,7 @@ export function StatesManager() {
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1)
-    const [pageSize, setPageSize] = useState(12)
-    const [paginationMode, setPaginationMode] = useState<'pages' | 'infinite'>('pages')
-    const [lazyLoadedCount, setLazyLoadedCount] = useState(12)
-    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const pageSize = 15 // Fixed items per page
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -131,8 +142,6 @@ export function StatesManager() {
 
     // Refs
     const abortControllerRef = useRef<AbortController | null>(null)
-    const observerRef = useRef<IntersectionObserver | null>(null)
-    const loadMoreRef = useRef<HTMLDivElement>(null)
 
 
 
@@ -288,25 +297,23 @@ export function StatesManager() {
         }
     }, [])
 
-    // Debounced search effect
+    // Search effect - triggers immediately when searchQuery changes (only on button click/Enter)
     useEffect(() => {
-        // Clear previous timeout
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current)
-        }
-
-        // Set new timeout for debounced search (500ms)
-        searchTimeoutRef.current = setTimeout(() => {
-            searchStates(searchQuery)
-        }, 500)
-
-        // Cleanup
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current)
-            }
-        }
+        searchStates(searchQuery)
     }, [searchQuery, searchStates])
+
+    // Handle search button click
+    const handleSearch = () => {
+        setSearchQuery(inputValue)
+        setCurrentPage(1)
+    }
+
+    // Handle Enter key in search input
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSearch()
+        }
+    }
 
     // Enrich states with country names from countries lookup
     const enrichedStates = useMemo(() => {
@@ -365,50 +372,18 @@ export function StatesManager() {
 
     // Paginated states
     const paginatedStates = useMemo(() => {
-        if (paginationMode === 'infinite') {
-            return filteredStates.slice(0, lazyLoadedCount)
-        }
         const startIndex = (currentPage - 1) * pageSize
         return filteredStates.slice(startIndex, startIndex + pageSize)
-    }, [filteredStates, currentPage, pageSize, paginationMode, lazyLoadedCount])
+    }, [filteredStates, currentPage, pageSize])
 
     // Total pages
     const totalPages = useMemo(() => {
         return Math.ceil(filteredStates.length / pageSize)
     }, [filteredStates.length, pageSize])
 
-    // Intersection observer for infinite scroll
-    useEffect(() => {
-        if (paginationMode !== 'infinite') return
-
-        observerRef.current = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && !isLoadingMore && lazyLoadedCount < filteredStates.length) {
-                    setIsLoadingMore(true)
-                    setTimeout(() => {
-                        setLazyLoadedCount(prev => Math.min(prev + 12, filteredStates.length))
-                        setIsLoadingMore(false)
-                    }, 300)
-                }
-            },
-            { threshold: 0.1 }
-        )
-
-        if (loadMoreRef.current) {
-            observerRef.current.observe(loadMoreRef.current)
-        }
-
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect()
-            }
-        }
-    }, [paginationMode, isLoadingMore, lazyLoadedCount, filteredStates.length])
-
     // Reset pagination when filters change
     useEffect(() => {
         setCurrentPage(1)
-        setLazyLoadedCount(12)
     }, [selectedCountryCode, selectedType])
 
     // Filter modal handlers
@@ -587,19 +562,31 @@ export function StatesManager() {
             </div>
 
             {/* Search and Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <div className="flex gap-2 sm:gap-3 items-center mb-6">
                 {/* Search Input */}
-                <div className="relative flex-1 max-w-xl">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                        placeholder="Search by name, state code..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 pr-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-                    />
-                    {isSearching && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
-                    )}
+                <div className="relative flex-1 flex">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                            placeholder="Search by name, state code..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
+                            className="pl-9 pr-4 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
+                        />
+                    </div>
+                    <Button
+                        onClick={handleSearch}
+                        variant="ghost"
+                        className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                    >
+                        {isSearching ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Search className="w-4 h-4" />
+                        )}
+                        Search
+                    </Button>
                 </div>
 
                 {/* Filter Button */}
@@ -616,70 +603,6 @@ export function StatesManager() {
                         </span>
                     )}
                 </Button>
-            </div>
-
-            {/* Results Summary and Pagination Controls */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {searchQuery.trim().length >= 3 ? (
-                        <>
-                            Found <span className="font-semibold text-gray-900 dark:text-white">{filteredStates.length}</span> results for &quot;<span className="font-semibold text-emerald-600">{searchQuery}</span>&quot;
-                        </>
-                    ) : (
-                        <>
-                            Showing <span className="font-semibold text-gray-900 dark:text-white">{paginatedStates.length}</span> of{" "}
-                            <span className="font-semibold text-emerald-600">{filteredStates.length}</span> states
-                        </>
-                    )}
-                </p>
-
-                <div className="flex items-center gap-2">
-                    {/* Pagination Mode Toggle */}
-                    <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                        <Button
-                            size="sm"
-                            variant={paginationMode === 'pages' ? 'default' : 'ghost'}
-                            onClick={() => {
-                                setPaginationMode('pages')
-                                setCurrentPage(1)
-                            }}
-                            className={cn(
-                                "h-7 px-3 text-xs",
-                                paginationMode === 'pages' && "bg-emerald-600 text-white hover:bg-emerald-700"
-                            )}
-                        >
-                            Pages
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant={paginationMode === 'infinite' ? 'default' : 'ghost'}
-                            onClick={() => {
-                                setPaginationMode('infinite')
-                                setLazyLoadedCount(12)
-                            }}
-                            className={cn(
-                                "h-7 px-3 text-xs",
-                                paginationMode === 'infinite' && "bg-emerald-600 text-white hover:bg-emerald-700"
-                            )}
-                        >
-                            Infinite
-                        </Button>
-                    </div>
-
-                    {/* Page Size Selector */}
-                    <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
-                        <SelectTrigger className="w-[100px] h-8">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {PAGE_SIZE_OPTIONS.map((size) => (
-                                <SelectItem key={size} value={size.toString()}>
-                                    {size} / page
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
             </div>
 
             {/* Loading State */}
@@ -713,27 +636,23 @@ export function StatesManager() {
                     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <TableHead className="w-12">
-                                        <Checkbox />
-                                    </TableHead>
-                                    <TableHead className="min-w-[200px]">State/Province</TableHead>
-                                    <TableHead className="w-[180px]">Country</TableHead>
-                                    <TableHead className="w-32">Type</TableHead>
-                                    <TableHead className="w-24">Code</TableHead>
-                                    <TableHead className="w-24 text-center">Cities</TableHead>
-                                    <TableHead className="w-12"></TableHead>
+                                <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                    <TableHead className="min-w-[200px] text-white font-bold">State/Province</TableHead>
+                                    <TableHead className="w-[180px] text-white font-bold">Country</TableHead>
+                                    <TableHead className="w-32 text-white font-bold">Type</TableHead>
+                                    <TableHead className="w-24 text-white font-bold">Code</TableHead>
+                                    <TableHead className="w-24 text-center text-white font-bold">Cities</TableHead>
+                                    <TableHead className="w-12 text-white font-bold"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {paginatedStates.map((state) => (
                                     <TableRow
                                         key={state.id}
-                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                        onClick={() => router.push(`/master/states/${state.id}`)}
                                     >
-                                        <TableCell>
-                                            <Checkbox />
-                                        </TableCell>
+
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
@@ -745,7 +664,12 @@ export function StatesManager() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-gray-600 dark:text-gray-400">
-                                            {state.country || "Unknown"}
+                                            <div className="flex items-center gap-2">
+                                                {countries.find(c => c.id === state.countryId)?.emoji && (
+                                                    <span className="text-base">{countries.find(c => c.id === state.countryId)?.emoji}</span>
+                                                )}
+                                                <span>{state.country || "Unknown"}</span>
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
@@ -761,18 +685,23 @@ export function StatesManager() {
                                                 {state.citiesCount || 0}
                                             </span>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell onClick={(e) => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={(e) => e.stopPropagation()}
                                                     >
                                                         <MoreHorizontal className="w-4 h-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => router.push(`/master/states/${state.id}`)}>
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        View Detail
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleOpenEditModal(state)}>
                                                         <Pencil className="w-4 h-4 mr-2" />
                                                         Edit
@@ -794,82 +723,78 @@ export function StatesManager() {
                     </div>
 
                     {/* Pagination Controls */}
-                    {paginationMode === 'pages' && totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-2 mt-6">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                            >
-                                Previous
-                            </Button>
-
-                            <div className="flex items-center gap-1">
-                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                    let pageNum: number
-                                    if (totalPages <= 5) {
-                                        pageNum = i + 1
-                                    } else if (currentPage <= 3) {
-                                        pageNum = i + 1
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i
-                                    } else {
-                                        pageNum = currentPage - 2 + i
-                                    }
-
-                                    return (
-                                        <Button
-                                            key={pageNum}
-                                            variant={currentPage === pageNum ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => setCurrentPage(pageNum)}
+                    {totalPages > 1 && (
+                        <div className="mt-10 flex justify-center">
+                            <Pagination>
+                                <PaginationContent className="gap-2">
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            href="#"
+                                            size="lg"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                if (currentPage > 1) setCurrentPage(p => p - 1)
+                                            }}
                                             className={cn(
-                                                "w-8 h-8",
-                                                currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700"
+                                                "h-11 px-5 text-base",
+                                                currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
                                             )}
-                                        >
-                                            {pageNum}
-                                        </Button>
-                                    )
-                                })}
-                            </div>
+                                        />
+                                    </PaginationItem>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
-                            >
-                                Next
-                            </Button>
+                                    {/* Page Numbers */}
+                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                        let pageNum: number
+                                        if (totalPages <= 5) {
+                                            pageNum = i + 1
+                                        } else if (currentPage <= 3) {
+                                            pageNum = i + 1
+                                        } else if (currentPage >= totalPages - 2) {
+                                            pageNum = totalPages - 4 + i
+                                        } else {
+                                            pageNum = currentPage - 2 + i
+                                        }
+
+                                        return (
+                                            <PaginationItem key={pageNum}>
+                                                <PaginationLink
+                                                    href="#"
+                                                    size="lg"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        setCurrentPage(pageNum)
+                                                    }}
+                                                    isActive={currentPage === pageNum}
+                                                    className={cn(
+                                                        "h-11 w-11 text-base cursor-pointer",
+                                                        currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
+                                                    )}
+                                                >
+                                                    {pageNum}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        )
+                                    })}
+
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            href="#"
+                                            size="lg"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                if (currentPage < totalPages) setCurrentPage(p => p + 1)
+                                            }}
+                                            className={cn(
+                                                "h-11 px-5 text-base",
+                                                currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                            )}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
                         </div>
                     )}
 
-                    {/* Infinite Scroll Loader */}
-                    {paginationMode === 'infinite' && lazyLoadedCount < filteredStates.length && (
-                        <div ref={loadMoreRef} className="py-8 text-center">
-                            {isLoadingMore ? (
-                                <div className="flex items-center justify-center gap-3 text-gray-500">
-                                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                                    <span className="text-sm">Loading more states...</span>
-                                </div>
-                            ) : (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setLazyLoadedCount(prev => Math.min(prev + 12, filteredStates.length))}
-                                >
-                                    Load More
-                                </Button>
-                            )}
-                        </div>
-                    )}
-
-                    {paginationMode === 'infinite' && lazyLoadedCount >= filteredStates.length && filteredStates.length > 0 && (
-                        <div className="text-center py-6 text-sm text-gray-500">
-                            All {filteredStates.length} states loaded
-                        </div>
-                    )}
                 </>
             )}
 
@@ -882,34 +807,30 @@ export function StatesManager() {
                     <div className="space-y-4 py-4">
                         <div>
                             <Label>Country</Label>
-                            <Select value={tempCountryCode} onValueChange={setTempCountryCode}>
-                                <SelectTrigger className="mt-1.5">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Countries</SelectItem>
-                                    {countries.map((country) => (
-                                        <SelectItem key={country.id} value={country.iso2 || country.id.toString()}>
-                                            {country.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={[
+                                    { label: "All Countries", value: "all" },
+                                    ...countries.map(c => ({
+                                        label: c.name,
+                                        value: c.iso2 || c.id.toString(),
+                                        emoji: c.emoji || undefined
+                                    }))
+                                ]}
+                                value={tempCountryCode}
+                                onValueChange={setTempCountryCode}
+                                placeholder="Select Country"
+                                searchPlaceholder="Search country..."
+                            />
                         </div>
                         <div>
                             <Label>Type</Label>
-                            <Select value={tempType} onValueChange={setTempType}>
-                                <SelectTrigger className="mt-1.5">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {STATE_TYPES.map((type) => (
-                                        <SelectItem key={type} value={type}>
-                                            {type}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={STATE_TYPES.map(type => ({ label: type, value: type }))}
+                                value={tempType}
+                                onValueChange={setTempType}
+                                placeholder="Select Type"
+                                searchPlaceholder="Search type..."
+                            />
                         </div>
                     </div>
                     <DialogFooter className="flex gap-2">
@@ -917,7 +838,7 @@ export function StatesManager() {
                             Cancel
                         </Button>
                         <Button onClick={handleApplyFilter} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                            Apply
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -946,21 +867,17 @@ export function StatesManager() {
                             </div>
                             <div className="col-span-2">
                                 <Label htmlFor="country">Country *</Label>
-                                <Select
+                                <Combobox
+                                    options={countries.map(c => ({
+                                        label: c.name,
+                                        value: c.id.toString(),
+                                        emoji: c.emoji || undefined
+                                    }))}
                                     value={formData.countryId?.toString() || ""}
-                                    onValueChange={handleCountryChange}
-                                >
-                                    <SelectTrigger className="mt-1.5">
-                                        <SelectValue placeholder="Select country" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {countries.map((country) => (
-                                            <SelectItem key={country.id} value={country.id.toString()}>
-                                                {country.name} ({country.iso2})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    onValueChange={(val) => handleCountryChange(val)}
+                                    placeholder="Select Country"
+                                    searchPlaceholder="Search country..."
+                                />
                             </div>
                             <div>
                                 <Label htmlFor="iso2">ISO2 Code</Label>
@@ -1003,7 +920,7 @@ export function StatesManager() {
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Create State
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>

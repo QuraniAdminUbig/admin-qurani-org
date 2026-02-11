@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +30,16 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+    PaginationEllipsis,
+} from "@/components/ui/pagination"
+import { Combobox } from "@/components/ui/combobox"
+import {
     Plus,
     ChevronRight,
     ChevronLeft,
@@ -45,6 +56,7 @@ import {
     AlertCircle,
     RotateCcw,
     X,
+    Eye,
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
@@ -68,10 +80,10 @@ import {
 
 export function CitiesManager() {
     const { t } = useI18n()
+    const router = useRouter()
 
     // AbortController ref for request cancellation
     const abortControllerRef = useRef<AbortController | null>(null)
-    const loadMoreRef = useRef<HTMLDivElement>(null)
 
     // Countries list for dropdown
     const [countries, setCountries] = useState<CountryData[]>([])
@@ -84,8 +96,9 @@ export function CitiesManager() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Filter state
-    const [selectedCountryCode, setSelectedCountryCode] = useState<string>("ID")
+    const [selectedCountryCode, setSelectedCountryCode] = useState<string>("All")
     const [searchQuery, setSearchQuery] = useState<string>("")
+    const [inputValue, setInputValue] = useState<string>("")
 
     // Search API state
     const [searchResults, setSearchResults] = useState<CityData[] | null>(null)
@@ -95,12 +108,7 @@ export function CitiesManager() {
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
-    const [itemsPerPage, setItemsPerPage] = useState(12)
-    const [displayMode, setDisplayMode] = useState<'pagination' | 'lazy'>('pagination')
-    const [lazyLoadedCount, setLazyLoadedCount] = useState(12)
-    const [serverPage, setServerPage] = useState(1)
-    const [hasMoreServerData, setHasMoreServerData] = useState(true)
-    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const itemsPerPage = 15 // Fixed items per page
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -108,7 +116,7 @@ export function CitiesManager() {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
 
     // Temp filter state for modal
-    const [tempCountryCode, setTempCountryCode] = useState<string>("ID")
+    const [tempCountryCode, setTempCountryCode] = useState<string>("All")
     const [tempStateCode, setTempStateCode] = useState<string>("All")
 
     // Filter states list (for state dropdown in filter modal)
@@ -159,89 +167,155 @@ export function CitiesManager() {
         fetchCountries()
     }, [])
 
+    // Track how many countries we've already tried to load cities from
+    const [processedCountryIndex, setProcessedCountryIndex] = useState(0)
+    const isFetchingRef = useRef(false)
+
     // ====== FETCH CITIES ======
-    const fetchCities = useCallback(async (append = false) => {
+    const fetchCities = useCallback(async (isInitial = false) => {
+        // Prevent concurrent identical fetches
+        if (isFetchingRef.current && !isInitial) return
+
         if (abortControllerRef.current) {
             abortControllerRef.current.abort()
         }
         abortControllerRef.current = new AbortController()
 
-        if (!append) {
-            setIsLoading(true)
-        } else {
-            setIsLoadingMore(true)
-        }
+        setIsLoading(true)
         setError(null)
+        isFetchingRef.current = true
 
         try {
-            const pageToFetch = append ? serverPage : 1
+            // Find IDs for specific API calls
+            const countryEntry = countries.find(c => (c.iso2 || c.id.toString()) === selectedCountryCode)
+            const countryId = countryEntry?.id
 
-            if (selectedCountryCode && selectedCountryCode !== "All") {
-                const response = await masterdataApi.cities.getByCountryCode(
-                    selectedCountryCode,
-                    pageToFetch,
-                    100, // pageSize
+            // Note: filterStates contains states for the currently selected country
+            const stateEntry = filterStates.find(s => (s.iso2 || s.id.toString()) === selectedStateCode)
+            const stateId = stateEntry?.id
+
+            if (stateId && selectedStateCode !== "All") {
+                // 1. If State is selected, fetch cities specifically for that state
+                const response = await masterdataApi.cities.getByState(
+                    stateId,
+                    1,
+                    10000,
                     undefined,
                     abortControllerRef.current.signal
                 )
 
                 if (response && response.success && response.data) {
-                    let data = response.data as CityData[]
-
-                    // Client-side filter by state if state is selected
-                    if (selectedStateCode && selectedStateCode !== "All") {
-                        data = data.filter(city => city.stateCode === selectedStateCode)
-                    }
-
-                    if (append) {
-                        setCities(prev => [...prev, ...data])
-                    } else {
-                        setCities(data)
-                    }
-                    setHasMoreServerData(response.data.length >= 100)
-                    if (!append) {
-                        setServerPage(2)
-                    } else {
-                        setServerPage(prev => prev + 1)
-                    }
+                    const data = Array.isArray(response.data) ? response.data : []
+                    setCities(data)
                 } else {
-                    if (!append) setCities([])
-                    setHasMoreServerData(false)
+                    setCities([])
+                }
+            } else if (countryId && selectedCountryCode !== "All") {
+                // 2. If only Country is selected, fetch cities specifically for that country
+                // Using getByCountry (by ID) is often more reliable/paginated on backend
+                const response = await masterdataApi.cities.getByCountry(
+                    countryId,
+                    1,
+                    10000,
+                    undefined,
+                    abortControllerRef.current.signal
+                )
+
+                if (response && response.success && response.data) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const responseData = response.data as any
+                    let data: CityData[] = []
+
+                    if (Array.isArray(responseData)) {
+                        data = responseData
+                    } else if (responseData?.items && Array.isArray(responseData.items)) {
+                        data = responseData.items
+                    }
+
+                    setCities(data)
+                } else {
+                    setCities([])
                 }
             } else {
-                // No filter - show empty or fetch all (optional)
-                setCities([])
-                setHasMoreServerData(false)
+                // 3. "All Countries" - Use our aggregator for bundled fetching
+                const countryList = countries.length > 0 ? countries : []
+                if (countryList.length === 0) {
+                    setIsLoading(false)
+                    isFetchingRef.current = false
+                    return
+                }
+
+                const currentIdx = isInitial ? 0 : processedCountryIndex
+                if (currentIdx >= countryList.length && !isInitial) {
+                    setIsLoading(false)
+                    isFetchingRef.current = false
+                    return
+                }
+
+                const batchSize = isInitial ? 15 : 25
+                const endIdx = Math.min(currentIdx + batchSize, countryList.length)
+                const batch = countryList.slice(currentIdx, endIdx)
+                const codes = batch.map(c => c.iso2).filter(Boolean).join(",")
+
+                const response = await fetch(`/api/masterdata/cities`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codes }),
+                    signal: abortControllerRef.current?.signal
+                });
+
+                if (!response.ok) throw new Error(`Failed to fetch bundle: ${response.status}`)
+
+                const result = await response.json()
+                if (abortControllerRef.current?.signal.aborted) return
+
+                const newData: CityData[] = result.data || []
+
+                if (isInitial) {
+                    setCities(newData)
+                } else {
+                    setCities(prev => [...prev, ...newData])
+                }
+
+                setProcessedCountryIndex(endIdx)
             }
         } catch (err) {
-            if (err instanceof Error && err.name === 'AbortError') {
-                return
-            }
+            if (err instanceof Error && err.name === 'AbortError') return
             console.error("Error fetching cities:", err)
             setError(err instanceof Error ? err.message : "An error occurred")
         } finally {
             setIsLoading(false)
-            setIsLoadingMore(false)
+            isFetchingRef.current = false
         }
-    }, [selectedCountryCode, selectedStateCode, serverPage])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedCountryCode, selectedStateCode, countries]) // Removed processedCountryIndex to prevent loop
 
-    // Initial fetch
+    // 1. Initial trigger when filters change
     useEffect(() => {
         if (!isLoadingCountries) {
-            setServerPage(1)
-            setCities([])
-            setLazyLoadedCount(12)
             setCurrentPage(1)
-            fetchCities(false)
-        }
-
-        return () => {
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort()
-            }
+            setProcessedCountryIndex(0)
+            fetchCities(true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoadingCountries, selectedCountryCode, selectedStateCode])
+
+    // 2. Lazy loading trigger when page changes
+    useEffect(() => {
+        if (
+            selectedCountryCode === "All" &&
+            !isLoading &&
+            processedCountryIndex < countries.length &&
+            currentPage >= Math.ceil(cities.length / itemsPerPage) - 1 &&
+            cities.length > 0
+        ) {
+            fetchCities(false)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, selectedCountryCode, isLoading])
+
+
+
 
     // Search cities using API with debounce
     const searchCities = useCallback(async (keyword: string) => {
@@ -251,7 +325,7 @@ export function CitiesManager() {
         }
 
         // If keyword is empty or too short, clear search results
-        if (!keyword.trim() || keyword.trim().length < 3) {
+        if (!keyword.trim() || keyword.trim().length < 2) {
             setSearchResults(null)
             setIsSearching(false)
             return
@@ -261,73 +335,72 @@ export function CitiesManager() {
         searchAbortRef.current = new AbortController()
         setIsSearching(true)
 
+        // Find IDs for server-side filtering
+        const countryId = countries.find(c => (c.iso2 || c.id.toString()) === selectedCountryCode)?.id
+        const stateId = filterStates.find(s => (s.iso2 || s.id.toString()) === selectedStateCode)?.id
+
         try {
-            const response = await masterdataApi.search.cities(
-                { keyword: keyword.trim(), pageSize: 50 },
+            // Use the specific cities search API that supports country/state filtering
+            const response = await masterdataApi.cities.search(
+                keyword.trim(),
+                stateId,
+                countryId,
+                100, // Limit
                 undefined,
                 searchAbortRef.current.signal
             )
 
-            // Handle different response formats
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const responseData = response.data as any
             let searchItems: CityData[] | null = null
 
-            if (response.success && responseData?.items) {
-                // Format: { success, data: { items: [...] } }
-                searchItems = responseData.items as CityData[]
-            } else if (Array.isArray(responseData)) {
-                // Format: { success, data: [...] }
-                searchItems = responseData as CityData[]
+            if (response.success && responseData) {
+                if (Array.isArray(responseData)) {
+                    searchItems = responseData as CityData[]
+                } else if (responseData.items && Array.isArray(responseData.items)) {
+                    searchItems = responseData.items as CityData[]
+                }
             }
 
-            // If API returns results, use them. If empty, fallback to client-side filter.
-            if (searchItems && searchItems.length > 0) {
-                setSearchResults(searchItems)
-            } else {
-                // Fallback to client-side filter
-                setSearchResults(null)
-            }
+            // Update search results
+            setSearchResults(searchItems)
         } catch (err) {
             // Don't set error if request was cancelled
             if (err instanceof Error && err.name === 'AbortError') {
                 return
             }
             console.warn('Search error:', err)
-            // Fallback to client-side filtering on API error
             setSearchResults(null)
         } finally {
             setIsSearching(false)
         }
-    }, [])
+    }, [selectedCountryCode, selectedStateCode, countries, filterStates])
 
-    // Debounced search effect
+    // Search effect - triggers immediately when searchQuery changes (only on button click/Enter)
     useEffect(() => {
-        // Clear previous timeout
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current)
-        }
-
-        // Set new timeout for debounced search (500ms to reduce requests)
-        searchTimeoutRef.current = setTimeout(() => {
-            searchCities(searchQuery)
-        }, 500)
-
-        // Cleanup
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current)
-            }
-        }
+        searchCities(searchQuery)
     }, [searchQuery, searchCities])
+
+    // Handle search button click
+    const handleSearch = () => {
+        setSearchQuery(inputValue)
+        setCurrentPage(1)
+    }
+
+    // Handle Enter key in search input
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSearch()
+        }
+    }
 
     // ====== PAGINATION / LAZY LOADING ======
     // Filter cities - use search API results if available, otherwise client-side filter
     const filteredCities = useMemo(() => {
-        if (searchQuery.trim().length >= 3 && searchResults !== null) {
+        if (searchQuery.trim().length >= 2 && searchResults !== null) {
             // Use API search results
             return searchResults
-        } else if (searchQuery.trim().length >= 3) {
+        } else if (searchQuery.trim().length >= 2) {
             // Fallback client-side filter while API is loading
             const query = searchQuery.toLowerCase()
             return cities.filter(city =>
@@ -344,45 +417,29 @@ export function CitiesManager() {
     const totalPages = Math.ceil(filteredCities.length / itemsPerPage)
 
     const displayedCities = useMemo(() => {
-        if (displayMode === 'lazy') {
-            return filteredCities.slice(0, lazyLoadedCount)
-        }
         const startIndex = (currentPage - 1) * itemsPerPage
         return filteredCities.slice(startIndex, startIndex + itemsPerPage)
-    }, [filteredCities, displayMode, lazyLoadedCount, currentPage, itemsPerPage])
+    }, [filteredCities, currentPage, itemsPerPage])
+
+    // Effect to check if we need more data when user changes page
+    useEffect(() => {
+        // If we're on the last few items of currently loaded cities in "All" mode, 
+        // trigger loading more countries in background
+        if (
+            selectedCountryCode === "All" &&
+            !isLoading &&
+            processedCountryIndex < countries.length &&
+            displayedCities.length > 0 &&
+            currentPage >= totalPages - 1
+        ) {
+            fetchCities(false)
+        }
+    }, [currentPage, totalPages, selectedCountryCode, isLoading, countries.length, processedCountryIndex, displayedCities.length, fetchCities])
 
     // Reset page when filters change
     useEffect(() => {
         setCurrentPage(1)
-        setLazyLoadedCount(12)
     }, [selectedCountryCode])
-
-    // Lazy loading with Intersection Observer
-    useEffect(() => {
-        if (displayMode !== 'lazy') return
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting) {
-                    // Load more from client cache first
-                    if (lazyLoadedCount < filteredCities.length) {
-                        setLazyLoadedCount(prev => Math.min(prev + 12, filteredCities.length))
-                    }
-                    // If near end and server has more, fetch from server
-                    else if (hasMoreServerData && !isLoadingMore) {
-                        fetchCities(true)
-                    }
-                }
-            },
-            { threshold: 0.1 }
-        )
-
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current)
-        }
-
-        return () => observer.disconnect()
-    }, [displayMode, lazyLoadedCount, filteredCities.length, hasMoreServerData, isLoadingMore, fetchCities])
 
     // Pagination handlers
     const goToPage = (page: number) => {
@@ -482,7 +539,7 @@ export function CitiesManager() {
 
             const response = await masterdataApi.cities.create(requestData)
             if (response.success || response.data) {
-                fetchCities(false)
+                fetchCities()
                 setIsCreateModalOpen(false)
                 resetForm()
                 toast.success(t("masterdata.cities.create_success", "City created successfully"))
@@ -550,7 +607,7 @@ export function CitiesManager() {
 
             const response = await masterdataApi.cities.update(editingCityId, requestData)
             if (response.success || response.data) {
-                fetchCities(false)
+                fetchCities()
                 setIsEditModalOpen(false)
                 resetForm()
                 setEditingCityId(null)
@@ -576,7 +633,7 @@ export function CitiesManager() {
         const deleteName = itemToDelete.name
         try {
             await masterdataApi.cities.delete(itemToDelete.id)
-            fetchCities(false)
+            fetchCities()
             toast.success(t("masterdata.cities.delete_success", "City deleted successfully").replace("{name}", deleteName))
         } catch (err) {
             console.error("Error deleting:", err)
@@ -643,6 +700,10 @@ export function CitiesManager() {
         setSelectedStateCode(tempStateCode)
         setIsFilterModalOpen(false)
         setCurrentPage(1)
+        // Clear search results when applying new filter to avoid confusion
+        setSearchResults(null)
+        setSearchQuery("")
+        setInputValue("")
     }
 
     const handleResetFilter = () => {
@@ -653,6 +714,9 @@ export function CitiesManager() {
         setFilterStates([])
         setIsFilterModalOpen(false)
         setCurrentPage(1)
+        setSearchResults(null)
+        setSearchQuery("")
+        setInputValue("")
     }
 
     const handleCancelFilter = () => {
@@ -692,7 +756,7 @@ export function CitiesManager() {
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                     <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
                     <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-                    <Button onClick={() => fetchCities(false)} variant="outline">
+                    <Button onClick={() => fetchCities()} variant="outline">
                         <RotateCcw className="w-4 h-4 mr-2" />
                         {t("common.try_again", "Try Again")}
                     </Button>
@@ -733,19 +797,31 @@ export function CitiesManager() {
             </div>
 
             {/* Search and Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-6">
+            <div className="flex gap-2 sm:gap-3 items-center mb-6">
                 {/* Search Input */}
-                <div className="relative flex-1 max-w-xl">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                        placeholder="Search by city name..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 pr-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-                    />
-                    {isSearching && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
-                    )}
+                <div className="relative flex-1 flex">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                            placeholder="Search by city name..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
+                            className="pl-9 pr-4 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
+                        />
+                    </div>
+                    <Button
+                        onClick={handleSearch}
+                        variant="ghost"
+                        className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                    >
+                        {isSearching ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Search className="w-4 h-4" />
+                        )}
+                        Search
+                    </Button>
                 </div>
 
                 {/* Filter Button */}
@@ -772,81 +848,6 @@ export function CitiesManager() {
                 </Button>
             </div>
 
-            {/* Info Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {isLoading ? (
-                            <span className="flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Loading...
-                            </span>
-                        ) : searchQuery.trim().length >= 3 ? (
-                            <>
-                                Found <strong className="text-gray-900 dark:text-white">{filteredCities.length}</strong> results for &quot;<strong className="text-emerald-600">{searchQuery}</strong>&quot;
-                            </>
-                        ) : (
-                            <>
-                                {t("masterdata.cities.showing", "Showing")}{" "}
-                                <strong className="text-gray-900 dark:text-white">{displayedCities.length}</strong>{" "}
-                                {t("masterdata.cities.of", "of")}{" "}
-                                <strong className="text-gray-900 dark:text-white">{filteredCities.length}</strong>{" "}
-                                {t("masterdata.cities.cities", "cities")}
-                                {hasMoreServerData && <span className="text-emerald-600 ml-1">+</span>}
-                            </>
-                        )}
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    {/* Display Mode Toggle */}
-                    <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <Button
-                            variant={displayMode === 'pagination' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => setDisplayMode('pagination')}
-                            className={cn(
-                                "h-7 px-3 text-xs",
-                                displayMode === 'pagination' && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            )}
-                        >
-                            Pages
-                        </Button>
-                        <Button
-                            variant={displayMode === 'lazy' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => setDisplayMode('lazy')}
-                            className={cn(
-                                "h-7 px-3 text-xs",
-                                displayMode === 'lazy' && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            )}
-                        >
-                            Infinite
-                        </Button>
-                    </div>
-
-                    {/* Items Per Page */}
-                    {displayMode === 'pagination' && (
-                        <Select
-                            value={itemsPerPage.toString()}
-                            onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}
-                        >
-                            <SelectTrigger className="w-[100px] h-8 text-xs">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="6">6 / page</SelectItem>
-                                <SelectItem value="12">12 / page</SelectItem>
-                                <SelectItem value="24">24 / page</SelectItem>
-                                <SelectItem value="48">48 / page</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                </div>
-            </div>
-
-            {/* Cities Grid */}
-            {/* Cities Table */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
                 {isLoading && cities.length === 0 ? (
                     <div className="text-center py-12">
@@ -861,26 +862,22 @@ export function CitiesManager() {
                 ) : (
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <TableHead className="w-12">
-                                    <Checkbox />
-                                </TableHead>
-                                <TableHead className="min-w-[200px]">City Name</TableHead>
-                                <TableHead className="w-[150px]">State/Province</TableHead>
-                                <TableHead className="w-[150px]">Country</TableHead>
-                                <TableHead className="w-40">Coordinates</TableHead>
-                                <TableHead className="w-12"></TableHead>
+                            <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                <TableHead className="min-w-[200px] text-white font-bold">City Name</TableHead>
+                                <TableHead className="w-[150px] text-white font-bold">State/Province</TableHead>
+                                <TableHead className="w-[150px] text-white font-bold">Country</TableHead>
+                                <TableHead className="w-40 text-white font-bold">Coordinates</TableHead>
+                                <TableHead className="w-12 text-white font-bold"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {displayedCities.map((city) => (
                                 <TableRow
                                     key={city.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                    onClick={() => router.push(`/master/cities/${city.id}`)}
                                 >
-                                    <TableCell>
-                                        <Checkbox />
-                                    </TableCell>
+
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
@@ -907,18 +904,23 @@ export function CitiesManager() {
                                             <span className="text-gray-400 text-xs">-</span>
                                         )}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={(e) => e.stopPropagation()}
                                                 >
                                                     <MoreHorizontal className="w-4 h-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => router.push(`/master/cities/${city.id}`)}>
+                                                    <Eye className="w-4 h-4 mr-2" />
+                                                    View Detail
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleEditClick(city)}>
                                                     <Pencil className="w-4 h-4 mr-2" />
                                                     Edit
@@ -941,21 +943,26 @@ export function CitiesManager() {
             </div>
 
             {/* Pagination Controls */}
-            {displayMode === 'pagination' && filteredCities.length > 0 && totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Page <strong className="text-gray-900 dark:text-white">{currentPage}</strong> of <strong className="text-gray-900 dark:text-white">{totalPages}</strong>
-                    </div>
+            {filteredCities.length > 0 && totalPages > 1 && (
+                <div className="mt-10 flex justify-center">
+                    <Pagination>
+                        <PaginationContent className="gap-2">
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    href="#"
+                                    size="lg"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        if (currentPage > 1) goToPage(currentPage - 1)
+                                    }}
+                                    className={cn(
+                                        "h-11 px-5 text-base",
+                                        currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                    )}
+                                />
+                            </PaginationItem>
 
-                    <div className="flex items-center gap-1">
-                        <Button variant="outline" size="sm" onClick={goToFirstPage} disabled={currentPage === 1} className="h-9 w-9 p-0">
-                            <ChevronsLeft className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={goToPrevPage} disabled={currentPage === 1} className="h-9 w-9 p-0">
-                            <ChevronLeft className="w-4 h-4" />
-                        </Button>
-
-                        <div className="flex items-center gap-1 mx-2">
+                            {/* Page Numbers */}
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                                 let pageNum: number
                                 if (totalPages <= 5) {
@@ -967,50 +974,45 @@ export function CitiesManager() {
                                 } else {
                                     pageNum = currentPage - 2 + i
                                 }
+
                                 return (
-                                    <Button
-                                        key={pageNum}
-                                        variant={currentPage === pageNum ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => goToPage(pageNum)}
-                                        className={cn(
-                                            "h-9 w-9 p-0",
-                                            currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                        )}
-                                    >
-                                        {pageNum}
-                                    </Button>
+                                    <PaginationItem key={pageNum}>
+                                        <PaginationLink
+                                            href="#"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                goToPage(pageNum)
+                                            }}
+                                            isActive={currentPage === pageNum}
+                                            className={cn(
+                                                "h-11 w-11 text-base cursor-pointer",
+                                                currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
+                                            )}
+                                        >
+                                            {pageNum}
+                                        </PaginationLink>
+                                    </PaginationItem>
                                 )
                             })}
-                        </div>
 
-                        <Button variant="outline" size="sm" onClick={goToNextPage} disabled={currentPage === totalPages} className="h-9 w-9 p-0">
-                            <ChevronRight className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={goToLastPage} disabled={currentPage === totalPages} className="h-9 w-9 p-0">
-                            <ChevronsRight className="w-4 h-4" />
-                        </Button>
-                    </div>
+                            <PaginationItem>
+                                <PaginationNext
+                                    href="#"
+                                    size="lg"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        if (currentPage < totalPages) goToPage(currentPage + 1)
+                                    }}
+                                    className={cn(
+                                        "h-11 px-5 text-base",
+                                        currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                    )}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
                 </div>
-            )}
-
-            {/* Lazy Loading Trigger */}
-            {displayMode === 'lazy' && (
-                <>
-                    {(lazyLoadedCount < filteredCities.length || hasMoreServerData) && (
-                        <div ref={loadMoreRef} className="flex items-center justify-center py-8">
-                            <div className="flex items-center gap-3 text-gray-500">
-                                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                                <span className="text-sm">{t("masterdata.cities.load_more", "Loading more cities...")}</span>
-                            </div>
-                        </div>
-                    )}
-                    {lazyLoadedCount >= filteredCities.length && !hasMoreServerData && filteredCities.length > 0 && (
-                        <div className="text-center py-6 text-sm text-gray-500">
-                            {t("masterdata.cities.all_loaded", "All cities loaded")} ({filteredCities.length})
-                        </div>
-                    )}
-                </>
             )}
 
             {/* Filter Modal */}
@@ -1023,49 +1025,39 @@ export function CitiesManager() {
                         {/* Country Dropdown */}
                         <div>
                             <Label>Country</Label>
-                            <Select value={tempCountryCode} onValueChange={handleFilterCountryChange}>
-                                <SelectTrigger className="mt-1.5">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="All">All Countries</SelectItem>
-                                    {countries.map((country) => (
-                                        <SelectItem key={country.id} value={country.iso2 || country.id.toString()}>
-                                            {country.emoji && <span className="mr-2">{country.emoji}</span>}
-                                            {country.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={[
+                                    { label: "All Countries", value: "All" },
+                                    ...countries.map(c => ({
+                                        label: c.name,
+                                        value: c.iso2 || c.id.toString(),
+                                        emoji: c.emoji || undefined
+                                    }))
+                                ]}
+                                value={tempCountryCode}
+                                onValueChange={handleFilterCountryChange}
+                                placeholder="Select Country"
+                                searchPlaceholder="Search country..."
+                            />
                         </div>
 
                         {/* State Dropdown */}
                         <div>
                             <Label>State/Province</Label>
-                            <Select
+                            <Combobox
+                                options={[
+                                    { label: "All States/Provinces", value: "All" },
+                                    ...filterStates.map(s => ({
+                                        label: `${s.name}${s.iso2 ? ` (${s.iso2})` : ""}`,
+                                        value: s.iso2 || s.id.toString()
+                                    }))
+                                ]}
                                 value={tempStateCode}
                                 onValueChange={setTempStateCode}
                                 disabled={!tempCountryCode || tempCountryCode === "All" || isLoadingFilterStates}
-                            >
-                                <SelectTrigger className="mt-1.5">
-                                    {isLoadingFilterStates ? (
-                                        <span className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Loading...
-                                        </span>
-                                    ) : (
-                                        <SelectValue placeholder="Select State/Province" />
-                                    )}
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="All">All States/Provinces</SelectItem>
-                                    {filterStates.map((state) => (
-                                        <SelectItem key={state.id} value={state.iso2 || state.id.toString()}>
-                                            {state.name} {state.iso2 ? `(${state.iso2})` : ""}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                placeholder={isLoadingFilterStates ? "Loading..." : "Select State/Province"}
+                                searchPlaceholder="Search state..."
+                            />
                             {tempCountryCode === "All" && (
                                 <p className="text-xs text-gray-500 mt-1">Select a country first</p>
                             )}
@@ -1076,7 +1068,7 @@ export function CitiesManager() {
                             Cancel
                         </Button>
                         <Button onClick={handleApplyFilter} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                            Apply
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1104,55 +1096,33 @@ export function CitiesManager() {
                         {/* Country Dropdown */}
                         <div>
                             <Label>Country *</Label>
-                            <Select
+                            <Combobox
+                                options={countries.map(c => ({
+                                    label: c.name,
+                                    value: c.iso2 || "",
+                                    emoji: c.emoji || undefined
+                                }))}
                                 value={formSelectedCountryCode}
                                 onValueChange={handleFormCountryChange}
-                            >
-                                <SelectTrigger className="mt-1.5">
-                                    <SelectValue placeholder="Select Country" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {countries.map((country) => (
-                                        <SelectItem key={country.id} value={country.iso2 || ""}>
-                                            {country.emoji} {country.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                placeholder="Select Country"
+                                searchPlaceholder="Search country..."
+                            />
                         </div>
 
                         {/* State Dropdown */}
                         <div>
                             <Label>State/Province *</Label>
-                            <Select
+                            <Combobox
+                                options={formStates.map(s => ({
+                                    label: `${s.name}${s.iso2 ? ` (${s.iso2})` : ""}`,
+                                    value: s.id.toString()
+                                }))}
                                 value={formData.stateId?.toString() || ""}
                                 onValueChange={handleFormStateChange}
                                 disabled={!formSelectedCountryCode || isLoadingFormStates}
-                            >
-                                <SelectTrigger className="mt-1.5">
-                                    {isLoadingFormStates ? (
-                                        <span className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Loading...
-                                        </span>
-                                    ) : (
-                                        <SelectValue placeholder="Select State/Province" />
-                                    )}
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {formStates.length === 0 ? (
-                                        <SelectItem value="none" disabled>
-                                            {formSelectedCountryCode ? "No states available" : "Select country first"}
-                                        </SelectItem>
-                                    ) : (
-                                        formStates.map((state) => (
-                                            <SelectItem key={state.id} value={state.id.toString()}>
-                                                {state.name} {state.iso2 ? `(${state.iso2})` : ""}
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
+                                placeholder={isLoadingFormStates ? "Loading..." : (formStates.length === 0 ? "No states available" : "Select State/Province")}
+                                searchPlaceholder="Search state..."
+                            />
                         </div>
 
                         {/* Coordinates */}
@@ -1191,7 +1161,7 @@ export function CitiesManager() {
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Create City
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1305,7 +1275,7 @@ export function CitiesManager() {
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Update City
+                            Save Changes
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1333,6 +1303,6 @@ export function CitiesManager() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </div >
     )
 }

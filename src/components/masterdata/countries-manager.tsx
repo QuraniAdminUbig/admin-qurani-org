@@ -45,6 +45,16 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+    PaginationEllipsis,
+} from "@/components/ui/pagination"
+import { Combobox } from "@/components/ui/combobox"
+import {
     Plus,
     Search,
     Filter,
@@ -98,6 +108,7 @@ export function CountriesManager() {
 
     // UI states
     const [searchQuery, setSearchQuery] = useState("")
+    const [inputValue, setInputValue] = useState("")
     const [selectedRegion, setSelectedRegion] = useState("All")
     const [tempRegion, setTempRegion] = useState("All")
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
@@ -107,10 +118,7 @@ export function CountriesManager() {
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
-    const [itemsPerPage, setItemsPerPage] = useState(12)
-    const [displayMode, setDisplayMode] = useState<'pagination' | 'lazy'>('pagination')
-    const [lazyLoadedCount, setLazyLoadedCount] = useState(12)
-    const loadMoreRef = useRef<HTMLDivElement>(null)
+    const itemsPerPage = 15 // Fixed items per page
 
     // Form state for create/edit
     const [formData, setFormData] = useState<Partial<CountryRequest>>({
@@ -241,25 +249,23 @@ export function CountriesManager() {
         }
     }, [])
 
-    // Debounced search effect
+    // Search effect - triggers immediately when searchQuery changes (only on button click/Enter)
     useEffect(() => {
-        // Clear previous timeout
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current)
-        }
-
-        // Set new timeout for debounced search (500ms to reduce requests)
-        searchTimeoutRef.current = setTimeout(() => {
-            searchCountries(searchQuery)
-        }, 500)
-
-        // Cleanup
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current)
-            }
-        }
+        searchCountries(searchQuery)
     }, [searchQuery, searchCountries])
+
+    // Handle search button click
+    const handleSearch = () => {
+        setSearchQuery(inputValue)
+        setCurrentPage(1)
+    }
+
+    // Handle Enter key in search input
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSearch()
+        }
+    }
 
     // Filter countries - use search API results if available, otherwise client-side filter
     const filteredCountries = useMemo(() => {
@@ -295,39 +301,15 @@ export function CountriesManager() {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
 
-    // Get countries to display based on mode
+    // Get countries to display (pagination only)
     const displayedCountries = useMemo(() => {
-        if (displayMode === 'lazy') {
-            return filteredCountries.slice(0, lazyLoadedCount)
-        }
         return filteredCountries.slice(startIndex, endIndex)
-    }, [filteredCountries, displayMode, lazyLoadedCount, startIndex, endIndex])
+    }, [filteredCountries, startIndex, endIndex])
 
     // Reset pagination when filters change
     useEffect(() => {
         setCurrentPage(1)
-        setLazyLoadedCount(12)
     }, [searchQuery, selectedRegion])
-
-    // Lazy loading with Intersection Observer
-    useEffect(() => {
-        if (displayMode !== 'lazy') return
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && lazyLoadedCount < filteredCountries.length) {
-                    setLazyLoadedCount(prev => Math.min(prev + 12, filteredCountries.length))
-                }
-            },
-            { threshold: 0.1 }
-        )
-
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current)
-        }
-
-        return () => observer.disconnect()
-    }, [displayMode, lazyLoadedCount, filteredCountries.length])
 
     // Pagination handlers
     const goToPage = (page: number) => {
@@ -556,18 +538,30 @@ export function CountriesManager() {
 
             {/* Search & Filter Bar */}
             <div className="flex gap-2 sm:gap-3 items-center mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                        type="text"
-                        placeholder={t("masterdata.countries.search_placeholder", "Search by name, ISO code...")}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 pr-9 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                    />
-                    {isSearching && (
-                        <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-500 w-4 h-4 animate-spin" />
-                    )}
+                <div className="relative flex-1 flex">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                            type="text"
+                            placeholder={t("masterdata.countries.search_placeholder", "Search by name, ISO code...")}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
+                            className="pl-9 pr-4 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
+                        />
+                    </div>
+                    <Button
+                        onClick={handleSearch}
+                        variant="ghost"
+                        className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                    >
+                        {isSearching ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Search className="w-4 h-4" />
+                        )}
+                        Search
+                    </Button>
                 </div>
                 <Button
                     variant="outline"
@@ -584,69 +578,7 @@ export function CountriesManager() {
                 </Button>
             </div>
 
-            {/* Pagination Info Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                    {/* Results Count */}
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {searchQuery.trim().length >= 3 ? (
-                            <>
-                                Found <strong className="text-gray-900 dark:text-white">{filteredCountries.length}</strong> results for &quot;<strong className="text-emerald-600">{searchQuery}</strong>&quot;
-                            </>
-                        ) : (
-                            <>
-                                Showing <strong className="text-gray-900 dark:text-white">{displayedCountries.length}</strong> of <strong className="text-gray-900 dark:text-white">{filteredCountries.length}</strong> countries
-                            </>
-                        )}
-                    </span>
-                </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Display Mode Toggle */}
-                    <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <Button
-                            variant={displayMode === 'pagination' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => setDisplayMode('pagination')}
-                            className={cn(
-                                "h-7 px-3 text-xs",
-                                displayMode === 'pagination' && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            )}
-                        >
-                            Pages
-                        </Button>
-                        <Button
-                            variant={displayMode === 'lazy' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => setDisplayMode('lazy')}
-                            className={cn(
-                                "h-7 px-3 text-xs",
-                                displayMode === 'lazy' && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            )}
-                        >
-                            Infinite
-                        </Button>
-                    </div>
-
-                    {/* Items Per Page (only for pagination mode) */}
-                    {displayMode === 'pagination' && (
-                        <Select
-                            value={itemsPerPage.toString()}
-                            onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}
-                        >
-                            <SelectTrigger className="w-[100px] h-8 text-xs">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="6">6 / page</SelectItem>
-                                <SelectItem value="12">12 / page</SelectItem>
-                                <SelectItem value="24">24 / page</SelectItem>
-                                <SelectItem value="48">48 / page</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                </div>
-            </div>
 
             {/* Countries Table */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
@@ -658,18 +590,15 @@ export function CountriesManager() {
                 ) : (
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <TableHead className="w-12">
-                                    <Checkbox />
-                                </TableHead>
-                                <TableHead className="min-w-[200px]">Country</TableHead>
-                                <TableHead className="w-20">ISO2</TableHead>
-                                <TableHead className="w-20">ISO3</TableHead>
-                                <TableHead className="w-24">Phone</TableHead>
-                                <TableHead className="w-32">Region</TableHead>
-                                <TableHead className="w-24 text-center">States</TableHead>
-                                <TableHead className="w-24 text-center">Cities</TableHead>
-                                <TableHead className="w-12"></TableHead>
+                            <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                <TableHead className="min-w-[200px] text-white font-bold">Country</TableHead>
+                                <TableHead className="w-20 text-white font-bold">ISO2</TableHead>
+                                <TableHead className="w-20 text-white font-bold">ISO3</TableHead>
+                                <TableHead className="w-24 text-white font-bold">Phone</TableHead>
+                                <TableHead className="w-32 text-white font-bold">Region</TableHead>
+                                <TableHead className="w-24 text-center text-white font-bold">States</TableHead>
+                                <TableHead className="w-24 text-center text-white font-bold">Cities</TableHead>
+                                <TableHead className="w-12 text-white font-bold"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -679,13 +608,15 @@ export function CountriesManager() {
                                     className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
                                     onClick={() => router.push(`/master/countries/${country.id}`)}
                                 >
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <Checkbox />
-                                    </TableCell>
+
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
-                                                {country.iso2 || "?"}
+                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0 overflow-hidden">
+                                                {country.emoji ? (
+                                                    <span className="text-lg">{country.emoji}</span>
+                                                ) : (
+                                                    country.iso2 || "?"
+                                                )}
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-medium text-gray-900 dark:text-white truncate">
@@ -759,42 +690,26 @@ export function CountriesManager() {
             </div>
 
             {/* Pagination Controls (for pagination mode) */}
-            {displayMode === 'pagination' && filteredCountries.length > 0 && totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
-                    {/* Page Info */}
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Page <strong className="text-gray-900 dark:text-white">{currentPage}</strong> of <strong className="text-gray-900 dark:text-white">{totalPages}</strong>
-                        <span className="ml-2 text-gray-400">
-                            ({startIndex + 1}-{Math.min(endIndex, filteredCountries.length)} of {filteredCountries.length})
-                        </span>
-                    </div>
+            {filteredCountries.length > 0 && totalPages > 1 && (
+                <div className="mt-10 flex justify-center">
+                    <Pagination>
+                        <PaginationContent className="gap-2">
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    href="#"
+                                    size="lg"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        if (currentPage > 1) goToPage(currentPage - 1)
+                                    }}
+                                    className={cn(
+                                        "h-11 px-5 text-base",
+                                        currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                    )}
+                                />
+                            </PaginationItem>
 
-                    {/* Navigation Buttons */}
-                    <div className="flex items-center gap-1">
-                        {/* First Page */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={goToFirstPage}
-                            disabled={currentPage === 1}
-                            className="h-9 w-9 p-0"
-                        >
-                            <ChevronsLeft className="w-4 h-4" />
-                        </Button>
-
-                        {/* Previous Page */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={goToPrevPage}
-                            disabled={currentPage === 1}
-                            className="h-9 w-9 p-0"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </Button>
-
-                        {/* Page Numbers */}
-                        <div className="flex items-center gap-1 mx-2">
+                            {/* Page Numbers */}
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                                 let pageNum: number
                                 if (totalPages <= 5) {
@@ -806,69 +721,48 @@ export function CountriesManager() {
                                 } else {
                                     pageNum = currentPage - 2 + i
                                 }
+
                                 return (
-                                    <Button
-                                        key={pageNum}
-                                        variant={currentPage === pageNum ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => goToPage(pageNum)}
-                                        className={cn(
-                                            "h-9 w-9 p-0",
-                                            currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                        )}
-                                    >
-                                        {pageNum}
-                                    </Button>
+                                    <PaginationItem key={pageNum}>
+                                        <PaginationLink
+                                            href="#"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                goToPage(pageNum)
+                                            }}
+                                            isActive={currentPage === pageNum}
+                                            className={cn(
+                                                "h-11 w-11 text-base cursor-pointer",
+                                                currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
+                                            )}
+                                        >
+                                            {pageNum}
+                                        </PaginationLink>
+                                    </PaginationItem>
                                 )
                             })}
-                        </div>
 
-                        {/* Next Page */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={goToNextPage}
-                            disabled={currentPage === totalPages}
-                            className="h-9 w-9 p-0"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </Button>
-
-                        {/* Last Page */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={goToLastPage}
-                            disabled={currentPage === totalPages}
-                            className="h-9 w-9 p-0"
-                        >
-                            <ChevronsRight className="w-4 h-4" />
-                        </Button>
-                    </div>
+                            <PaginationItem>
+                                <PaginationNext
+                                    href="#"
+                                    size="lg"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        if (currentPage < totalPages) goToPage(currentPage + 1)
+                                    }}
+                                    className={cn(
+                                        "h-11 px-5 text-base",
+                                        currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                    )}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
                 </div>
             )}
 
-            {/* Lazy Loading Trigger & Info (for infinite scroll mode) */}
-            {displayMode === 'lazy' && (
-                <>
-                    {lazyLoadedCount < filteredCountries.length && (
-                        <div
-                            ref={loadMoreRef}
-                            className="flex items-center justify-center py-8"
-                        >
-                            <div className="flex items-center gap-3 text-gray-500">
-                                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                                <span className="text-sm">Loading more countries...</span>
-                            </div>
-                        </div>
-                    )}
-                    {lazyLoadedCount >= filteredCountries.length && filteredCountries.length > 0 && (
-                        <div className="text-center py-6 text-sm text-gray-500">
-                            All {filteredCountries.length} countries loaded
-                        </div>
-                    )}
-                </>
-            )}
+
 
             {/* Filter Modal */}
             <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
@@ -879,18 +773,13 @@ export function CountriesManager() {
                     <div className="space-y-4 py-4">
                         <div>
                             <Label>{t("masterdata.countries.region", "Region")}</Label>
-                            <Select value={tempRegion} onValueChange={setTempRegion}>
-                                <SelectTrigger className="mt-1.5">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {REGIONS.map((region) => (
-                                        <SelectItem key={region} value={region}>
-                                            {region}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={REGIONS.map(region => ({ label: region, value: region }))}
+                                value={tempRegion}
+                                onValueChange={setTempRegion}
+                                placeholder="Select Region"
+                                searchPlaceholder="Search region..."
+                            />
                         </div>
                     </div>
                     <DialogFooter className="flex gap-2">
@@ -898,7 +787,7 @@ export function CountriesManager() {
                             Cancel
                         </Button>
                         <Button onClick={handleApplyFilter} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                            Apply
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1014,7 +903,7 @@ export function CountriesManager() {
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Create Country
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>
