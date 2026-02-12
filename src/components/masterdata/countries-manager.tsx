@@ -630,13 +630,13 @@ export function CountriesManager() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                    <TableCell className="text-sm text-gray-900 dark:text-white">
                                         {country.iso2 || "-"}
                                     </TableCell>
-                                    <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                    <TableCell className="text-sm text-gray-900 dark:text-white">
                                         {country.iso3 || "-"}
                                     </TableCell>
-                                    <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                    <TableCell className="text-sm text-gray-900 dark:text-white">
                                         {country.phoneCode ? `+${country.phoneCode}` : "-"}
                                     </TableCell>
                                     <TableCell>

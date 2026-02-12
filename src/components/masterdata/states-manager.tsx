@@ -676,7 +676,7 @@ export function StatesManager() {
                                                 {state.type || "State"}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                                        <TableCell className="text-sm text-gray-900 dark:text-white">
                                             {state.iso2 || state.countryCode || "-"}
                                         </TableCell>
                                         <TableCell className="text-center">

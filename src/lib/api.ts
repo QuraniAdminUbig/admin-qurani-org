@@ -1154,17 +1154,17 @@ export interface CityRequest {
     countryId: number;
     country: string;
     countryCode: string;
-    type?: string;
-    level?: number;
-    parentId?: number;
-    latitude?: string;
-    longitude?: string;
-    native?: string;
-    population?: number;
-    timezone?: string;
-    translations?: string;
+    type?: string | null;
+    level?: number | null;
+    parentId?: number | null;
+    latitude?: number | null;   // Match StateRequest pattern (number, not string)
+    longitude?: number | null;  // Match StateRequest pattern (number, not string)
+    native?: string | null;
+    population?: number | null;
+    timezone?: string | null;
+    translations?: string | null;
     flag?: number;
-    wikiDataId?: string;
+    wikiDataId?: string | null;
 }
 
 export interface CityApiResponse {

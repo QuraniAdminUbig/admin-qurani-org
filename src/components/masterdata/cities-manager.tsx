@@ -131,8 +131,13 @@ export function CitiesManager() {
     const [formSelectedCountryCode, setFormSelectedCountryCode] = useState<string>("")
     const [isLoadingFormStates, setIsLoadingFormStates] = useState(false)
 
+    interface CityFormState extends Omit<CityRequest, 'latitude' | 'longitude'> {
+        latitude?: string;
+        longitude?: string;
+    }
+
     // Form state for create/edit
-    const [formData, setFormData] = useState<Partial<CityRequest>>({
+    const [formData, setFormData] = useState<Partial<CityFormState>>({
         name: "",
         stateId: 0,
         state: "",
@@ -393,25 +398,42 @@ export function CitiesManager() {
             handleSearch()
         }
     }
-
-    // ====== PAGINATION / LAZY LOADING ======
-    // Filter cities - use search API results if available, otherwise client-side filter
+    // ====== PAGINATION / SEARCH LOGIC ======
+    // Hybrid Filter - Merge API search results with local client-side filter for maximum reliability
     const filteredCities = useMemo(() => {
-        if (searchQuery.trim().length >= 2 && searchResults !== null) {
-            // Use API search results
-            return searchResults
-        } else if (searchQuery.trim().length >= 2) {
-            // Fallback client-side filter while API is loading
-            const query = searchQuery.toLowerCase()
-            return cities.filter(city =>
-                city.name.toLowerCase().includes(query) ||
-                city.stateCode?.toLowerCase().includes(query) ||
-                city.state?.toLowerCase().includes(query) ||
-                city.countryCode?.toLowerCase().includes(query)
-            )
+        const query = searchQuery.trim().toLowerCase()
+
+        // Case 1: No search query - return all cities (which are already filtered geographically by fetchCities)
+        if (query.length < 2) {
+            return cities
         }
-        // No search query - use all cities
-        return cities
+
+        // Case 2: User is searching. First, get matches from our locally loaded cities pool
+        const localMatches = cities.filter(city =>
+            city.name.toLowerCase().includes(query) ||
+            city.state?.toLowerCase().includes(query) ||
+            city.stateCode?.toLowerCase().includes(query) ||
+            city.country?.toLowerCase().includes(query) ||
+            city.countryCode?.toLowerCase().includes(query)
+        )
+
+        // Case 3: We have API search results, merge them with local matches
+        if (searchResults !== null) {
+            // Keep all API results
+            const merged = [...searchResults]
+
+            // Add local matches that aren't already in the API results (avoiding duplicates by id)
+            localMatches.forEach(localCity => {
+                if (!merged.some(apiCity => apiCity.id === localCity.id)) {
+                    merged.push(localCity)
+                }
+            })
+
+            return merged
+        }
+
+        // Case 4: API search is still loading (searchResults is null), show local matches as placeholder
+        return localMatches
     }, [cities, searchQuery, searchResults])
 
     const totalPages = Math.ceil(filteredCities.length / itemsPerPage)
@@ -514,29 +536,20 @@ export function CitiesManager() {
 
         setIsSubmitting(true)
         try {
-            // Build request payload, only include optional fields if they have values
-            const requestData: CityRequest = {
+            // TEST: Send minimal payload to isolate if latitude/longitude are the problem
+            const requestData: any = {
                 name: formData.name,
-                stateId: formData.stateId || 0,
+                stateId: Number(formData.stateId),
                 state: formData.state || "",
                 stateCode: formData.stateCode || "",
-                countryId: formData.countryId || 0,
+                countryId: Number(formData.countryId),
                 country: formData.country || "",
                 countryCode: formData.countryCode || "",
+                r: "city",
             }
 
-            // Only send latitude/longitude if user has filled them in
-            // API expects integer | string with pattern: ^-?(?:0|[1-9]\d*)$ (integers only)
-            // Decimal values like -7.1128 will be rejected by API
-            if (formData.latitude && formData.latitude.trim() !== "") {
-                requestData.latitude = formData.latitude.trim()
-            }
-            if (formData.longitude && formData.longitude.trim() !== "") {
-                requestData.longitude = formData.longitude.trim()
-            }
-
-            console.log("Creating city with data:", JSON.stringify(requestData, null, 2))
-
+            // Latitude and longitude omitted for this test to see if 400 persists
+            console.log('[Cities TEST v8 - ' + new Date().toISOString() + '] Testing MINIMAL payload:', JSON.stringify(requestData, null, 2))
             const response = await masterdataApi.cities.create(requestData)
             if (response.success || response.data) {
                 fetchCities()
@@ -546,7 +559,8 @@ export function CitiesManager() {
             }
         } catch (err) {
             console.error("Error creating city:", err)
-            toast.error(t("masterdata.cities.create_error", "Failed to create city"))
+            const errorMsg = err instanceof Error ? err.message : "Failed to create city"
+            toast.error(errorMsg)
         } finally {
             setIsSubmitting(false)
         }
@@ -583,28 +597,33 @@ export function CitiesManager() {
 
         setIsSubmitting(true)
         try {
-            // Build request payload, only include optional fields if they have values
-            const requestData: CityRequest = {
+            // Build payload matching StateRequest pattern
+            const requestData: any = {
                 name: formData.name,
-                stateId: formData.stateId || 0,
+                stateId: Number(formData.stateId),
                 state: formData.state || "",
                 stateCode: formData.stateCode || "",
-                countryId: formData.countryId || 0,
+                countryId: Number(formData.countryId),
                 country: formData.country || "",
                 countryCode: formData.countryCode || "",
+                r: "city",  // REQUIRED by backend
             }
 
-            // Only send latitude/longitude if user has filled them in
-            // API expects integer | string with pattern: ^-?(?:0|[1-9]\d*)$ (integers only)
+            // Convert string coordinates to integers (as required by spec pattern)
             if (formData.latitude && formData.latitude.trim() !== "") {
-                requestData.latitude = formData.latitude.trim()
+                const lat = parseFloat(formData.latitude)
+                if (!isNaN(lat)) {
+                    requestData.latitude = Math.round(lat)
+                }
             }
             if (formData.longitude && formData.longitude.trim() !== "") {
-                requestData.longitude = formData.longitude.trim()
+                const lng = parseFloat(formData.longitude)
+                if (!isNaN(lng)) {
+                    requestData.longitude = Math.round(lng)
+                }
             }
 
-            console.log("Updating city with data:", JSON.stringify(requestData, null, 2))
-
+            console.log('[Cities] Updating city with payload:', JSON.stringify(requestData, null, 2))
             const response = await masterdataApi.cities.update(editingCityId, requestData)
             if (response.success || response.data) {
                 fetchCities()
@@ -615,7 +634,8 @@ export function CitiesManager() {
             }
         } catch (err) {
             console.error("Error updating city:", err)
-            toast.error(t("masterdata.cities.update_error", "Failed to update city"))
+            const errorMsg = err instanceof Error ? err.message : "Failed to update city"
+            toast.error(errorMsg)
         } finally {
             setIsSubmitting(false)
         }
@@ -889,10 +909,10 @@ export function CitiesManager() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-gray-600 dark:text-gray-400">
-                                        {city.stateCode || "—"}
+                                        {city.state || city.stateCode || "—"}
                                     </TableCell>
                                     <TableCell className="text-gray-600 dark:text-gray-400">
-                                        {city.countryCode || "—"}
+                                        {city.country || city.countryCode || "—"}
                                     </TableCell>
                                     <TableCell>
                                         {city.latitude && city.longitude ? (
@@ -1275,7 +1295,7 @@ export function CitiesManager() {
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Save Changes
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>

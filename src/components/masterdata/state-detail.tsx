@@ -249,8 +249,8 @@ export function StateDetail({ id }: StateDetailProps) {
                 </div>
             </div>
 
-            {/* Additional Info Cards */}
-            {(state.latitude || state.longitude || state.timezone) && (
+            {/* Additional Info Cards - Deactivated as requested */}
+            {/* {(state.latitude || state.longitude || state.timezone) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.latitude && state.longitude) && (
                         <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
@@ -277,7 +277,7 @@ export function StateDetail({ id }: StateDetailProps) {
                         </div>
                     )}
                 </div>
-            )}
+            )} */}
 
             {/* Cities List Section */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
