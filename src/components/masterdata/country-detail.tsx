@@ -1,11 +1,33 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { masterdataApi, CountryData } from "@/lib/api"
+import { masterdataApi, CountryData, StateData, CityData } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs"
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination"
 import {
     Loader2,
     ArrowLeft,
@@ -14,7 +36,9 @@ import {
     DollarSign,
     Search,
     MoreVertical,
-    Flag
+    Flag,
+    Building2,
+    Map as MapIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -25,20 +49,34 @@ interface CountryDetailProps {
 export function CountryDetail({ id }: CountryDetailProps) {
     const router = useRouter()
     const [country, setCountry] = useState<CountryData | null>(null)
+    const [states, setStates] = useState<StateData[]>([])
+    const [cities, setCities] = useState<CityData[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [isLoadingStates, setIsLoadingStates] = useState(false)
+    const [isLoadingCities, setIsLoadingCities] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    // Search and pagination states
+    const [activeTab, setActiveTab] = useState<"states" | "cities">("states")
+    const [statesSearchQuery, setStatesSearchQuery] = useState("")
+    const [citiesSearchQuery, setCitiesSearchQuery] = useState("")
+    const [statesPage, setStatesPage] = useState(1)
+    const [citiesPage, setCitiesPage] = useState(1)
+    const itemsPerPage = 15
+
+    // AbortController refs to prevent duplicate fetching
+    const statesAbortRef = useRef<AbortController | null>(null)
+    const citiesAbortRef = useRef<AbortController | null>(null)
+
+    // Fetch country details
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true)
             try {
-                // Fetch country details
                 const countryResponse = await masterdataApi.countries.getById(id)
                 let countryData: CountryData | null = null
 
                 if ('data' in countryResponse && countryResponse.data) {
-                    // Start of Selection
-                    // Check if data is an array (some endpoints return array for singular get, rare but possible)
                     if (Array.isArray(countryResponse.data)) {
                         countryData = countryResponse.data[0]
                     } else {
@@ -54,11 +92,6 @@ export function CountryDetail({ id }: CountryDetailProps) {
 
                 setCountry(countryData)
 
-                // Optional: Fetch states for this country
-                // Currently API might not support filtering states by country ID directly in simple call
-                // Assuming we might fetch them or just show placeholder for now
-                // setStates([]) 
-
             } catch (err) {
                 console.error("Error fetching country details:", err)
                 setError("Failed to load country details")
@@ -72,6 +105,125 @@ export function CountryDetail({ id }: CountryDetailProps) {
             fetchData()
         }
     }, [id])
+
+    // Fetch states when country is loaded
+    useEffect(() => {
+        const fetchStates = async () => {
+            if (!country?.id) return
+
+            // Cancel any pending request
+            if (statesAbortRef.current) {
+                statesAbortRef.current.abort()
+            }
+            statesAbortRef.current = new AbortController()
+
+            setIsLoadingStates(true)
+            try {
+                const response = await masterdataApi.states.getByCountryId(
+                    country.id,
+                    undefined,
+                    statesAbortRef.current.signal
+                )
+
+                if (response && response.data) {
+                    const statesData = Array.isArray(response.data) ? response.data : []
+                    setStates(statesData)
+                }
+            } catch (err) {
+                if (err instanceof Error && err.name === 'AbortError') return
+                console.error("Error fetching states:", err)
+            } finally {
+                setIsLoadingStates(false)
+            }
+        }
+
+        fetchStates()
+
+        return () => {
+            if (statesAbortRef.current) {
+                statesAbortRef.current.abort()
+            }
+        }
+    }, [country?.id])
+
+    // Fetch cities when country is loaded
+    useEffect(() => {
+        const fetchCities = async () => {
+            if (!country?.id) return
+
+            // Cancel any pending request
+            if (citiesAbortRef.current) {
+                citiesAbortRef.current.abort()
+            }
+            citiesAbortRef.current = new AbortController()
+
+            setIsLoadingCities(true)
+            try {
+                const response = await masterdataApi.cities.getByCountry(
+                    country.id,
+                    1,
+                    10000,
+                    undefined,
+                    citiesAbortRef.current.signal
+                )
+
+                if (response && response.data) {
+                    const citiesData = Array.isArray(response.data) ? response.data : []
+                    setCities(citiesData)
+                }
+            } catch (err) {
+                if (err instanceof Error && err.name === 'AbortError') return
+                console.error("Error fetching cities:", err)
+            } finally {
+                setIsLoadingCities(false)
+            }
+        }
+
+        fetchCities()
+
+        return () => {
+            if (citiesAbortRef.current) {
+                citiesAbortRef.current.abort()
+            }
+        }
+    }, [country?.id])
+
+    // Filter and paginate states
+    const filteredStates = useMemo(() => {
+        if (!statesSearchQuery.trim()) return states
+        const q = statesSearchQuery.toLowerCase()
+        return states.filter(state =>
+            state.name.toLowerCase().includes(q) ||
+            state.iso2?.toLowerCase().includes(q)
+        )
+    }, [states, statesSearchQuery])
+
+    const statesTotalPages = Math.ceil(filteredStates.length / itemsPerPage)
+    const displayedStates = useMemo(() => {
+        const start = (statesPage - 1) * itemsPerPage
+        return filteredStates.slice(start, start + itemsPerPage)
+    }, [filteredStates, statesPage])
+
+    // Filter and paginate cities
+    const filteredCities = useMemo(() => {
+        if (!citiesSearchQuery.trim()) return cities
+        const q = citiesSearchQuery.toLowerCase()
+        return cities.filter(city =>
+            city.name.toLowerCase().includes(q) ||
+            city.state?.toLowerCase().includes(q) ||
+            city.stateCode?.toLowerCase().includes(q)
+        )
+    }, [cities, citiesSearchQuery])
+
+    const citiesTotalPages = Math.ceil(filteredCities.length / itemsPerPage)
+    const displayedCities = useMemo(() => {
+        const start = (citiesPage - 1) * itemsPerPage
+        return filteredCities.slice(start, start + itemsPerPage)
+    }, [filteredCities, citiesPage])
+
+    // Reset page on search
+    useEffect(() => { setStatesPage(1) }, [statesSearchQuery])
+    useEffect(() => { setCitiesPage(1) }, [citiesSearchQuery])
 
     if (isLoading) {
         return (
@@ -101,27 +253,21 @@ export function CountryDetail({ id }: CountryDetailProps) {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header Banner */}
-            {/* Header Banner */}
             <div className="relative overflow-hidden rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 shadow-sm">
-                {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/50 to-transparent dark:from-emerald-900/20" />
 
-                {/* Content */}
                 <div className="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
-                    {/* Flag Avatar */}
                     <div className="relative shrink-0">
                         <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center text-4xl md:text-5xl shadow-lg shadow-emerald-200/50 dark:shadow-none border-4 border-white dark:border-gray-900">
                             {country.emoji || country.iso2}
                         </div>
                     </div>
 
-                    {/* Text Info */}
                     <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-center justify-between">
                             <h1 className="text-2xl md:text-3xl font-bold truncate pr-4 text-gray-900 dark:text-white">
                                 {country.name}
                             </h1>
-                            {/* Actions Menu Placeholder */}
                             <Button size="icon" variant="ghost" className="text-gray-500 hover:text-gray-900 hover:bg-emerald-100/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10 rounded-full">
                                 <MoreVertical className="w-5 h-5" />
                             </Button>
@@ -174,26 +320,294 @@ export function CountryDetail({ id }: CountryDetailProps) {
                 </div>
             </div>
 
-            {/* States & Data Section (Placeholder for now) */}
+            {/* States & Cities Tabs */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">States & Cities</h3>
-
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "states" | "cities")} className="w-full">
+                    <div className="border-b border-gray-200 dark:border-gray-700 px-6 pt-6">
+                        <TabsList className="grid w-full max-w-md grid-cols-2">
+                            <TabsTrigger value="states" className="flex items-center gap-2">
+                                <MapIcon className="w-4 h-4" />
+                                States ({states.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="cities" className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4" />
+                                Cities ({cities.length})
+                            </TabsTrigger>
+                        </TabsList>
                     </div>
-                    <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                            placeholder="Search states..."
-                            className="pl-9 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                        />
-                    </div>
-                </div>
 
-                <div className="p-12 text-center text-gray-500">
-                    <MapPin className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>State list data currently unavailable in this view.</p>
-                </div>
+                    {/* States Tab */}
+                    <TabsContent value="states" className="m-0">
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Input
+                                    placeholder="Search states..."
+                                    value={statesSearchQuery}
+                                    onChange={(e) => setStatesSearchQuery(e.target.value)}
+                                    className="pl-9 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                />
+                            </div>
+                        </div>
+
+                        {isLoadingStates ? (
+                            <div className="p-12 text-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
+                                <p className="text-gray-500">Loading states...</p>
+                            </div>
+                        ) : displayedStates.length === 0 ? (
+                            <div className="p-12 text-center text-gray-500">
+                                <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>No states found</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                            <TableHead className="text-white font-bold">State Name</TableHead>
+                                            <TableHead className="text-white font-bold w-32">ISO Code</TableHead>
+                                            <TableHead className="text-white font-bold w-32 text-center">Cities</TableHead>
+                                            <TableHead className="text-white font-bold w-28 text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {displayedStates.map((state) => (
+                                            <TableRow
+                                                key={state.id}
+                                                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                                onClick={() => router.push(`/master/states/${state.id}`)}
+                                            >
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
+                                                            {state.name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <span className="font-medium text-gray-900 dark:text-white">{state.name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-gray-900 dark:text-white">
+                                                    {state.iso2 || state.countryCode || "-"}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                                                        <Building2 className="w-3.5 h-3.5" />
+                                                        {state.citiesCount || 0}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 h-9 shadow-sm transition-all active:scale-95"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            router.push(`/master/states/${state.id}`)
+                                                        }}
+                                                    >
+                                                        View
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+
+                                {statesTotalPages > 1 && (
+                                    <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                                        <Pagination>
+                                            <PaginationContent className="gap-2">
+                                                <PaginationItem>
+                                                    <PaginationPrevious
+                                                        href="#"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            if (statesPage > 1) setStatesPage(statesPage - 1)
+                                                        }}
+                                                        className={cn(statesPage === 1 && "pointer-events-none opacity-50")}
+                                                    />
+                                                </PaginationItem>
+                                                {Array.from({ length: Math.min(5, statesTotalPages) }, (_, i) => {
+                                                    let pageNum = i + 1
+                                                    if (statesTotalPages > 5) {
+                                                        if (statesPage <= 3) pageNum = i + 1
+                                                        else if (statesPage >= statesTotalPages - 2) pageNum = statesTotalPages - 4 + i
+                                                        else pageNum = statesPage - 2 + i
+                                                    }
+                                                    return (
+                                                        <PaginationItem key={pageNum}>
+                                                            <PaginationLink
+                                                                href="#"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault()
+                                                                    setStatesPage(pageNum)
+                                                                }}
+                                                                isActive={statesPage === pageNum}
+                                                                className={cn(
+                                                                    "cursor-pointer",
+                                                                    statesPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                                )}
+                                                            >
+                                                                {pageNum}
+                                                            </PaginationLink>
+                                                        </PaginationItem>
+                                                    )
+                                                })}
+                                                <PaginationItem>
+                                                    <PaginationNext
+                                                        href="#"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            if (statesPage < statesTotalPages) setStatesPage(statesPage + 1)
+                                                        }}
+                                                        className={cn(statesPage === statesTotalPages && "pointer-events-none opacity-50")}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </TabsContent>
+
+                    {/* Cities Tab */}
+                    <TabsContent value="cities" className="m-0">
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Input
+                                    placeholder="Search cities..."
+                                    value={citiesSearchQuery}
+                                    onChange={(e) => setCitiesSearchQuery(e.target.value)}
+                                    className="pl-9 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                />
+                            </div>
+                        </div>
+
+                        {isLoadingCities ? (
+                            <div className="p-12 text-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
+                                <p className="text-gray-500">Loading cities...</p>
+                            </div>
+                        ) : displayedCities.length === 0 ? (
+                            <div className="p-12 text-center text-gray-500">
+                                <Building2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>No cities found</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                            <TableHead className="text-white font-bold">City Name</TableHead>
+                                            <TableHead className="text-white font-bold w-48">State/Province</TableHead>
+                                            <TableHead className="text-white font-bold w-40">Coordinates</TableHead>
+                                            <TableHead className="text-white font-bold w-28 text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {displayedCities.map((city) => (
+                                            <TableRow
+                                                key={city.id}
+                                                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                                onClick={() => router.push(`/master/cities/${city.id}`)}
+                                            >
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
+                                                            {city.name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <span className="font-medium text-gray-900 dark:text-white">{city.name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-gray-600 dark:text-gray-400">
+                                                    {city.state || city.stateCode || "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {city.latitude && city.longitude ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded w-fit">
+                                                            <MapPin className="w-3 h-3" />
+                                                            <span>{city.latitude.toFixed(4)}, {city.longitude.toFixed(4)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs">-</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 h-9 shadow-sm transition-all active:scale-95"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            router.push(`/master/cities/${city.id}`)
+                                                        }}
+                                                    >
+                                                        View
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+
+                                {citiesTotalPages > 1 && (
+                                    <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                                        <Pagination>
+                                            <PaginationContent className="gap-2">
+                                                <PaginationItem>
+                                                    <PaginationPrevious
+                                                        href="#"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            if (citiesPage > 1) setCitiesPage(citiesPage - 1)
+                                                        }}
+                                                        className={cn(citiesPage === 1 && "pointer-events-none opacity-50")}
+                                                    />
+                                                </PaginationItem>
+                                                {Array.from({ length: Math.min(5, citiesTotalPages) }, (_, i) => {
+                                                    let pageNum = i + 1
+                                                    if (citiesTotalPages > 5) {
+                                                        if (citiesPage <= 3) pageNum = i + 1
+                                                        else if (citiesPage >= citiesTotalPages - 2) pageNum = citiesTotalPages - 4 + i
+                                                        else pageNum = citiesPage - 2 + i
+                                                    }
+                                                    return (
+                                                        <PaginationItem key={pageNum}>
+                                                            <PaginationLink
+                                                                href="#"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault()
+                                                                    setCitiesPage(pageNum)
+                                                                }}
+                                                                isActive={citiesPage === pageNum}
+                                                                className={cn(
+                                                                    "cursor-pointer",
+                                                                    citiesPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                                )}
+                                                            >
+                                                                {pageNum}
+                                                            </PaginationLink>
+                                                        </PaginationItem>
+                                                    )
+                                                })}
+                                                <PaginationItem>
+                                                    <PaginationNext
+                                                        href="#"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            if (citiesPage < citiesTotalPages) setCitiesPage(citiesPage + 1)
+                                                        }}
+                                                        className={cn(citiesPage === citiesTotalPages && "pointer-events-none opacity-50")}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     )
