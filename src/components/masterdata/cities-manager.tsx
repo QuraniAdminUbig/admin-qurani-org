@@ -61,6 +61,7 @@ import {
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
 import { masterdataApi, CityData, CityRequest, CountryData, StateData } from "@/lib/api"
+import { fetchAllCitiesByCountry, fetchAllCitiesByState } from "@/lib/fetch-helpers"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -200,47 +201,13 @@ export function CitiesManager() {
             const stateId = stateEntry?.id
 
             if (stateId && selectedStateCode !== "All") {
-                // 1. If State is selected, fetch cities specifically for that state
-                const response = await masterdataApi.cities.getByState(
-                    stateId,
-                    1,
-                    10000,
-                    undefined,
-                    abortControllerRef.current.signal
-                )
-
-                if (response && response.success && response.data) {
-                    const data = Array.isArray(response.data) ? response.data : []
-                    setCities(data)
-                } else {
-                    setCities([])
-                }
+                // 1. If State is selected, use optimized Proxy Bundle (Parallel internally)
+                const data = await fetchAllCitiesByState(stateId, undefined, abortControllerRef.current.signal)
+                setCities(data)
             } else if (countryId && selectedCountryCode !== "All") {
-                // 2. If only Country is selected, fetch cities specifically for that country
-                // Using getByCountry (by ID) is often more reliable/paginated on backend
-                const response = await masterdataApi.cities.getByCountry(
-                    countryId,
-                    1,
-                    10000,
-                    undefined,
-                    abortControllerRef.current.signal
-                )
-
-                if (response && response.success && response.data) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const responseData = response.data as any
-                    let data: CityData[] = []
-
-                    if (Array.isArray(responseData)) {
-                        data = responseData
-                    } else if (responseData?.items && Array.isArray(responseData.items)) {
-                        data = responseData.items
-                    }
-
-                    setCities(data)
-                } else {
-                    setCities([])
-                }
+                // 2. If Country is selected, use optimized Proxy Bundle (Parallel internally)
+                const data = await fetchAllCitiesByCountry(countryId, undefined, abortControllerRef.current.signal)
+                setCities(data)
             } else {
                 // 3. "All Countries" - Use our aggregator for bundled fetching
                 const countryList = countries.length > 0 ? countries : []
@@ -257,7 +224,7 @@ export function CitiesManager() {
                     return
                 }
 
-                const batchSize = isInitial ? 15 : 25
+                const batchSize = isInitial ? 10 : 20 // Konservatif agar response cepat kembali ke browser
                 const endIdx = Math.min(currentIdx + batchSize, countryList.length)
                 const batch = countryList.slice(currentIdx, endIdx)
                 const codes = batch.map(c => c.iso2).filter(Boolean).join(",")

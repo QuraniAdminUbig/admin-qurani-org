@@ -180,29 +180,36 @@ export function StatesManager() {
         setError(null)
 
         try {
-            let response
+            let allStates: StateData[] = []
 
             if (selectedCountryCode && selectedCountryCode !== "all") {
-                // Filter by country
-                response = await masterdataApi.states.getByCountryCode(
+                // Filter by country - single request
+                const response = await masterdataApi.states.getByCountryCode(
                     selectedCountryCode,
                     undefined,
                     abortControllerRef.current.signal
                 )
+
+                if (response && response.success && response.data) {
+                    allStates = response.data
+                }
             } else {
-                // Get all
-                response = await masterdataApi.states.getAll(
-                    { page: 1, pageSize: 100 },
+                // Get all states - single request with larger pageSize
+                // Note: Backend may limit results, but this avoids infinite loop
+                const response = await masterdataApi.states.getAll(
+                    { page: 1, pageSize: 1000 },
                     undefined,
                     abortControllerRef.current.signal
                 )
+
+                if (response && response.success && response.data) {
+                    allStates = response.data
+                }
+
+                console.log(`✅ Loaded ${allStates.length} states`)
             }
 
-            if (response && response.success && response.data) {
-                setStates(response.data)
-            } else {
-                setStates([])
-            }
+            setStates(allStates)
         } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') {
                 return

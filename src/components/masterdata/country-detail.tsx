@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { masterdataApi, CountryData, StateData, CityData } from "@/lib/api"
+import { fetchAllCitiesByCountry } from "@/lib/fetch-helpers"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -159,18 +160,19 @@ export function CountryDetail({ id }: CountryDetailProps) {
 
             setIsLoadingCities(true)
             try {
-                const response = await masterdataApi.cities.getByCountry(
+                // "Bungkus" logika fetching ke dalam helper yang lebih rapi
+                // Menggunakan parallel fetching di balik layar agar jauh lebih cepat
+                const finalData = await fetchAllCitiesByCountry(
                     country.id,
-                    1,
-                    10000,
-                    undefined,
+                    (progressData) => {
+                        // Tetap update secara progresif agar UI terasa responsif
+                        setCities([...progressData])
+                    },
                     citiesAbortRef.current.signal
                 )
 
-                if (response && response.data) {
-                    const citiesData = Array.isArray(response.data) ? response.data : []
-                    setCities(citiesData)
-                }
+                console.log(`✅ Final total cities for ${country.name}: ${finalData.length}`)
+                setCities(finalData)
             } catch (err) {
                 if (err instanceof Error && err.name === 'AbortError') return
                 console.error("Error fetching cities:", err)

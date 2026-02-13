@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { masterdataApi, StateData, CityData, CountryData } from "@/lib/api"
+import { fetchAllCitiesByState } from "@/lib/fetch-helpers"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -97,11 +98,14 @@ export function StateDetail({ id }: StateDetailProps) {
                 // Fetch cities for this state
                 setIsLoadingCities(true)
                 try {
-                    const citiesResponse = await masterdataApi.cities.getByState(Number(id), 1, 10000)
-                    if (citiesResponse && citiesResponse.data) {
-                        const citiesData = Array.isArray(citiesResponse.data) ? citiesResponse.data : []
-                        setCities(citiesData)
-                    }
+                    // Gunakan helper yang sudah dioptimalkan (Parallel Batching)
+                    const citiesData = await fetchAllCitiesByState(
+                        Number(id),
+                        (progress) => {
+                            setCities([...progress])
+                        }
+                    )
+                    setCities(citiesData)
                 } catch {
                     // Cities list is optional
                 } finally {
@@ -212,8 +216,14 @@ export function StateDetail({ id }: StateDetailProps) {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <div
+                    className={cn(
+                        "bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4",
+                        country && "cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+                    )}
+                    onClick={() => country && router.push(`/master/countries/${country.id}`)}
+                >
+                    <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         {country?.emoji ? (
                             <span className="text-2xl leading-none">{country.emoji}</span>
                         ) : (

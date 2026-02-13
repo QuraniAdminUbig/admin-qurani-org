@@ -3,21 +3,35 @@ import { cookies } from "next/headers";
 
 const API_BASE = process.env.NEXT_PUBLIC_MY_API_URL || 'https://api.myqurani.com';
 
-// Simple in-memory cache to speed up repeat requests
-// In production, you might use Redis or a more robust solution
+// In-memory cache to store grouped city results
+// Cache key can be countryId, stateId, or specific country codes string
 const cityCache = new Map<string, { data: any[]; timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache
+const CACHE_TTL = 1000 * 60 * 60; // 1 Jam cache
 
+/**
+ * Enhanced Cities Proxy Route
+ * Handles multiple backend pages on the server side to provide a single "bundle" response to the client.
+ */
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { codes } = body;
+        const { countryId, stateId, codes } = body;
 
-        if (!codes) {
-            return NextResponse.json({ success: false, error: "Missing country codes" }, { status: 400 });
+        // Create a unique cache key
+        const cacheKey = stateId ? `state_${stateId}` : countryId ? `country_${countryId}` : `codes_${codes}`;
+
+        // Check cache first
+        const now = Date.now();
+        const cached = cityCache.get(cacheKey);
+        if (cached && (now - cached.timestamp < CACHE_TTL)) {
+            return NextResponse.json({
+                success: true,
+                data: cached.data,
+                count: cached.data.length,
+                cached: true
+            });
         }
 
-        const countryCodes = codes.split(",");
         const cookieStore = await cookies();
         const token = cookieStore.get("myqurani_access_token")?.value;
 
@@ -25,64 +39,94 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
-        const now = Date.now();
         const allCities: any[] = [];
-        const codesToFetch: string[] = [];
+        const pageSize = 100; // Standard backend limit
+        const jumboSize = 5000;
 
-        // Check cache first
-        countryCodes.forEach((code: string) => {
-            const cached = cityCache.get(code);
-            if (cached && (now - cached.timestamp < CACHE_TTL)) {
-                allCities.push(...cached.data);
-            } else {
-                codesToFetch.push(code);
-            }
-        });
+        // Helper to fetch all pages with CONTROLLED PARALLEL BATCHING
+        const fetchAllPages = async (url: string) => {
+            const results: any[] = [];
+            let hasReachedEnd = false;
+            const pageBatchSize = 4; // Lebih konservatif agar tidak membentur limit backend
+            let startPage = 1;
 
-        // Fetch only what's not in cache
-        if (codesToFetch.length > 0) {
-            const fetchResults = await Promise.allSettled(
-                codesToFetch.map(async (code: string) => {
-                    const response = await fetch(`${API_BASE}/api/v1/Cities/country-code/${code}?page=1&pageSize=10000`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                        }
-                    });
+            while (!hasReachedEnd && startPage <= 50) {
+                const pagesToFetch = Array.from({ length: pageBatchSize }, (_, i) => startPage + i);
 
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch for ${code}: ${response.status}`);
+                const batchPromises = pagesToFetch.map(async (page) => {
+                    const separator = url.includes('?') ? '&' : '?';
+                    const paginatedUrl = `${url}${separator}page=${page}&pageSize=${jumboSize}`;
+
+                    try {
+                        const response = await fetch(paginatedUrl, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json',
+                            }
+                        });
+                        if (!response.ok) return null;
+                        const json = await response.json();
+                        return json.success && json.data && Array.isArray(json.data) ? json.data : [];
+                    } catch {
+                        return null;
                     }
+                });
 
-                    const json = await response.json();
+                const batchResponses = await Promise.all(batchPromises);
 
-                    // Save to cache if successful
-                    if (json.success && json.data) {
-                        let data = [];
-                        if (Array.isArray(json.data)) {
-                            data = json.data;
-                        } else if (json.data.items) {
-                            data = json.data.items;
-                        }
-                        cityCache.set(code, { data, timestamp: now });
-                        return data;
+                for (const data of batchResponses) {
+                    if (data === null || data.length === 0) {
+                        hasReachedEnd = true;
+                        break;
                     }
-                    return [];
-                })
-            );
+                    results.push(...data);
 
-            fetchResults.forEach((result) => {
-                if (result.status === 'fulfilled') {
-                    allCities.push(...result.value);
+                    // Jika data kurang dari 100, berarti habis (backend limit 100)
+                    if (data.length < 100) {
+                        hasReachedEnd = true;
+                        break;
+                    }
                 }
-            });
+
+                if (hasReachedEnd) break;
+                startPage += pageBatchSize;
+            }
+            return results;
+        };
+
+        if (stateId) {
+            const data = await fetchAllPages(`${API_BASE}/api/v1/Cities/state/${stateId}`);
+            allCities.push(...data);
+        } else if (countryId) {
+            const data = await fetchAllPages(`${API_BASE}/api/v1/Cities/country/${countryId}`);
+            allCities.push(...data);
+        } else if (codes) {
+            const countryCodes = codes.split(",");
+
+            // Proses per batch kecil (misal 5 negara sekaligus) agar tidak meledak
+            const countryBatchSize = 5;
+            for (let i = 0; i < countryCodes.length; i += countryBatchSize) {
+                const currentBatch = countryCodes.slice(i, i + countryBatchSize);
+                const batchResults = await Promise.all(
+                    currentBatch.map((code: string) => fetchAllPages(`${API_BASE}/api/v1/Cities/country-code/${code}`))
+                );
+                batchResults.forEach(data => allCities.push(...data));
+            }
+        }
+
+        // Remove duplicates if any
+        const uniqueCities = Array.from(new Map(allCities.map(item => [item.id, item])).values());
+
+        // Save to cache for next time
+        if (uniqueCities.length > 0) {
+            cityCache.set(cacheKey, { data: uniqueCities, timestamp: Date.now() });
         }
 
         return NextResponse.json({
             success: true,
-            data: allCities,
-            count: allCities.length,
-            fromCache: codesToFetch.length === 0
+            data: uniqueCities,
+            count: uniqueCities.length,
+            cached: false
         });
 
     } catch (error) {
