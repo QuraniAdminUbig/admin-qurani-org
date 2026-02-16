@@ -294,7 +294,8 @@ export function CountriesManager() {
             filtered = filtered.filter(country => country.region === selectedRegion)
         }
 
-        return filtered
+        // Sort by ID (ascending)
+        return filtered.sort((a, b) => a.id - b.id)
     }, [countries, searchQuery, selectedRegion, searchResults])
 
     // Pagination calculations
@@ -592,6 +593,7 @@ export function CountriesManager() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                <TableHead className="w-20 text-white font-bold">ID</TableHead>
                                 <TableHead className="min-w-[200px] text-white font-bold">Country</TableHead>
                                 <TableHead className="w-24 text-white font-bold">Phone</TableHead>
                                 <TableHead className="w-32 text-white font-bold">Region</TableHead>
@@ -608,7 +610,12 @@ export function CountriesManager() {
                                     key={country.id}
                                     className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                 >
+                                    {/* ID Column */}
+                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                        #{country.id}
+                                    </TableCell>
 
+                                    {/* Country Column */}
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0 overflow-hidden">

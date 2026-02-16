@@ -374,7 +374,10 @@ export function StatesManager() {
             )
         }
 
-        return result
+        // Sort by ID (ascending) - create new array to avoid mutation
+        const sorted = [...result].sort((a, b) => a.id - b.id)
+        console.log('🔢 States sorted by ID:', sorted.slice(0, 5).map(s => ({ id: s.id, name: s.name })))
+        return sorted
     }, [enrichedStates, selectedType, searchQuery, searchResults, countries])
 
     // Paginated states
@@ -644,6 +647,7 @@ export function StatesManager() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                    <TableHead className="w-20 text-white font-bold">ID</TableHead>
                                     <TableHead className="min-w-[200px] text-white font-bold">State Name</TableHead>
                                     <TableHead className="w-[180px] text-white font-bold">Country</TableHead>
                                     <TableHead className="w-32 text-white font-bold">Type</TableHead>
@@ -658,7 +662,12 @@ export function StatesManager() {
                                         key={state.id}
                                         className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                     >
+                                        {/* ID Column */}
+                                        <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                            #{state.id}
+                                        </TableCell>
 
+                                        {/* State Name Column */}
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">

@@ -372,7 +372,8 @@ export function CitiesManager() {
 
         // Case 1: No search query - return all cities (which are already filtered geographically by fetchCities)
         if (query.length < 2) {
-            return cities
+            // Sort by ID (ascending)
+            return [...cities].sort((a, b) => a.id - b.id)
         }
 
         // Case 2: User is searching. First, get matches from our locally loaded cities pool
@@ -396,11 +397,13 @@ export function CitiesManager() {
                 }
             })
 
-            return merged
+            // Sort by ID (ascending)
+            return merged.sort((a, b) => a.id - b.id)
         }
 
         // Case 4: API search is still loading (searchResults is null), show local matches as placeholder
-        return localMatches
+        // Sort by ID (ascending)
+        return localMatches.sort((a, b) => a.id - b.id)
     }, [cities, searchQuery, searchResults])
 
     const totalPages = Math.ceil(filteredCities.length / itemsPerPage)
@@ -850,6 +853,7 @@ export function CitiesManager() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                <TableHead className="w-20 text-white font-bold">ID</TableHead>
                                 <TableHead className="min-w-[200px] text-white font-bold">City Name</TableHead>
                                 <TableHead className="w-[150px] text-white font-bold">State/Province</TableHead>
                                 <TableHead className="w-[150px] text-white font-bold">Country</TableHead>
@@ -863,7 +867,12 @@ export function CitiesManager() {
                                     key={city.id}
                                     className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                 >
+                                    {/* ID Column */}
+                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                        #{city.id}
+                                    </TableCell>
 
+                                    {/* City Name Column */}
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">

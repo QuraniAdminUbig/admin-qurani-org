@@ -100,16 +100,21 @@ export function CurrenciesManager() {
         }
     }, [fetchCurrencies])
 
-    // Filter currencies by search
+    // Filter currencies by search and sort by ID
     const filteredCurrencies = useMemo(() => {
-        if (!searchQuery.trim()) return currencies
+        let filtered = currencies
 
-        const q = searchQuery.toLowerCase()
-        return currencies.filter(currency =>
-            currency.name.toLowerCase().includes(q) ||
-            currency.code.toLowerCase().includes(q) ||
-            currency.symbol?.toLowerCase().includes(q)
-        )
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase()
+            filtered = currencies.filter(currency =>
+                currency.name.toLowerCase().includes(q) ||
+                currency.code.toLowerCase().includes(q) ||
+                currency.symbol?.toLowerCase().includes(q)
+            )
+        }
+
+        // Sort by ID (ascending)
+        return [...filtered].sort((a, b) => a.id - b.id)
     }, [currencies, searchQuery])
 
     // Pagination
@@ -224,6 +229,7 @@ export function CurrenciesManager() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                <TableHead className="w-20 text-white font-bold">ID</TableHead>
                                 <TableHead className="min-w-[200px] text-white font-bold">Name</TableHead>
                                 <TableHead className="w-[120px] text-white font-bold">Symbol</TableHead>
                                 <TableHead className="w-[100px] text-white font-bold">Code</TableHead>
@@ -237,6 +243,12 @@ export function CurrenciesManager() {
                                     key={currency.id}
                                     className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                 >
+                                    {/* ID Column */}
+                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                        #{currency.id}
+                                    </TableCell>
+
+                                    {/* Name Column */}
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">

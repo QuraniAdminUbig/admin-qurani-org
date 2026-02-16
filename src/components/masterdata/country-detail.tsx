@@ -52,6 +52,7 @@ export function CountryDetail({ id }: CountryDetailProps) {
     const [country, setCountry] = useState<CountryData | null>(null)
     const [states, setStates] = useState<StateData[]>([])
     const [cities, setCities] = useState<CityData[]>([])
+    const [currencyId, setCurrencyId] = useState<number | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isLoadingStates, setIsLoadingStates] = useState(false)
     const [isLoadingCities, setIsLoadingCities] = useState(false)
@@ -190,6 +191,39 @@ export function CountryDetail({ id }: CountryDetailProps) {
         }
     }, [country?.id])
 
+    // Fetch currency ID when country is loaded
+    useEffect(() => {
+        const fetchCurrencyId = async () => {
+            if (!country?.currency) return
+
+            try {
+                // Try to find currency by code (e.g. "AFN", "USD")
+                const response = await masterdataApi.currencies.getByCode(country.currency)
+                if (response.success && response.data) {
+                    setCurrencyId(response.data.id)
+                } else {
+                    // Fallback: search by name/code if specific endpoint fails or returns no data
+                    const searchResponse = await masterdataApi.currencies.search(country.currency)
+                    if (searchResponse.success && Array.isArray(searchResponse.data) && searchResponse.data.length > 0) {
+                        // Find exact match if possible
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const match = searchResponse.data.find((c: any) => c.code === country.currency)
+                        if (match) {
+                            setCurrencyId(match.id)
+                        } else {
+                            // Or use first result
+                            setCurrencyId(searchResponse.data[0].id)
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching currency info:", err)
+            }
+        }
+
+        fetchCurrencyId()
+    }, [country?.currency])
+
     // Filter and paginate states
     const filteredStates = useMemo(() => {
         if (!statesSearchQuery.trim()) return states
@@ -311,13 +345,23 @@ export function CountryDetail({ id }: CountryDetailProps) {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                <div
+                    className={`bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4 ${currencyId ? "cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors" : ""}`}
+                    onClick={() => currencyId && router.push(`/master/currencies/${currencyId}`)}
+                >
                     <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
                         <DollarSign className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Currency</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{country.currency || "N/A"}</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">
+                            {country.currency || "N/A"}
+                        </p>
+                        {country.currencyName && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
+                                {country.currencyName}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
