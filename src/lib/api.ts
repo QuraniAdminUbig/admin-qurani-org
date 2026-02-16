@@ -1185,6 +1185,45 @@ export interface TimezoneData {
     offset?: string;
 }
 
+export interface CurrencyData {
+    id: number;
+    name: string;
+    code: string;
+    majorSymbol?: string;
+    decimalPlaces?: number;
+    nativeName?: string;
+    symbol?: string; // keeping for backward compatibility if any
+    symbolNative?: string; // keeping for backward compatibility if any
+    decimalDigits?: number; // keeping for backward compatibility if any
+    rounding?: number;
+    namePlural?: string;
+    type?: string;
+    countriesCount?: number;
+}
+
+export interface CurrencyRequest {
+    name: string;
+    code: string;
+    symbol?: string | null;
+    symbolNative?: string | null;
+    decimalDigits?: number | null;
+    rounding?: number | null;
+    namePlural?: string | null;
+    type?: string | null;
+}
+
+export interface CurrencyApiResponse {
+    success: boolean;
+    message?: string;
+    data: CurrencyData;
+}
+
+export interface CurrenciesApiResponse {
+    success: boolean;
+    message?: string;
+    data: CurrencyData[];
+}
+
 export const masterdataApi = {
     // ========== Countries ==========
     countries: {
@@ -1480,9 +1519,79 @@ export const masterdataApi = {
 
     // ========== Currencies ==========
     currencies: {
-        // Get all currencies
-        getAll: (token?: string) =>
-            apiRequest<any[]>('/api/v1/Currencies', { token }),
+        // Get all currencies (paginated)
+        getAll: (params?: { page?: number; pageSize?: number }, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            if (params?.page) searchParams.append('page', params.page.toString());
+            if (params?.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+            const queryString = searchParams.toString();
+            return apiRequest<CurrenciesApiResponse>(
+                `/api/v1/Currencies${queryString ? `?${queryString}` : ''}`,
+                { token, signal }
+            );
+        },
+
+        // Get active currencies only
+        getActive: (token?: string, signal?: AbortSignal) =>
+            apiRequest<CurrenciesApiResponse>('/api/v1/Currencies/active', { token, signal }),
+
+        // Get currency by ID
+        getById: (id: number | string, token?: string, signal?: AbortSignal) =>
+            apiRequest<CurrencyApiResponse>(`/api/v1/Currencies/${id}`, { token, signal }),
+
+        // Get currency by code (e.g., USD, EUR, IDR)
+        getByCode: (code: string, token?: string, signal?: AbortSignal) =>
+            apiRequest<CurrencyApiResponse>(`/api/v1/Currencies/code/${code}`, { token, signal }),
+
+        // Get currency by type
+        getByType: (type: string, token?: string, signal?: AbortSignal) =>
+            apiRequest<CurrenciesApiResponse>(`/api/v1/Currencies/type/${type}`, { token, signal }),
+
+        // Search currencies by name or code
+        search: (query: string, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            if (query) searchParams.append('q', query);
+            const queryString = searchParams.toString();
+            return apiRequest<CurrenciesApiResponse>(
+                `/api/v1/Currencies/search${queryString ? `?${queryString}` : ''}`,
+                { token, signal }
+            );
+        },
+
+        // Search currencies with cursor-based pagination
+        searchWithCursor: (params: { cursor?: string; limit?: number; query?: string }, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            if (params.cursor) searchParams.append('cursor', params.cursor);
+            if (params.limit) searchParams.append('limit', params.limit.toString());
+            if (params.query) searchParams.append('q', params.query);
+            return apiRequest<CurrenciesApiResponse>(
+                `/api/v1/Currencies/search/cursor?${searchParams.toString()}`,
+                { token, signal }
+            );
+        },
+
+        // Create a new currency (Admin only)
+        create: (data: CurrencyRequest, token?: string) =>
+            apiRequest<CurrencyApiResponse>('/api/v1/Currencies', {
+                method: 'POST',
+                body: data,
+                token
+            }),
+
+        // Update a currency (Admin only)
+        update: (id: number | string, data: CurrencyRequest, token?: string) =>
+            apiRequest<CurrencyApiResponse>(`/api/v1/Currencies/${id}`, {
+                method: 'PUT',
+                body: data,
+                token
+            }),
+
+        // Delete a currency (Admin only)
+        delete: (id: number | string, token?: string) =>
+            apiRequest<{ success: boolean; message: string }>(`/api/v1/Currencies/${id}`, {
+                method: 'DELETE',
+                token
+            }),
     },
 
     // ========== Search ==========

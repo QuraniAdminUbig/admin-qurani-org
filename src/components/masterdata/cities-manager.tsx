@@ -854,15 +854,14 @@ export function CitiesManager() {
                                 <TableHead className="w-[150px] text-white font-bold">State/Province</TableHead>
                                 <TableHead className="w-[150px] text-white font-bold">Country</TableHead>
                                 <TableHead className="w-40 text-white font-bold">Coordinates</TableHead>
-                                <TableHead className="w-12 text-white font-bold"></TableHead>
+                                <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {displayedCities.map((city) => (
                                 <TableRow
                                     key={city.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
-                                    onClick={() => router.push(`/master/cities/${city.id}`)}
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                 >
 
                                     <TableCell>
@@ -891,36 +890,15 @@ export function CitiesManager() {
                                             <span className="text-gray-400 text-xs">-</span>
                                         )}
                                     </TableCell>
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => router.push(`/master/cities/${city.id}`)}>
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    View Detail
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleEditClick(city)}>
-                                                    <Pencil className="w-4 h-4 mr-2" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDeleteClick(city.id, city.name)}
-                                                    className="text-red-600 dark:text-red-400"
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                    <TableCell className="text-right">
+                                        <Button
+                                            size="sm"
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            onClick={() => router.push(`/master/cities/${city.id}`)}
+                                        >
+                                            <Eye className="w-4 h-4 mr-1" />
+                                            View
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

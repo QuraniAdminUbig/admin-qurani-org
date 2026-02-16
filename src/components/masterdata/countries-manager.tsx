@@ -71,7 +71,8 @@ import {
     Loader2,
     RefreshCw,
     AlertCircle,
-    MoreHorizontal
+    MoreHorizontal,
+    Eye
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
@@ -592,21 +593,20 @@ export function CountriesManager() {
                         <TableHeader>
                             <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
                                 <TableHead className="min-w-[200px] text-white font-bold">Country</TableHead>
-                                <TableHead className="w-20 text-white font-bold">ISO2</TableHead>
-                                <TableHead className="w-20 text-white font-bold">ISO3</TableHead>
                                 <TableHead className="w-24 text-white font-bold">Phone</TableHead>
                                 <TableHead className="w-32 text-white font-bold">Region</TableHead>
                                 <TableHead className="w-24 text-center text-white font-bold">States</TableHead>
                                 <TableHead className="w-24 text-center text-white font-bold">Cities</TableHead>
-                                <TableHead className="w-12 text-white font-bold"></TableHead>
+                                <TableHead className="w-20 text-white font-bold">ISO2</TableHead>
+                                <TableHead className="w-20 text-white font-bold">ISO3</TableHead>
+                                <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {displayedCountries.map((country) => (
                                 <TableRow
                                     key={country.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
-                                    onClick={() => router.push(`/master/countries/${country.id}`)}
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                 >
 
                                     <TableCell>
@@ -631,12 +631,6 @@ export function CountriesManager() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-sm text-gray-900 dark:text-white">
-                                        {country.iso2 || "-"}
-                                    </TableCell>
-                                    <TableCell className="text-sm text-gray-900 dark:text-white">
-                                        {country.iso3 || "-"}
-                                    </TableCell>
-                                    <TableCell className="text-sm text-gray-900 dark:text-white">
                                         {country.phoneCode ? `+${country.phoneCode}` : "-"}
                                     </TableCell>
                                     <TableCell>
@@ -656,31 +650,21 @@ export function CountriesManager() {
                                             {country.citiesCount || 0}
                                         </span>
                                     </TableCell>
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEditClick(country)}>
-                                                    <Pencil className="w-4 h-4 mr-2" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDeleteClick('country', country.id, country.name)}
-                                                    className="text-red-600 dark:text-red-400"
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                    <TableCell className="text-sm text-gray-900 dark:text-white">
+                                        {country.iso2 || "-"}
+                                    </TableCell>
+                                    <TableCell className="text-sm text-gray-900 dark:text-white">
+                                        {country.iso3 || "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button
+                                            size="sm"
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            onClick={() => router.push(`/master/countries/${country.id}`)}
+                                        >
+                                            <Eye className="w-4 h-4 mr-1" />
+                                            View
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

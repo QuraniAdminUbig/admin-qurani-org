@@ -644,20 +644,19 @@ export function StatesManager() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
-                                    <TableHead className="min-w-[200px] text-white font-bold">State/Province</TableHead>
+                                    <TableHead className="min-w-[200px] text-white font-bold">State Name</TableHead>
                                     <TableHead className="w-[180px] text-white font-bold">Country</TableHead>
                                     <TableHead className="w-32 text-white font-bold">Type</TableHead>
-                                    <TableHead className="w-24 text-white font-bold">Code</TableHead>
                                     <TableHead className="w-24 text-center text-white font-bold">Cities</TableHead>
-                                    <TableHead className="w-12 text-white font-bold"></TableHead>
+                                    <TableHead className="w-24 text-white font-bold">ISO Code</TableHead>
+                                    <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {paginatedStates.map((state) => (
                                     <TableRow
                                         key={state.id}
-                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
-                                        onClick={() => router.push(`/master/states/${state.id}`)}
+                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
                                     >
 
                                         <TableCell>
@@ -683,45 +682,24 @@ export function StatesManager() {
                                                 {state.type || "State"}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="text-sm text-gray-900 dark:text-white">
-                                            {state.iso2 || state.countryCode || "-"}
-                                        </TableCell>
                                         <TableCell className="text-center">
                                             <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
                                                 <Building2 className="w-3.5 h-3.5" />
                                                 {state.citiesCount || 0}
                                             </span>
                                         </TableCell>
-                                        <TableCell onClick={(e) => e.stopPropagation()}>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => router.push(`/master/states/${state.id}`)}>
-                                                        <Eye className="w-4 h-4 mr-2" />
-                                                        View Detail
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleOpenEditModal(state)}>
-                                                        <Pencil className="w-4 h-4 mr-2" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleOpenDeleteDialog(state)}
-                                                        className="text-red-600 dark:text-red-400"
-                                                    >
-                                                        <Trash2 className="w-4 h-4 mr-2" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                        <TableCell className="text-sm text-gray-900 dark:text-white">
+                                            {state.iso2 || state.countryCode || "-"}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                size="sm"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                onClick={() => router.push(`/master/states/${state.id}`)}
+                                            >
+                                                <Eye className="w-4 h-4 mr-1" />
+                                                View
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}

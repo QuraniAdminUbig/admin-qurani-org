@@ -138,6 +138,11 @@ const getSidebarData = (
           icon: Database,
         },
         {
+          title: t("navigation.currencies", "Currencies"),
+          url: "/master/currencies",
+          icon: Database,
+        },
+        {
           title: t("navigation.manage_categories", "Group Categories"),
           url: "/groups/categories",
           icon: Tags,
