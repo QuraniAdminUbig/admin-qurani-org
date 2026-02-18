@@ -1224,6 +1224,38 @@ export interface CurrenciesApiResponse {
     data: CurrencyData[];
 }
 
+export interface LanguageData {
+    id: string;                    // e.g. "en", "ar"
+    iso639_2?: string | null;
+    iso639_3?: string | null;
+    name: string;
+    nativeName?: string | null;
+    script?: string | null;
+    scriptCode?: string | null;
+    direction: string;             // "ltr" | "rtl"
+    family?: string | null;
+    speakers?: number | null;
+    primaryCountry?: string | null;
+    countries?: string | null;
+    isActive?: number;
+    isDefault?: number;
+    flagEmoji?: string | null;
+    displayOrder?: number;
+}
+
+export interface LanguagesApiResponse {
+    success: boolean;
+    message?: string;
+    data: LanguageData[];
+}
+
+export interface LanguageApiResponse {
+    success: boolean;
+    message?: string;
+    data: LanguageData;
+}
+
+
 export const masterdataApi = {
     // ========== Countries ==========
     countries: {
@@ -1512,9 +1544,30 @@ export const masterdataApi = {
 
     // ========== Languages ==========
     languages: {
-        // Get all languages
-        getAll: (token?: string) =>
-            apiRequest<any[]>('/api/v1/Languages', { token }),
+        // Get all languages (cached for 24 hours)
+        getAll: (token?: string, signal?: AbortSignal) =>
+            apiRequest<LanguagesApiResponse>('/api/v1/Languages', { token, signal }),
+
+        // Get active languages only (cached)
+        getActive: (token?: string, signal?: AbortSignal) =>
+            apiRequest<LanguagesApiResponse>('/api/v1/Languages/active', { token, signal }),
+
+        // Get language by ID
+        getById: (id: string, token?: string, signal?: AbortSignal) =>
+            apiRequest<LanguageApiResponse>(`/api/v1/Languages/${id}`, { token, signal }),
+
+        // Search languages by name with offset pagination
+        search: (params: { q?: string; page?: number; pageSize?: number }, token?: string, signal?: AbortSignal) => {
+            const searchParams = new URLSearchParams();
+            if (params.q) searchParams.append('q', params.q);
+            if (params.page) searchParams.append('page', params.page.toString());
+            if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+            const qs = searchParams.toString();
+            return apiRequest<LanguagesApiResponse>(
+                `/api/v1/Languages/search${qs ? `?${qs}` : ''}`,
+                { token, signal }
+            );
+        },
     },
 
     // ========== Currencies ==========
