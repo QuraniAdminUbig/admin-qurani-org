@@ -93,17 +93,32 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
                         )
 
                         // Filter countries that use this currency
-                        // Try multiple matching strategies
-                        const filtered = countriesResponse.data.filter((c: CountryData) => {
-                            const currencyCode = currencyData?.code?.toUpperCase()
-                            const currencyName = currencyData?.name?.toLowerCase()
 
-                            return (
-                                c.currency?.toUpperCase() === currencyCode ||
-                                c.currencyName?.toLowerCase() === currencyName ||
-                                c.currencyName?.toLowerCase().includes(currencyName || '') ||
-                                c.currency?.toLowerCase() === currencyName
-                            )
+                        // Filter countries that use this currency
+                        console.log('🎯 Target Currency:', { code: currencyData.code, name: currencyData.name })
+
+                        const filtered = countriesResponse.data.filter((c: CountryData) => {
+                            if (!currencyData) return false
+
+                            const targetCode = currencyData.code?.trim().toUpperCase()
+                            const targetName = currencyData.name?.trim().toLowerCase()
+
+                            const cCode = c.currency?.trim().toUpperCase()
+                            const cName = c.currencyName?.trim().toLowerCase()
+
+                            // 1. Strict Code Match
+                            if (targetCode && cCode === targetCode) return true
+
+                            // 2. Strict Name Match
+                            if (targetName && cName === targetName) return true
+
+                            // 3. Name Contains Match
+                            if (targetName && cName && cName.includes(targetName)) return true
+
+                            // 4. Code in Name Match
+                            if (targetCode && targetCode.length >= 3 && cName && cName.includes(targetCode.toLowerCase())) return true
+
+                            return false
                         })
 
                         console.log('✅ Filtered Countries:', filtered.length, filtered.map(c => c.name))
@@ -290,6 +305,7 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
                                 <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
                                     <TableHead className="min-w-[200px] text-white font-bold">Country Name</TableHead>
                                     <TableHead className="w-[150px] text-white font-bold">ISO Codes</TableHead>
+                                    <TableHead className="w-[150px] text-white font-bold">Currency</TableHead>
                                     <TableHead className="w-[150px] text-white font-bold">Region</TableHead>
                                     <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
                                 </TableRow>
@@ -313,6 +329,12 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
                                             <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
                                                 {country.iso2} / {country.iso3}
                                             </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-900 dark:text-white">{country.currency || "-"}</span>
+                                                <span className="text-xs text-gray-500">{country.currencyName || "-"}</span>
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-gray-600 dark:text-gray-400">
                                             {country.region || "—"}

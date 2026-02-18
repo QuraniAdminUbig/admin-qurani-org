@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import { masterdataApi, CurrencyData } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -144,15 +145,34 @@ export function CurrenciesManager() {
         setCurrentPage(1)
     }, [searchQuery])
 
-    // Loading state
+    // Loading state (Skeleton)
     if (isLoading) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                        <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
-                        <p className="text-gray-600 dark:text-gray-400">Loading currencies...</p>
+                {/* Header Skeleton */}
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                    <Skeleton className="h-8 w-40" />
+                    <Skeleton className="h-10 w-32" />
+                </div>
+
+                {/* Search Bar Skeleton */}
+                <div className="flex gap-2 sm:gap-3 items-center mb-6">
+                    <Skeleton className="h-10 flex-1" />
+                </div>
+
+                {/* Table Skeleton */}
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                    <div className="h-12 bg-emerald-600/10 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
+                        <Skeleton className="h-4 w-full" />
                     </div>
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center px-4 gap-4">
+                            <Skeleton className="h-4 w-12" />
+                            <Skeleton className="h-4 w-48" />
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 flex-1" />
+                        </div>
+                    ))}
                 </div>
             </div>
         )

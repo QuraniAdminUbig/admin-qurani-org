@@ -6,6 +6,7 @@ import { useI18n } from "@/components/providers/i18n-provider"
 import { masterdataApi, StateData, StateRequest, CountryData, CountriesApiResponse } from "@/lib/api"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     Plus,
     Pencil,
@@ -617,9 +618,19 @@ export function StatesManager() {
 
             {/* Loading State */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-                    <span className="ml-3 text-gray-600 dark:text-gray-400">Loading states...</span>
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="h-12 bg-emerald-600/10 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
+                        <Skeleton className="h-4 w-full" />
+                    </div>
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="h-16 border-b border-gray-100 dark:border-gray-800 flex items-center px-4 gap-4">
+                            <Skeleton className="h-4 w-12" />
+                            <Skeleton className="h-4 w-48" />
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 flex-1" />
+                        </div>
+                    ))}
                 </div>
             ) : filteredStates.length === 0 ? (
                 <div className="text-center py-12">

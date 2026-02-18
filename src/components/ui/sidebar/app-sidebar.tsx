@@ -19,6 +19,7 @@ import {
   UserCheck,
   Bell,
   LucideIcon,
+  Languages,
 } from "lucide-react"
 import { RxDashboard, } from "react-icons/rx"
 import { MdAnnouncement } from "react-icons/md"
@@ -141,6 +142,11 @@ const getSidebarData = (
           title: t("navigation.currencies", "Currencies"),
           url: "/master/currencies",
           icon: Database,
+        },
+        {
+          title: t("navigation.languages", "Languages"),
+          url: "/master/languages",
+          icon: Languages,
         },
         {
           title: t("navigation.manage_categories", "Group Categories"),
