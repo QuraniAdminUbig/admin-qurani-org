@@ -4,6 +4,14 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import {
     Table,
     TableBody,
@@ -22,17 +30,20 @@ import {
 } from "@/components/ui/pagination"
 import {
     Plus,
+    Filter,
     Search,
     Loader2,
     DollarSign,
     Eye,
     AlertCircle,
     RotateCcw,
+    Pencil,
+    Trash2,
 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
-import { masterdataApi, CurrencyData } from "@/lib/api"
+import { masterdataApi, CurrencyData, CurrencyRequest } from "@/lib/api"
 import { toast } from "sonner"
 
 export function CurrenciesManager() {
@@ -52,6 +63,85 @@ export function CurrenciesManager() {
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 15
+
+    // Filter state (applied)
+    const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
+    const [filterType, setFilterType] = useState<string>("all")
+
+    // Filter modal state (temp / pending)
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+    const [tempFilterStatus, setTempFilterStatus] = useState<"all" | "active" | "inactive">("all")
+    const [tempFilterType, setTempFilterType] = useState<string>("all")
+
+    const handleOpenFilter = () => {
+        setTempFilterStatus(filterStatus)
+        setTempFilterType(filterType)
+        setIsFilterModalOpen(true)
+    }
+
+    const handleSaveFilter = () => {
+        setFilterStatus(tempFilterStatus)
+        setFilterType(tempFilterType)
+        setCurrentPage(1)
+        setIsFilterModalOpen(false)
+    }
+
+    const handleCancelFilter = () => {
+        setTempFilterStatus(filterStatus)
+        setTempFilterType(filterType)
+        setIsFilterModalOpen(false)
+    }
+
+    const isFilterActive = filterStatus !== "all" || filterType !== "all"
+
+    // Create modal state
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [formData, setFormData] = useState<Partial<CurrencyRequest>>({
+        name: "",
+        code: "",
+        symbol: "",
+        symbolNative: "",
+        decimalDigits: 2,
+        namePlural: "",
+        type: "",
+    })
+
+    const resetForm = () => setFormData({
+        name: "",
+        code: "",
+        symbol: "",
+        symbolNative: "",
+        decimalDigits: 2,
+        namePlural: "",
+        type: "",
+    })
+
+    // Create currency handler
+    const handleCreateCurrency = async () => {
+        if (!formData.name?.trim() || !formData.code?.trim()) {
+            toast.error("Name and Code are required")
+            return
+        }
+        if (isSubmitting) return // prevent duplicate
+        setIsSubmitting(true)
+        try {
+            const response = await masterdataApi.currencies.create(formData as CurrencyRequest)
+            if (response.success || response.data) {
+                await fetchCurrencies()
+                setIsCreateModalOpen(false)
+                resetForm()
+                toast.success("Currency created successfully")
+            } else {
+                toast.error("Failed to create currency")
+            }
+        } catch (err) {
+            console.error("Error creating currency:", err)
+            toast.error(err instanceof Error ? err.message : "Failed to create currency")
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     // Fetch currencies
     const fetchCurrencies = useCallback(async () => {
@@ -101,22 +191,44 @@ export function CurrenciesManager() {
         }
     }, [fetchCurrencies])
 
-    // Filter currencies by search and sort by ID
+    // Filter currencies by search + filters, sort by ID
     const filteredCurrencies = useMemo(() => {
         let filtered = currencies
 
+        // Search
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase()
-            filtered = currencies.filter(currency =>
+            filtered = filtered.filter(currency =>
                 currency.name.toLowerCase().includes(q) ||
                 currency.code.toLowerCase().includes(q) ||
                 currency.symbol?.toLowerCase().includes(q)
             )
         }
 
+        // Status filter
+        if (filterStatus === "active") {
+            filtered = filtered.filter(c => (c as any).isActive === 1 || (c as any).isActive === true)
+        } else if (filterStatus === "inactive") {
+            filtered = filtered.filter(c => (c as any).isActive !== 1 && (c as any).isActive !== true)
+        }
+
+        // Type filter
+        if (filterType !== "all") {
+            filtered = filtered.filter(c => (c as any).type?.toLowerCase() === filterType.toLowerCase())
+        }
+
         // Sort by ID (ascending)
         return [...filtered].sort((a, b) => a.id - b.id)
-    }, [currencies, searchQuery])
+    }, [currencies, searchQuery, filterStatus, filterType])
+
+    // Derive unique types from data
+    const availableTypes = useMemo(() => {
+        const types = new Set<string>()
+        currencies.forEach(c => {
+            if ((c as any).type) types.add((c as any).type)
+        })
+        return Array.from(types).sort()
+    }, [currencies])
 
     // Pagination
     const totalPages = Math.ceil(filteredCurrencies.length / itemsPerPage)
@@ -195,190 +307,413 @@ export function CurrenciesManager() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Currencies
-                    </h1>
-                </div>
-                <Button
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => toast.info("Add Currency feature coming soon")}
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create
-                </Button>
-            </div>
-
-            {/* Search Bar */}
-            <div className="flex gap-2 sm:gap-3 items-center mb-6">
-                <div className="relative flex-1 flex">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                            placeholder="Search by name, code, or symbol..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={handleSearchKeyDown}
-                            className="pl-9 pr-4 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
-                        />
+        <>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            Currencies
+                        </h1>
                     </div>
                     <Button
-                        onClick={handleSearch}
-                        variant="ghost"
-                        className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => { resetForm(); setIsCreateModalOpen(true) }}
                     >
-                        <Search className="w-4 h-4" />
-                        Search
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create
                     </Button>
                 </div>
-            </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                {filteredCurrencies.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
-                        <p className="text-gray-500">
-                            {searchQuery ? "No currencies match your search." : "No currencies found."}
-                        </p>
+                {/* Search Bar */}
+                <div className="flex gap-2 sm:gap-3 items-center mb-6">
+                    <div className="relative flex-1 flex">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                                placeholder="Search by name, code, or symbol..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                className="pl-9 pr-4 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
+                            />
+                        </div>
+                        <Button
+                            onClick={handleSearch}
+                            variant="ghost"
+                            className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                        >
+                            <Search className="w-4 h-4" />
+                            Search
+                        </Button>
                     </div>
-                ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
-                                <TableHead className="w-20 text-white font-bold">ID</TableHead>
-                                <TableHead className="min-w-[200px] text-white font-bold">Name</TableHead>
-                                <TableHead className="w-[120px] text-white font-bold">Symbol</TableHead>
-                                <TableHead className="w-[100px] text-white font-bold">Code</TableHead>
-                                <TableHead className="w-[100px] text-white font-bold">Decimals</TableHead>
-                                <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {displayedCurrencies.map((currency) => (
-                                <TableRow
-                                    key={currency.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                                >
-                                    {/* ID Column */}
-                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
-                                        #{currency.id}
-                                    </TableCell>
 
-                                    {/* Name Column */}
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
-                                                {currency.majorSymbol || currency.code.substring(0, 1)}
-                                            </div>
-                                            <span className="font-medium text-gray-900 dark:text-white">
-                                                {currency.name}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-gray-600 dark:text-gray-400">
-                                        {currency.majorSymbol || "—"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                            {currency.code}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-gray-600 dark:text-gray-400">
-                                        {currency.decimalPlaces ?? 2}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            size="sm"
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                            onClick={() => router.push(`/master/currencies/${currency.id}`)}
-                                        >
-                                            <Eye className="w-4 h-4 mr-1" />
-                                            View
-                                        </Button>
-                                    </TableCell>
+                    {/* Filter Button */}
+                    <Button
+                        variant="outline"
+                        onClick={handleOpenFilter}
+                        className={cn(
+                            "flex items-center gap-2 shrink-0 h-10",
+                            isFilterActive
+                                ? "border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
+                                : "border-gray-200 dark:border-gray-700"
+                        )}
+                    >
+                        <Filter className="w-4 h-4" />
+                        <span className="hidden sm:inline">
+                            {isFilterActive ? "Filtered" : "Filter"}
+                        </span>
+                    </Button>
+                </div>
+
+                {/* Table */}
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                    {filteredCurrencies.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
+                            <p className="text-gray-500">
+                                {searchQuery || isFilterActive ? "No currencies match your search/filter." : "No currencies found."}
+                            </p>
+                            {isFilterActive && (
+                                <Button variant="outline" size="sm" className="mt-3" onClick={() => { setFilterStatus("all"); setFilterType("all") }}>
+                                    Clear Filters
+                                </Button>
+                            )}
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                    <TableHead className="w-20 text-white font-bold">ID</TableHead>
+                                    <TableHead className="min-w-[200px] text-white font-bold">Name</TableHead>
+                                    <TableHead className="w-[120px] text-white font-bold">Symbol</TableHead>
+                                    <TableHead className="w-[100px] text-white font-bold">Code</TableHead>
+                                    <TableHead className="w-[100px] text-white font-bold">Decimals</TableHead>
+                                    <TableHead className="w-[120px] text-center text-white font-bold">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {displayedCurrencies.map((currency) => (
+                                    <TableRow
+                                        key={currency.id}
+                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                        onClick={() => router.push(`/master/currencies/${currency.id}`)}
+                                    >
+                                        {/* ID Column */}
+                                        <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                            #{currency.id}
+                                        </TableCell>
+
+                                        {/* Name Column */}
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
+                                                    {currency.majorSymbol || currency.code.substring(0, 1)}
+                                                </div>
+                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                    {currency.name}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-gray-600 dark:text-gray-400">
+                                            {currency.majorSymbol || "—"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                {currency.code}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-gray-600 dark:text-gray-400">
+                                            {currency.decimalPlaces ?? 2}
+                                        </TableCell>
+                                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                            <div className="inline-flex items-center rounded overflow-hidden border border-emerald-600 text-[11px] h-6">
+                                                <button
+                                                    className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); router.push(`/master/currencies/${currency.id}/edit`) }}
+                                                >
+                                                    <Pencil className="w-2.5 h-2.5" />
+                                                    Edit
+                                                </button>
+                                                <div className="w-px h-full bg-emerald-500" />
+                                                <button
+                                                    className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-red-600 text-white transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); /* TODO: delete */ }}
+                                                >
+                                                    <Trash2 className="w-2.5 h-2.5" />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+
+                {/* Pagination Controls */}
+                {filteredCurrencies.length > 0 && totalPages > 1 && (
+                    <div className="mt-10 flex justify-center">
+                        <Pagination>
+                            <PaginationContent className="gap-2">
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        size="lg"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            if (currentPage > 1) goToPage(currentPage - 1)
+                                        }}
+                                        className={cn(
+                                            "h-11 px-5 text-base",
+                                            currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                        )}
+                                    />
+                                </PaginationItem>
+
+                                {/* Page Numbers */}
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum: number
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i
+                                    } else {
+                                        pageNum = currentPage - 2 + i
+                                    }
+
+                                    return (
+                                        <PaginationItem key={pageNum}>
+                                            <PaginationLink
+                                                href="#"
+                                                size="icon"
+                                                onClick={(e) => {
+                                                    e.preventDefault()
+                                                    goToPage(pageNum)
+                                                }}
+                                                isActive={currentPage === pageNum}
+                                                className={cn(
+                                                    "h-11 w-11 text-base cursor-pointer",
+                                                    currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
+                                                )}
+                                            >
+                                                {pageNum}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    )
+                                })}
+
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        size="lg"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            if (currentPage < totalPages) goToPage(currentPage + 1)
+                                        }}
+                                        className={cn(
+                                            "h-11 px-5 text-base",
+                                            currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                                        )}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
                 )}
             </div>
 
-            {/* Pagination Controls */}
-            {filteredCurrencies.length > 0 && totalPages > 1 && (
-                <div className="mt-10 flex justify-center">
-                    <Pagination>
-                        <PaginationContent className="gap-2">
-                            <PaginationItem>
-                                <PaginationPrevious
-                                    href="#"
-                                    size="lg"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        if (currentPage > 1) goToPage(currentPage - 1)
-                                    }}
-                                    className={cn(
-                                        "h-11 px-5 text-base",
-                                        currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
-                                    )}
+            {/* Create Currency Dialog */}
+            <Dialog open={isCreateModalOpen} onOpenChange={(open) => { setIsCreateModalOpen(open); if (!open) resetForm() }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            Create New Currency
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        {/* Name */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="cur-name">Name <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="cur-name"
+                                placeholder="e.g. United States Dollar"
+                                value={formData.name ?? ""}
+                                onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                            />
+                        </div>
+
+                        {/* Code */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="cur-code">Code <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="cur-code"
+                                placeholder="e.g. USD"
+                                maxLength={10}
+                                value={formData.code ?? ""}
+                                onChange={(e) => setFormData(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                            />
+                        </div>
+
+                        {/* Symbol & Symbol Native */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="cur-symbol">Symbol</Label>
+                                <Input
+                                    id="cur-symbol"
+                                    placeholder="e.g. $"
+                                    value={formData.symbol ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, symbol: e.target.value }))}
                                 />
-                            </PaginationItem>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="cur-symbol-native">Native Symbol</Label>
+                                <Input
+                                    id="cur-symbol-native"
+                                    placeholder="e.g. $"
+                                    value={formData.symbolNative ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, symbolNative: e.target.value }))}
+                                />
+                            </div>
+                        </div>
 
-                            {/* Page Numbers */}
-                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                let pageNum: number
-                                if (totalPages <= 5) {
-                                    pageNum = i + 1
-                                } else if (currentPage <= 3) {
-                                    pageNum = i + 1
-                                } else if (currentPage >= totalPages - 2) {
-                                    pageNum = totalPages - 4 + i
-                                } else {
-                                    pageNum = currentPage - 2 + i
-                                }
+                        {/* Decimal Digits & Name Plural */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="cur-decimal">Decimal Digits</Label>
+                                <Input
+                                    id="cur-decimal"
+                                    type="number"
+                                    min={0}
+                                    max={10}
+                                    placeholder="2"
+                                    value={formData.decimalDigits ?? 2}
+                                    onChange={(e) => setFormData(p => ({ ...p, decimalDigits: Number(e.target.value) }))}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="cur-type">Type</Label>
+                                <Input
+                                    id="cur-type"
+                                    placeholder="e.g. fiat"
+                                    value={formData.type ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, type: e.target.value }))}
+                                />
+                            </div>
+                        </div>
 
-                                return (
-                                    <PaginationItem key={pageNum}>
-                                        <PaginationLink
-                                            href="#"
-                                            size="icon"
-                                            onClick={(e) => {
-                                                e.preventDefault()
-                                                goToPage(pageNum)
-                                            }}
-                                            isActive={currentPage === pageNum}
+                        {/* Name Plural */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="cur-plural">Name Plural</Label>
+                            <Input
+                                id="cur-plural"
+                                placeholder="e.g. US dollars"
+                                value={formData.namePlural ?? ""}
+                                onChange={(e) => setFormData(p => ({ ...p, namePlural: e.target.value }))}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => { setIsCreateModalOpen(false); resetForm() }}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={handleCreateCurrency}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                            ) : (
+                                <>Save</>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Filter Dialog */}
+            <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Filter className="w-4 h-4" />
+                            Filter Currencies
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-5 py-2">
+                        {/* Status */}
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {(["all", "active", "inactive"] as const).map((s) => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setTempFilterStatus(s)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
+                                            tempFilterStatus === s
+                                                ? "bg-emerald-600 text-white border-emerald-600"
+                                                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-400"
+                                        )}
+                                    >
+                                        {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Type */}
+                        {availableTypes.length > 0 && (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Type</Label>
+                                <div className="flex gap-2 flex-wrap">
+                                    <button
+                                        onClick={() => setTempFilterType("all")}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
+                                            tempFilterType === "all"
+                                                ? "bg-emerald-600 text-white border-emerald-600"
+                                                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-400"
+                                        )}
+                                    >
+                                        All
+                                    </button>
+                                    {availableTypes.map((type) => (
+                                        <button
+                                            key={type}
+                                            onClick={() => setTempFilterType(type)}
                                             className={cn(
-                                                "h-11 w-11 text-base cursor-pointer",
-                                                currentPage === pageNum && "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
+                                                "px-3 py-1.5 rounded-full text-sm font-medium border transition-all capitalize",
+                                                tempFilterType === type
+                                                    ? "bg-emerald-600 text-white border-emerald-600"
+                                                    : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-400"
                                             )}
                                         >
-                                            {pageNum}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                )
-                            })}
+                                            {type}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
-                            <PaginationItem>
-                                <PaginationNext
-                                    href="#"
-                                    size="lg"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        if (currentPage < totalPages) goToPage(currentPage + 1)
-                                    }}
-                                    className={cn(
-                                        "h-11 px-5 text-base",
-                                        currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
-                                    )}
-                                />
-                            </PaginationItem>
-                        </PaginationContent>
-                    </Pagination>
-                </div>
-            )}
-        </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={handleCancelFilter}>Cancel</Button>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSaveFilter}>Save</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }

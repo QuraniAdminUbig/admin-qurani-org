@@ -6,6 +6,7 @@ import { masterdataApi, CurrencyData, CountryData } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     Table,
     TableBody,
@@ -169,9 +170,53 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-4" />
-                <p className="text-gray-500">Loading currency details...</p>
+            <div className="space-y-6">
+                {/* Header Banner Skeleton */}
+                <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 shadow-sm p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-emerald-100 dark:bg-emerald-900/50" />
+                    <div className="flex-1 space-y-4 w-full">
+                        <Skeleton className="h-8 w-48 md:w-64 bg-emerald-100 dark:bg-emerald-900/50" />
+                        <Skeleton className="h-4 w-full max-w-lg bg-emerald-50 dark:bg-emerald-900/30" />
+                        <div className="flex gap-3 mt-2">
+                            <Skeleton className="h-6 w-20 rounded-full bg-emerald-50 dark:bg-emerald-900/30" />
+                            <Skeleton className="h-6 w-24 rounded-full bg-emerald-50 dark:bg-emerald-900/30" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats Cards Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                            <Skeleton className="w-12 h-12 rounded-full" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-3 w-16" />
+                                <Skeleton className="h-6 w-24" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Countries List Skeleton */}
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-10 w-full sm:w-64" />
+                    </div>
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="p-4 flex items-center gap-4">
+                                <Skeleton className="w-8 h-8 rounded-full" />
+                                <div className="space-y-1 flex-1">
+                                    <Skeleton className="h-4 w-32" />
+                                </div>
+                                <Skeleton className="hidden md:block h-4 w-24" />
+                                <Skeleton className="hidden md:block h-4 w-24" />
+                                <Skeleton className="h-8 w-16" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         )
     }

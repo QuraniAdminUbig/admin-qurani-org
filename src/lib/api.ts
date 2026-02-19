@@ -242,12 +242,27 @@ export async function apiRequest<T>(
 
         try {
             const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.message || errorJson.error || errorMessage;
+            console.error('[API] Error response body:', errorJson);
+            // Handle .NET ProblemDetails format (errors object with field names)
+            if (errorJson.errors) {
+                const errorParts: string[] = [];
+                Object.entries(errorJson.errors).forEach(([field, msgs]) => {
+                    if (Array.isArray(msgs)) {
+                        errorParts.push(`${field}: ${(msgs as string[]).join(', ')}`);
+                    }
+                });
+                errorMessage = errorParts.length > 0
+                    ? errorParts.join(' | ')
+                    : (errorJson.title || errorJson.message || errorJson.error || errorMessage);
+            } else {
+                errorMessage = errorJson.message || errorJson.error || errorJson.title || errorMessage;
+            }
         } catch {
             errorMessage = errorText || errorMessage;
         }
 
         throw new Error(errorMessage);
+
     }
 
     const responseText = await response.text();
@@ -1234,7 +1249,7 @@ export interface LanguageData {
     scriptCode?: string | null;
     direction: string;             // "ltr" | "rtl"
     family?: string | null;
-    speakers?: number | null;
+    speakers?: string | number | null;     // API accepts and returns as string e.g. "1000000"
     primaryCountry?: string | null;
     countries?: string | null;
     isActive?: number;
@@ -1253,6 +1268,33 @@ export interface LanguageApiResponse {
     success: boolean;
     message?: string;
     data: LanguageData;
+}
+
+export interface LanguageRequest {
+    id: string;                         // required: language code e.g. "en"
+    name: string;                       // required: e.g. "English"
+    iso639_2?: string | null;
+    iso639_3?: string | null;
+    nativeName?: string | null;
+    script?: string | null;
+    scriptCode?: string | null;
+    direction: string;                  // required: "LTR" | "RTL" (uppercase)
+    family?: string | null;
+    speakers?: string | number | null;     // send as string e.g. "1000000" — API accepts string
+    primaryCountry?: string | null;
+    countries?: string | null;
+    pluralRules?: string | null;
+    dateFormat?: string | null;
+    timeFormat?: string | null;
+    numberFormat?: string | null;
+    isActive?: number | null;           // 1 = active, 0 = inactive
+    isFullyTranslated?: number | null;  // 0 or 1
+    translationPercent?: number | null; // 0-100
+    isDefault?: number | null;          // 0 or 1
+    displayOrder?: number | null;       // sort order
+    FlagEmoji?: string | null;          // Note: API uses capital F
+    flagEmoji?: string | null;          // alias (camelCase)
+    notes?: string | null;
 }
 
 
@@ -1568,6 +1610,28 @@ export const masterdataApi = {
                 { token, signal }
             );
         },
+        // Create a new language (Admin only)
+        create: (data: LanguageRequest, token?: string) =>
+            apiRequest<LanguageApiResponse>('/api/v1/Languages', {
+                method: 'POST',
+                body: data,
+                token
+            }),
+
+        // Update a language (Admin only)
+        update: (id: string, data: LanguageRequest, token?: string) =>
+            apiRequest<LanguageApiResponse>(`/api/v1/Languages/${id}`, {
+                method: 'PUT',
+                body: data,
+                token
+            }),
+
+        // Delete a language (Admin only)
+        delete: (id: string, token?: string) =>
+            apiRequest<{ success: boolean; message: string }>(`/api/v1/Languages/${id}`, {
+                method: 'DELETE',
+                token
+            }),
     },
 
     // ========== Currencies ==========

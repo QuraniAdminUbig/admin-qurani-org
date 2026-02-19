@@ -879,14 +879,15 @@ export function CitiesManager() {
                                 <TableHead className="w-[150px] text-white font-bold">State/Province</TableHead>
                                 <TableHead className="w-[150px] text-white font-bold">Country</TableHead>
                                 <TableHead className="w-40 text-white font-bold">Coordinates</TableHead>
-                                <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
+                                <TableHead className="w-[120px] text-center text-white font-bold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {displayedCities.map((city) => (
                                 <TableRow
                                     key={city.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                    onClick={() => router.push(`/master/cities/${city.id}`)}
                                 >
                                     {/* ID Column */}
                                     <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
@@ -920,15 +921,24 @@ export function CitiesManager() {
                                             <span className="text-gray-400 text-xs">-</span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            size="sm"
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                            onClick={() => router.push(`/master/cities/${city.id}`)}
-                                        >
-                                            <Eye className="w-4 h-4 mr-1" />
-                                            View
-                                        </Button>
+                                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                        <div className="inline-flex items-center rounded overflow-hidden border border-emerald-600 text-[11px] h-6">
+                                            <button
+                                                className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); router.push(`/master/cities/${city.id}/edit`) }}
+                                            >
+                                                <Pencil className="w-2.5 h-2.5" />
+                                                Edit
+                                            </button>
+                                            <div className="w-px h-full bg-emerald-500" />
+                                            <button
+                                                className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-red-600 text-white transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); /* TODO: delete */ }}
+                                            >
+                                                <Trash2 className="w-2.5 h-2.5" />
+                                                Delete
+                                            </button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

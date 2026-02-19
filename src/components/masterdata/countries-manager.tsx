@@ -622,14 +622,15 @@ export function CountriesManager() {
                                 <TableHead className="w-24 text-center text-white font-bold">Cities</TableHead>
                                 <TableHead className="w-20 text-white font-bold">ISO2</TableHead>
                                 <TableHead className="w-20 text-white font-bold">ISO3</TableHead>
-                                <TableHead className="w-[120px] text-right text-white font-bold">Actions</TableHead>
+                                <TableHead className="w-[120px] text-center text-white font-bold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {displayedCountries.map((country) => (
                                 <TableRow
                                     key={country.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                    onClick={() => router.push(`/master/countries/${country.id}`)}
                                 >
                                     {/* ID Column */}
                                     <TableCell className="text-sm text-gray-600 dark:text-gray-400 font-mono">
@@ -684,15 +685,24 @@ export function CountriesManager() {
                                     <TableCell className="text-sm text-gray-900 dark:text-white">
                                         {country.iso3 || "-"}
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            size="sm"
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                            onClick={() => router.push(`/master/countries/${country.id}`)}
-                                        >
-                                            <Eye className="w-4 h-4 mr-1" />
-                                            View
-                                        </Button>
+                                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                        <div className="inline-flex items-center rounded overflow-hidden border border-emerald-600 text-[11px] h-6">
+                                            <button
+                                                className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); router.push(`/master/countries/${country.id}/edit`) }}
+                                            >
+                                                <Pencil className="w-2.5 h-2.5" />
+                                                Edit
+                                            </button>
+                                            <div className="w-px h-full bg-emerald-500" />
+                                            <button
+                                                className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-red-600 text-white transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); /* TODO: delete */ }}
+                                            >
+                                                <Trash2 className="w-2.5 h-2.5" />
+                                                Delete
+                                            </button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

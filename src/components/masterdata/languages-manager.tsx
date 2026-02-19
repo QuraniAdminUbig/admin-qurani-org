@@ -3,7 +3,15 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import {
     Table,
     TableBody,
@@ -21,15 +29,21 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination"
 import {
+    Plus,
+    Filter,
     Search,
+    Loader2,
     AlertCircle,
     RotateCcw,
     Languages,
     Eye,
+    Pencil,
+    Trash2,
 } from "lucide-react"
+import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { masterdataApi, LanguageData } from "@/lib/api"
+import { masterdataApi, LanguageData, LanguageRequest } from "@/lib/api"
 
 export function LanguagesManager() {
     const router = useRouter()
@@ -47,6 +61,136 @@ export function LanguagesManager() {
     // Pagination
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 15
+
+    // Filter state (applied)
+    const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
+    const [filterDirection, setFilterDirection] = useState<"all" | "ltr" | "rtl">("all")
+
+    // Filter modal state (temp / pending)
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+    const [tempFilterStatus, setTempFilterStatus] = useState<"all" | "active" | "inactive">("all")
+    const [tempFilterDirection, setTempFilterDirection] = useState<"all" | "ltr" | "rtl">("all")
+
+    const handleOpenFilter = () => {
+        setTempFilterStatus(filterStatus)
+        setTempFilterDirection(filterDirection)
+        setIsFilterModalOpen(true)
+    }
+
+    const handleSaveFilter = () => {
+        setFilterStatus(tempFilterStatus)
+        setFilterDirection(tempFilterDirection)
+        setCurrentPage(1)
+        setIsFilterModalOpen(false)
+    }
+
+    const handleCancelFilter = () => {
+        setTempFilterStatus(filterStatus)
+        setTempFilterDirection(filterDirection)
+        setIsFilterModalOpen(false)
+    }
+
+    const isFilterActive = filterStatus !== "all" || filterDirection !== "all"
+
+    // Create modal state
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [formData, setFormData] = useState<Partial<LanguageRequest>>({
+        id: "",
+        name: "",
+        nativeName: "",
+        direction: "ltr",
+        iso639_2: "",
+        iso639_3: "",
+        family: "",
+        flagEmoji: "",
+        script: "",
+        primaryCountry: "",
+        speakers: undefined,
+    })
+
+    const resetForm = () => setFormData({
+        id: "",
+        name: "",
+        nativeName: "",
+        direction: "ltr",
+        iso639_2: "",
+        iso639_3: "",
+        family: "",
+        flagEmoji: "",
+        script: "",
+        primaryCountry: "",
+        speakers: undefined,
+    })
+
+    const handleCreateLanguage = async () => {
+        if (!formData.id?.trim() || !formData.name?.trim()) {
+            toast.error("Language Code (ID) and Name are required")
+            return
+        }
+        if (!formData.direction) {
+            toast.error("Direction is required")
+            return
+        }
+        // id → UPPERCASE (API stores codes as uppercase: EN, AR, IDN, etc.)
+        const newId = formData.id.trim().toUpperCase()
+        // Check if ID already exists in loaded list
+        const duplicate = languages.find(l => l.id.toUpperCase() === newId)
+        if (duplicate) {
+            toast.error(`Language code "${newId}" already exists (${duplicate.name || duplicate.id})`, { duration: 6000 })
+            return
+        }
+        if (isSubmitting) return
+        setIsSubmitting(true)
+        try {
+            // Build payload with ALL fields — exactly matching the API's expected format
+            const requestData: LanguageRequest = {
+                id: newId,                                                      // UPPERCASE: EN, AR, IDN
+                iso639_2: formData.iso639_2?.trim().toLowerCase() || null,     // lowercase 3 chars: eng, ara
+                iso639_3: formData.iso639_3?.trim().toLowerCase() || null,     // lowercase 3 chars: eng, ara
+                name: formData.name.trim(),
+                nativeName: formData.nativeName?.trim() || null,
+                script: formData.script?.trim() || null,
+                scriptCode: null,
+                direction: (formData.direction || "LTR").toUpperCase(),        // UPPERCASE: LTR or RTL
+                family: formData.family?.trim() || null,
+                speakers: formData.speakers !== null && formData.speakers !== undefined
+                    ? String(formData.speakers)                                // send as string — API accepts string "1000000"
+                    : null,
+                primaryCountry: formData.primaryCountry?.trim() || null,
+                countries: null,
+                pluralRules: null,
+                dateFormat: null,
+                timeFormat: null,
+                numberFormat: null,
+                isActive: 1,
+                isFullyTranslated: 0,
+                translationPercent: 0,
+                isDefault: 0,
+                displayOrder: 1,
+                FlagEmoji: null,                                               // removed from form, always null
+                notes: null,
+            }
+
+            console.log('[Create Language] Sending payload:', JSON.stringify(requestData, null, 2))
+
+            const response = await masterdataApi.languages.create(requestData)
+            if (response.success || response.data) {
+                await fetchLanguages()
+                setIsCreateModalOpen(false)
+                resetForm()
+                toast.success("Language created successfully")
+            } else {
+                toast.error("Failed to create language")
+            }
+        } catch (err) {
+            console.error("Error creating language:", err)
+            const msg = err instanceof Error ? err.message : "Failed to create language"
+            toast.error(msg, { duration: 8000 })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     // Fetch all languages
     const fetchLanguages = useCallback(async () => {
@@ -86,19 +230,38 @@ export function LanguagesManager() {
         }
     }, [fetchLanguages])
 
-    // Client-side search filter
+    // Client-side search + filter
     const filteredLanguages = useMemo(() => {
-        if (!searchQuery.trim()) return languages
+        let filtered = languages
 
-        const q = searchQuery.toLowerCase()
-        return languages.filter(
-            (lang) =>
-                lang.name.toLowerCase().includes(q) ||
-                lang.id.toLowerCase().includes(q) ||
-                lang.nativeName?.toLowerCase().includes(q) ||
-                lang.family?.toLowerCase().includes(q)
-        )
-    }, [languages, searchQuery])
+        // Search
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase()
+            filtered = filtered.filter(
+                (lang) =>
+                    lang.name.toLowerCase().includes(q) ||
+                    lang.id.toLowerCase().includes(q) ||
+                    lang.nativeName?.toLowerCase().includes(q) ||
+                    lang.family?.toLowerCase().includes(q)
+            )
+        }
+
+        // Status filter
+        if (filterStatus === "active") {
+            filtered = filtered.filter(lang => lang.isActive === 1)
+        } else if (filterStatus === "inactive") {
+            filtered = filtered.filter(lang => lang.isActive !== 1)
+        }
+
+        // Direction filter
+        if (filterDirection !== "all") {
+            filtered = filtered.filter(lang =>
+                (lang.direction?.toLowerCase() || "ltr") === filterDirection
+            )
+        }
+
+        return filtered
+    }, [languages, searchQuery, filterStatus, filterDirection])
 
     // Pagination
     const totalPages = Math.ceil(filteredLanguages.length / itemsPerPage)
@@ -123,13 +286,15 @@ export function LanguagesManager() {
         setCurrentPage(1)
     }, [searchQuery])
 
-    // Format speakers count
-    const formatSpeakers = (count?: number | null) => {
-        if (!count) return "—"
-        if (count >= 1_000_000_000) return `${(count / 1_000_000_000).toFixed(1)}B`
-        if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
-        if (count >= 1_000) return `${(count / 1_000).toFixed(0)}K`
-        return count.toString()
+    // Format speakers count (API returns/accepts as string or number)
+    const formatSpeakers = (count?: string | number | null) => {
+        if (count === null || count === undefined || count === '' || count === 0) return "—"
+        const n = typeof count === 'string' ? parseInt(count, 10) : count
+        if (isNaN(n)) return String(count)
+        if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`
+        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+        if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+        return n.toLocaleString()
     }
 
     // ====== RENDER ======
@@ -186,230 +351,495 @@ export function LanguagesManager() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Languages
-                    </h1>
-                    {languages.length > 0 && (
-                        /* Total removed as requested */
-                        null
-                    )}
-                </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="flex gap-2 sm:gap-3 items-center mb-6">
-                <div className="relative flex-1 flex">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                            placeholder="Search by name, code, or language family..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={handleSearchKeyDown}
-                            className="pl-9 pr-4 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
-                        />
+        <>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            Languages
+                        </h1>
                     </div>
                     <Button
-                        onClick={handleSearch}
-                        variant="ghost"
-                        className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => setIsCreateModalOpen(true)}
                     >
-                        <Search className="w-4 h-4" />
-                        Search
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create
                     </Button>
                 </div>
-            </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                {displayedLanguages.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <Languages className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
-                        <p className="text-gray-500">
-                            {searchQuery
-                                ? "No languages match your search."
-                                : "No languages found."}
-                        </p>
+                {/* Search Bar */}
+                <div className="flex gap-2 sm:gap-3 items-center mb-6">
+                    <div className="relative flex-1 flex">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                                placeholder="Search by name, code, or language family..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                className="pl-9 pr-4 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
+                            />
+                        </div>
+                        <Button
+                            onClick={handleSearch}
+                            variant="ghost"
+                            className="rounded-l-none border border-gray-200 dark:border-gray-700 border-l-0 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-colors h-10 px-4 gap-2"
+                        >
+                            <Search className="w-4 h-4" />
+                            Search
+                        </Button>
                     </div>
-                ) : (
-                    <Table className="w-full">
-                        <TableHeader>
-                            <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
-                                <TableHead className="w-[80px] text-white font-bold">Code</TableHead>
-                                <TableHead className="text-white font-bold">Name</TableHead>
-                                <TableHead className="text-white font-bold text-center">Native Name</TableHead>
-                                <TableHead className="w-[100px] text-white font-bold text-center">Direction</TableHead>
-                                <TableHead className="text-white font-bold text-center">Family</TableHead>
-                                <TableHead className="w-[100px] text-white font-bold text-center">Speakers</TableHead>
-                                <TableHead className="w-[100px] text-white font-bold text-center">Status</TableHead>
-                                <TableHead className="w-[100px] text-right text-white font-bold">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {displayedLanguages.map((lang) => (
-                                <TableRow
-                                    key={lang.id}
-                                    className="group hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                                >
-                                    {/* Code Column */}
-                                    <TableCell className="w-[80px]">
-                                        <div className="flex items-center gap-1.5">
-                                            {lang.flagEmoji && (
-                                                <span className="text-sm leading-none">{lang.flagEmoji}</span>
-                                            )}
-                                            <span className="font-mono font-semibold text-sm text-emerald-600 dark:text-emerald-400 uppercase">
-                                                {lang.id}
-                                            </span>
-                                        </div>
-                                    </TableCell>
 
-                                    {/* Name Column */}
-                                    <TableCell>
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
-                                                {lang.id.substring(0, 2).toUpperCase()}
-                                            </div>
-                                            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                                                {lang.name}
-                                            </span>
-                                        </div>
-                                    </TableCell>
+                    {/* Filter Button */}
+                    <Button
+                        variant="outline"
+                        onClick={handleOpenFilter}
+                        className={cn(
+                            "flex items-center gap-2 shrink-0 h-10",
+                            isFilterActive
+                                ? "border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
+                                : "border-gray-200 dark:border-gray-700"
+                        )}
+                    >
+                        <Filter className="w-4 h-4" />
+                        <span className="hidden sm:inline">
+                            {isFilterActive ? "Filtered" : "Filter"}
+                        </span>
+                    </Button>
+                </div>
 
-                                    {/* Native Name Column */}
-                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[150px] text-center">
-                                        {lang.nativeName || "—"}
-                                    </TableCell>
-
-                                    {/* Direction Column */}
-                                    <TableCell className="w-[100px] text-center">
-                                        <span
-                                            className={cn(
-                                                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                                                lang.direction === "rtl"
-                                                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
-                                                    : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                                            )}
-                                        >
-                                            {lang.direction?.toUpperCase() || "LTR"}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Family Column */}
-                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[150px] text-center">
-                                        {lang.family || "—"}
-                                    </TableCell>
-
-                                    {/* Speakers Column */}
-                                    <TableCell className="w-[100px] text-sm text-gray-600 dark:text-gray-400 text-center">
-                                        {formatSpeakers(lang.speakers)}
-                                    </TableCell>
-
-                                    {/* Status Column */}
-                                    <TableCell className="w-[100px] text-center">
-                                        <span
-                                            className={cn(
-                                                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                                                lang.isActive === 1
-                                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                                            )}
-                                        >
-                                            {lang.isActive === 1 ? "Active" : "Inactive"}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Actions Column */}
-                                    <TableCell className="w-[100px] text-right">
-                                        <Button
-                                            size="sm"
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95 h-8 px-3"
-                                            onClick={() => router.push(`/master/languages/${lang.id}`)}
-                                        >
-                                            <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                            View
-                                        </Button>
-                                    </TableCell>
+                {/* Table */}
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                    {displayedLanguages.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <Languages className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
+                            <p className="text-gray-500">
+                                {searchQuery || isFilterActive
+                                    ? "No languages match your search/filter."
+                                    : "No languages found."}
+                            </p>
+                            {isFilterActive && (
+                                <Button variant="outline" size="sm" className="mt-3" onClick={() => { setFilterStatus("all"); setFilterDirection("all") }}>
+                                    Clear Filters
+                                </Button>
+                            )}
+                        </div>
+                    ) : (
+                        <Table className="w-full">
+                            <TableHeader>
+                                <TableRow className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-700">
+                                    <TableHead className="w-[25%] text-white font-bold pl-8">Name</TableHead>
+                                    <TableHead className="w-[25%] text-white font-bold">Native Name</TableHead>
+                                    <TableHead className="w-[10%] text-white font-bold text-center">Code</TableHead>
+                                    <TableHead className="w-[10%] text-white font-bold text-center">Direction</TableHead>
+                                    <TableHead className="w-[15%] text-white font-bold text-center">Status</TableHead>
+                                    <TableHead className="w-[15%] text-center text-white font-bold">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {displayedLanguages.map((lang) => (
+                                    <TableRow
+                                        key={lang.id}
+                                        className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer"
+                                        onClick={() => router.push(`/master/languages/${lang.id}`)}
+                                    >
+                                        {/* Name Column */}
+                                        <TableCell className="w-[25%] pl-8">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">
+                                                    {lang.id.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                                    {lang.name}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+
+                                        {/* Native Name Column */}
+                                        <TableCell className="w-[25%] text-sm text-gray-600 dark:text-gray-400 truncate max-w-[150px]">
+                                            {lang.nativeName || "—"}
+                                        </TableCell>
+
+                                        {/* Code Column */}
+                                        <TableCell className="w-[10%] text-center">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                {lang.flagEmoji && (
+                                                    <span className="text-sm leading-none">{lang.flagEmoji}</span>
+                                                )}
+                                                <span className="font-mono font-semibold text-sm text-emerald-600 dark:text-emerald-400 uppercase">
+                                                    {lang.id}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+
+                                        {/* Direction Column */}
+                                        <TableCell className="w-[10%] text-center">
+                                            <span
+                                                className={cn(
+                                                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                                                    lang.direction === "rtl"
+                                                        ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                                                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                                )}
+                                            >
+                                                {lang.direction?.toUpperCase() || "LTR"}
+                                            </span>
+                                        </TableCell>
+
+                                        {/* Family Column - Temporarily disabled */}
+                                        {/* <TableCell className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[150px] text-center">
+                                            {lang.family || "—"}
+                                        </TableCell> */}
+
+
+
+                                        {/* Status Column */}
+                                        <TableCell className="w-[15%] text-center">
+                                            <span
+                                                className={cn(
+                                                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                                                    lang.isActive === 1
+                                                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                                                )}
+                                            >
+                                                {lang.isActive === 1 ? "Active" : "Inactive"}
+                                            </span>
+                                        </TableCell>
+
+                                        {/* Actions Column */}
+                                        <TableCell className="w-[15%] text-center" onClick={(e) => e.stopPropagation()}>
+                                            <div className="inline-flex items-center rounded overflow-hidden border border-emerald-600 text-[11px] h-6">
+                                                <button
+                                                    className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); router.push(`/master/languages/${lang.id}/edit`) }}
+                                                >
+                                                    <Pencil className="w-2.5 h-2.5" />
+                                                    Edit
+                                                </button>
+                                                <div className="w-px h-full bg-emerald-500" />
+                                                <button
+                                                    className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-red-600 text-white transition-colors"
+                                                    onClick={(e) => { e.stopPropagation(); /* TODO: delete */ }}
+                                                >
+                                                    <Trash2 className="w-2.5 h-2.5" />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+
+                {/* Pagination */}
+                {filteredLanguages.length > 0 && totalPages > 1 && (
+                    <div className="mt-10 flex justify-center">
+                        <Pagination>
+                            <PaginationContent className="gap-2">
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            if (currentPage > 1) goToPage(currentPage - 1)
+                                        }}
+                                        className={cn(
+                                            currentPage === 1
+                                                ? "pointer-events-none opacity-50"
+                                                : "cursor-pointer"
+                                        )}
+                                    />
+                                </PaginationItem>
+
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum: number
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i
+                                    } else {
+                                        pageNum = currentPage - 2 + i
+                                    }
+                                    return (
+                                        <PaginationItem key={pageNum}>
+                                            <PaginationLink
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault()
+                                                    goToPage(pageNum)
+                                                }}
+                                                isActive={currentPage === pageNum}
+                                                className={cn(
+                                                    "cursor-pointer",
+                                                    currentPage === pageNum &&
+                                                    "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
+                                                )}
+                                            >
+                                                {pageNum}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    )
+                                })}
+
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            if (currentPage < totalPages) goToPage(currentPage + 1)
+                                        }}
+                                        className={cn(
+                                            currentPage === totalPages
+                                                ? "pointer-events-none opacity-50"
+                                                : "cursor-pointer"
+                                        )}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
                 )}
             </div>
 
-            {/* Pagination */}
-            {filteredLanguages.length > 0 && totalPages > 1 && (
-                <div className="mt-10 flex justify-center">
-                    <Pagination>
-                        <PaginationContent className="gap-2">
-                            <PaginationItem>
-                                <PaginationPrevious
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        if (currentPage > 1) goToPage(currentPage - 1)
-                                    }}
+            {/* Create Language Dialog */}
+            <Dialog open={isCreateModalOpen} onOpenChange={(open) => { setIsCreateModalOpen(open); if (!open) resetForm() }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Languages className="w-4 h-4" />
+                            Create New Language
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        {/* ID (Language Code) & Name */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-id">Language Code <span className="text-red-500">*</span></Label>
+                                <Input
+                                    id="lang-id"
+                                    placeholder="e.g. EN, AR, IDN"
+                                    maxLength={10}
+                                    value={formData.id ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, id: e.target.value.toUpperCase() }))}
                                     className={cn(
-                                        currentPage === 1
-                                            ? "pointer-events-none opacity-50"
-                                            : "cursor-pointer"
+                                        formData.id?.trim() && languages.find(l => l.id.toUpperCase() === formData.id!.trim().toUpperCase())
+                                            ? "border-red-500 focus-visible:ring-red-500"
+                                            : ""
                                     )}
                                 />
-                            </PaginationItem>
-
-                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                let pageNum: number
-                                if (totalPages <= 5) {
-                                    pageNum = i + 1
-                                } else if (currentPage <= 3) {
-                                    pageNum = i + 1
-                                } else if (currentPage >= totalPages - 2) {
-                                    pageNum = totalPages - 4 + i
-                                } else {
-                                    pageNum = currentPage - 2 + i
-                                }
-                                return (
-                                    <PaginationItem key={pageNum}>
-                                        <PaginationLink
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault()
-                                                goToPage(pageNum)
-                                            }}
-                                            isActive={currentPage === pageNum}
-                                            className={cn(
-                                                "cursor-pointer",
-                                                currentPage === pageNum &&
-                                                "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md"
-                                            )}
-                                        >
-                                            {pageNum}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                )
-                            })}
-
-                            <PaginationItem>
-                                <PaginationNext
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        if (currentPage < totalPages) goToPage(currentPage + 1)
-                                    }}
-                                    className={cn(
-                                        currentPage === totalPages
-                                            ? "pointer-events-none opacity-50"
-                                            : "cursor-pointer"
-                                    )}
+                                {formData.id?.trim() && languages.find(l => l.id.toUpperCase() === formData.id!.trim().toUpperCase()) ? (
+                                    <p className="text-xs text-red-500 font-medium">⚠ Code already exists</p>
+                                ) : (
+                                    <p className="text-xs text-gray-400">Uppercase code: EN, AR, IDN</p>
+                                )}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-name">Name <span className="text-red-500">*</span></Label>
+                                <Input
+                                    id="lang-name"
+                                    placeholder="e.g. English"
+                                    value={formData.name ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
                                 />
-                            </PaginationItem>
-                        </PaginationContent>
-                    </Pagination>
-                </div>
-            )}
-        </div>
+                            </div>
+                        </div>
+
+                        {/* Native Name — full width, Flag Emoji removed (sent as null) */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="lang-native">Native Name</Label>
+                            <Input
+                                id="lang-native"
+                                placeholder="e.g. Indonesia, العربية"
+                                value={formData.nativeName ?? ""}
+                                onChange={(e) => setFormData(p => ({ ...p, nativeName: e.target.value }))}
+                            />
+                        </div>
+
+
+                        {/* Direction */}
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium">Direction <span className="text-red-500">*</span></Label>
+                            <div className="flex gap-2">
+                                {(["ltr", "rtl"] as const).map((d) => (
+                                    <button
+                                        key={d}
+                                        type="button"
+                                        onClick={() => setFormData(p => ({ ...p, direction: d }))}
+                                        className={cn(
+                                            "px-4 py-2 rounded-lg text-sm font-medium border transition-all",
+                                            formData.direction === d
+                                                ? "bg-emerald-600 text-white border-emerald-600"
+                                                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-400"
+                                        )}
+                                    >
+                                        {d.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ISO codes & Family */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-iso2">ISO 639-2</Label>
+                                <Input
+                                    id="lang-iso2"
+                                    placeholder="e.g. eng"
+                                    maxLength={3}
+                                    value={formData.iso639_2 ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, iso639_2: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-iso3">ISO 639-3</Label>
+                                <Input
+                                    id="lang-iso3"
+                                    placeholder="e.g. eng"
+                                    maxLength={3}
+                                    value={formData.iso639_3 ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, iso639_3: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-family">Language Family</Label>
+                                <Input
+                                    id="lang-family"
+                                    placeholder="e.g. Indo-European"
+                                    value={formData.family ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, family: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Script & Primary Country */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-script">Script</Label>
+                                <Input
+                                    id="lang-script"
+                                    placeholder="e.g. Latin, Arabic"
+                                    value={formData.script ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, script: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="lang-country">Primary Country</Label>
+                                <Input
+                                    id="lang-country"
+                                    placeholder="e.g. US, ID"
+                                    value={formData.primaryCountry ?? ""}
+                                    onChange={(e) => setFormData(p => ({ ...p, primaryCountry: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Speakers */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="lang-speakers">Speakers (estimated)</Label>
+                            <Input
+                                id="lang-speakers"
+                                type="number"
+                                min={0}
+                                placeholder="e.g. 270000000"
+                                value={formData.speakers ?? ""}
+                                onChange={(e) => setFormData(p => ({ ...p, speakers: e.target.value || undefined }))}
+                            />
+                            <p className="text-xs text-gray-400">Perkiraan jumlah penutur bahasa ini</p>
+                        </div>
+
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => { setIsCreateModalOpen(false); resetForm() }}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={handleCreateLanguage}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                            ) : (
+                                <>Save</>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Filter Dialog */}
+            <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Filter className="w-4 h-4" />
+                            Filter Languages
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-5 py-2">
+                        {/* Status */}
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {(["all", "active", "inactive"] as const).map((s) => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setTempFilterStatus(s)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
+                                            tempFilterStatus === s
+                                                ? "bg-emerald-600 text-white border-emerald-600"
+                                                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-400"
+                                        )}
+                                    >
+                                        {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Direction */}
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Direction</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {(["all", "ltr", "rtl"] as const).map((d) => (
+                                    <button
+                                        key={d}
+                                        onClick={() => setTempFilterDirection(d)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-full text-sm font-medium border transition-all uppercase",
+                                            tempFilterDirection === d
+                                                ? "bg-emerald-600 text-white border-emerald-600"
+                                                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-400"
+                                        )}
+                                    >
+                                        {d === "all" ? "All" : d.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={handleCancelFilter}>Cancel</Button>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSaveFilter}>Save</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }
