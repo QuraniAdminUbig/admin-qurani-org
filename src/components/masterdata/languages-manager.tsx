@@ -6,6 +6,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     Dialog,
     DialogContent,
     DialogFooter,
@@ -95,6 +105,12 @@ export function LanguagesManager() {
     // Create modal state
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // Delete state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [langToDelete, setLangToDelete] = useState<{ id: string; name: string } | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+
     const [formData, setFormData] = useState<Partial<LanguageRequest>>({
         id: "",
         name: "",
@@ -189,6 +205,37 @@ export function LanguagesManager() {
             toast.error(msg, { duration: 8000 })
         } finally {
             setIsSubmitting(false)
+        }
+    }
+
+    // Delete handler
+    const handleDeleteClick = (lang: LanguageData) => {
+        setLangToDelete({ id: lang.id, name: lang.name })
+        setDeleteDialogOpen(true)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!langToDelete || !langToDelete.id) {
+            toast.error("Invalid language ID")
+            return
+        }
+        setIsDeleting(true)
+        try {
+            const response = await masterdataApi.languages.delete(langToDelete.id)
+            if (response.success) {
+                await fetchLanguages()
+                toast.success(`"${langToDelete.name}" deleted successfully`)
+            } else {
+                toast.error("Failed to delete language")
+            }
+        } catch (err) {
+            console.error("Error deleting language:", err)
+            const msg = err instanceof Error ? err.message : "Failed to delete language"
+            toast.error(msg)
+        } finally {
+            setIsDeleting(false)
+            setDeleteDialogOpen(false)
+            setLangToDelete(null)
         }
     }
 
@@ -521,8 +568,18 @@ export function LanguagesManager() {
                                                 </button>
                                                 <div className="w-px h-full bg-emerald-500" />
                                                 <button
-                                                    className="flex items-center gap-0.5 px-1.5 h-full bg-emerald-600 hover:bg-red-600 text-white transition-colors"
-                                                    onClick={(e) => { e.stopPropagation(); /* TODO: delete */ }}
+                                                    className={cn(
+                                                        "flex items-center gap-0.5 px-1.5 h-full transition-colors font-medium",
+                                                        !lang.id
+                                                            ? "bg-gray-300 dark:bg-gray-800 text-gray-500 cursor-not-allowed"
+                                                            : "bg-emerald-600 hover:bg-red-600 text-white"
+                                                    )}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (lang.id) handleDeleteClick(lang);
+                                                    }}
+                                                    disabled={!lang.id}
+                                                    title={!lang.id ? "Cannot delete: Missing Language Code" : "Delete Language"}
                                                 >
                                                     <Trash2 className="w-2.5 h-2.5" />
                                                     Delete
@@ -840,6 +897,39 @@ export function LanguagesManager() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <Trash2 className="w-5 h-5" />
+                            Delete Language
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete{" "}
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                                &quot;{langToDelete?.name}&quot;
+                            </span>{" "}
+                            ({langToDelete?.id})? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+                            onClick={handleConfirmDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</>
+                            ) : (
+                                <><Trash2 className="w-4 h-4 mr-2" />Delete</>
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }
