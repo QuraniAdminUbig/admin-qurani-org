@@ -406,11 +406,6 @@ export function CountryDetail({ id }: CountryDetailProps) {
                         <p className="text-lg font-bold text-gray-900 dark:text-white">
                             {country.currency || "N/A"}
                         </p>
-                        {country.currencyName && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
-                                {country.currencyName}
-                            </p>
-                        )}
                     </div>
                 </div>
             </div>

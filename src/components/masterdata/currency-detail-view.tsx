@@ -75,56 +75,18 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
                 setCurrency(currencyData)
 
                 // Fetch countries using this currency
+                // Strategy: getAll() returns simplified data (no currency field),
+                // so we fetch all country IDs, then batch-fetch full details to filter by currency code.
                 setIsLoadingCountries(true)
                 try {
-                    const countriesResponse = await masterdataApi.countries.getAll()
-                    if ('data' in countriesResponse && Array.isArray(countriesResponse.data)) {
-                        console.log('🔍 Currency Code:', currencyData?.code)
-                        console.log('🔍 Currency Name:', currencyData?.name)
-                        console.log('🔍 Total Countries:', countriesResponse.data.length)
-
-                        // Sample first 3 countries to see currency field format
-                        console.log('📊 Sample countries currency fields:',
-                            countriesResponse.data.slice(0, 3).map(c => ({
-                                name: c.name,
-                                currency: c.currency,
-                                currencyName: c.currencyName,
-                                currencySymbol: c.currencySymbol
-                            }))
-                        )
-
-                        // Filter countries that use this currency
-
-                        // Filter countries that use this currency
-                        console.log('🎯 Target Currency:', { code: currencyData.code, name: currencyData.name })
-
-                        const filtered = countriesResponse.data.filter((c: CountryData) => {
-                            if (!currencyData) return false
-
-                            const targetCode = currencyData.code?.trim().toUpperCase()
-                            const targetName = currencyData.name?.trim().toLowerCase()
-
-                            const cCode = c.currency?.trim().toUpperCase()
-                            const cName = c.currencyName?.trim().toLowerCase()
-
-                            // 1. Strict Code Match
-                            if (targetCode && cCode === targetCode) return true
-
-                            // 2. Strict Name Match
-                            if (targetName && cName === targetName) return true
-
-                            // 3. Name Contains Match
-                            if (targetName && cName && cName.includes(targetName)) return true
-
-                            // 4. Code in Name Match
-                            if (targetCode && targetCode.length >= 3 && cName && cName.includes(targetCode.toLowerCase())) return true
-
-                            return false
-                        })
-
-                        console.log('✅ Filtered Countries:', filtered.length, filtered.map(c => c.name))
-                        setCountries(filtered)
+                    const targetCode = currencyData.code?.trim().toUpperCase()
+                    if (!targetCode) {
+                        setCountries([])
+                        return
                     }
+
+                    const matched = await masterdataApi.countries.getByCurrencyCode(targetCode)
+                    setCountries(matched)
                 } catch (err) {
                     console.error("Error fetching countries for currency:", err)
                 } finally {
@@ -336,7 +298,8 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
                 {isLoadingCountries ? (
                     <div className="p-12 text-center">
                         <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mx-auto mb-3" />
-                        <p className="text-gray-500 text-sm">Loading countries...</p>
+                        <p className="text-gray-500 text-sm font-medium">Loading countries...</p>
+                        <p className="text-gray-400 text-xs mt-1">Scanning all countries for this currency</p>
                     </div>
                 ) : filteredCountries.length === 0 ? (
                     <div className="p-12 text-center text-gray-500">
@@ -376,10 +339,7 @@ export default function CurrencyDetail({ id }: CurrencyDetailProps) {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-gray-900 dark:text-white">{country.currency || "-"}</span>
-                                                <span className="text-xs text-gray-500">{country.currencyName || "-"}</span>
-                                            </div>
+                                            <span className="text-sm font-medium text-gray-900 dark:text-white">{country.currency || "-"}</span>
                                         </TableCell>
                                         <TableCell className="text-gray-600 dark:text-gray-400">
                                             {country.region || "—"}

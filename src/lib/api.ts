@@ -1390,6 +1390,26 @@ export const masterdataApi = {
                 { token, signal }
             );
         },
+
+        // Get countries that use a specific currency code (e.g. "IDR", "USD")
+        // Uses the Next.js API Route /api/masterdata/countries as an aggregator.
+        // Client sends 1 request → server fetches all country details in parallel + caches 24h.
+        getByCurrencyCode: async (currencyCode: string): Promise<CountryData[]> => {
+            const code = currencyCode.trim().toUpperCase();
+
+            // 1 request to our Next.js aggregator route (which handles all 254 fetches server-side)
+            const res = await fetch(`/api/masterdata/countries?currency=${encodeURIComponent(code)}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+            });
+
+            if (!res.ok) return [];
+
+            const json = await res.json();
+            if (!json?.success || !Array.isArray(json.data)) return [];
+
+            return json.data as CountryData[];
+        },
     },
 
     // ========== States/Provinces ==========
