@@ -20,6 +20,9 @@ import {
   Bell,
   LucideIcon,
   Languages,
+  GraduationCap,
+  Package,
+  Banknote,
 } from "lucide-react"
 import { RxDashboard, } from "react-icons/rx"
 import { MdAnnouncement } from "react-icons/md"
@@ -93,7 +96,22 @@ const getSidebarData = (
           title: t("navigation.billing_members", "Member Subscription"),
           url: "/billing/member-subscription",
           icon: UserCheck,
-        }
+        },
+        {
+          title: "Manajemen Guru",
+          url: "/billing/guru",
+          icon: GraduationCap,
+        },
+        {
+          title: "Manajemen Paket",
+          url: "/billing/paket",
+          icon: Package,
+        },
+        {
+          title: "Payout Guru",
+          url: "/billing/payout",
+          icon: Banknote,
+        },
       ],
     },
     {
