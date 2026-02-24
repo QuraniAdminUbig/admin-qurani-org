@@ -35,6 +35,7 @@ function getMyQuraniUser(request: NextRequest): MyQuraniUser | null {
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+
   const pathname = request.nextUrl.pathname;
 
   // Define route types
@@ -61,7 +62,7 @@ export async function updateSession(request: NextRequest) {
   const myquraniUser = getMyQuraniUser(request);
 
   if (myquraniUser) {
-    console.log("[Middleware] MyQurani user found:", myquraniUser.email || "token-only");
+    console.log("[Middleware] MyQurani user found:", myquraniUser?.email || "token-only");
 
     // TODO: Re-enable role checking after testing
     // const userRole = myquraniUser.role?.toLowerCase() || "member";

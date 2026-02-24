@@ -91,7 +91,7 @@ const getSidebarData = (
         },
         {
           title: t("navigation.billing_members", "Member Subscription"),
-          url: "/billing/members",
+          url: "/billing/member-subscription",
           icon: UserCheck,
         }
       ],

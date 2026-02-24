@@ -1,0 +1,1135 @@
+{
+    "stats": {
+        "totalRevenue": 184750000,
+        "totalRevenueCurrency": "IDR",
+        "totalPayments": 1284,
+        "successfulPayments": 1198,
+        "pendingPayments": 52,
+        "failedPayments": 34,
+        "pendingRefunds": 18,
+        "pendingPayouts": 47,
+        "totalBookings": 934,
+        "activeBookings": 812,
+        "completedBookings": 89,
+        "cancelledBookings": 33,
+        "revenueGrowth": 12.4,
+        "bookingGrowth": 8.7,
+        "avgTransactionValue": 143890,
+        "totalDisputes": 9
+    },
+    "revenueByMonth": [
+        {
+            "month": "Sep",
+            "revenue": 11200000
+        },
+        {
+            "month": "Okt",
+            "revenue": 13800000
+        },
+        {
+            "month": "Nov",
+            "revenue": 12400000
+        },
+        {
+            "month": "Des",
+            "revenue": 18900000
+        },
+        {
+            "month": "Jan",
+            "revenue": 16200000
+        },
+        {
+            "month": "Feb",
+            "revenue": 21500000
+        }
+    ],
+    "paymentMethodBreakdown": [
+        {
+            "method": "Midtrans",
+            "count": 654,
+            "amount": 98200000,
+            "percentage": 53.2
+        },
+        {
+            "method": "Xendit",
+            "count": 387,
+            "amount": 55100000,
+            "percentage": 46.8
+        }
+    ],
+    "payments": [
+        {
+            "id": 1001,
+            "userId": 2011,
+            "userName": "Ahmad Fauzi",
+            "userEmail": "ahmad.fauzi@gmail.com",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "bookingId": 3001,
+            "packageName": "Paket Hemat 5x",
+            "amount": 387500,
+            "currency": "IDR",
+            "status": "completed",
+            "paymentMethod": "Midtrans",
+            "paymentGatewayRef": "MID-2026-01-0089",
+            "isPaidOut": true,
+            "refundRequested": false,
+            "createdAt": "2026-02-01T08:30:00Z",
+            "paidAt": "2026-02-01T08:31:55Z",
+            "paidOutAt": "2026-02-05T10:00:00Z",
+            "notes": null
+        },
+        {
+            "id": 1002,
+            "userId": 2034,
+            "userName": "Siti Aminah",
+            "userEmail": "siti.aminah@yahoo.com",
+            "trainerId": 302,
+            "trainerName": "Indi fitriani",
+            "bookingId": 3002,
+            "packageName": "1x Pertemuan",
+            "amount": 90000,
+            "currency": "IDR",
+            "status": "pending",
+            "paymentMethod": "Xendit",
+            "paymentGatewayRef": "XND-2026-02-0023",
+            "isPaidOut": false,
+            "refundRequested": false,
+            "createdAt": "2026-02-10T14:15:00Z",
+            "paidAt": null,
+            "paidOutAt": null,
+            "notes": "Menunggu konfirmasi pembayaran"
+        },
+        {
+            "id": 1003,
+            "userId": 2019,
+            "userName": "Budi Santoso",
+            "userEmail": "budi.santoso@email.com",
+            "trainerId": 303,
+            "trainerName": "Ustadz Iwan",
+            "bookingId": 3003,
+            "packageName": "Paket Intensif 10x",
+            "amount": 705000,
+            "currency": "IDR",
+            "status": "completed",
+            "paymentMethod": "Midtrans",
+            "paymentGatewayRef": "STR-2026-01-0044",
+            "isPaidOut": true,
+            "refundRequested": false,
+            "createdAt": "2026-01-01T09:00:00Z",
+            "paidAt": "2026-01-01T09:02:10Z",
+            "paidOutAt": "2026-01-06T10:00:00Z",
+            "notes": null
+        },
+        {
+            "id": 1004,
+            "userId": 2055,
+            "userName": "Dewi Rahayu",
+            "userEmail": "dewi.rahayu@gmail.com",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "bookingId": 3004,
+            "packageName": "1x Pertemuan",
+            "amount": 90000,
+            "currency": "IDR",
+            "status": "completed",
+            "paymentMethod": "Midtrans",
+            "paymentGatewayRef": "MID-2026-01-0101",
+            "isPaidOut": true,
+            "refundRequested": false,
+            "createdAt": "2026-01-05T11:20:00Z",
+            "paidAt": "2026-01-05T11:21:33Z",
+            "paidOutAt": "2026-01-10T09:00:00Z",
+            "notes": null
+        },
+        {
+            "id": 1005,
+            "userId": 2072,
+            "userName": "Rizky Pratama",
+            "userEmail": "rizky.pratama@protonmail.com",
+            "trainerId": 304,
+            "trainerName": "Nanda",
+            "bookingId": 3005,
+            "packageName": "Paket Hemat 5x",
+            "amount": 387500,
+            "currency": "IDR",
+            "status": "completed",
+            "paymentMethod": "Xendit",
+            "paymentGatewayRef": "XND-2025-10-0031",
+            "isPaidOut": true,
+            "refundRequested": false,
+            "createdAt": "2025-10-01T16:45:00Z",
+            "paidAt": "2025-10-01T16:46:20Z",
+            "paidOutAt": "2025-10-06T09:00:00Z",
+            "notes": null
+        },
+        {
+            "id": 1006,
+            "userId": 2088,
+            "userName": "Nur Hidayah",
+            "userEmail": "nur.hidayah@mail.com",
+            "trainerId": 302,
+            "trainerName": "Indi fitriani",
+            "bookingId": 3006,
+            "packageName": "Paket Intensif 10x",
+            "amount": 705000,
+            "currency": "IDR",
+            "status": "completed",
+            "paymentMethod": "Midtrans",
+            "paymentGatewayRef": "STR-2025-12-0067",
+            "isPaidOut": false,
+            "refundRequested": false,
+            "createdAt": "2025-12-01T08:00:00Z",
+            "paidAt": "2025-12-01T08:01:15Z",
+            "paidOutAt": null,
+            "notes": null
+        },
+        {
+            "id": 1007,
+            "userId": 2101,
+            "userName": "Farid Al-Amin",
+            "userEmail": "farid.alamin@edu.id",
+            "trainerId": 305,
+            "trainerName": "Zain",
+            "bookingId": 3007,
+            "packageName": "Paket Hemat 5x",
+            "amount": 387500,
+            "currency": "IDR",
+            "status": "pending",
+            "paymentMethod": "Midtrans",
+            "paymentGatewayRef": "MID-2026-01-0145",
+            "isPaidOut": false,
+            "refundRequested": false,
+            "createdAt": "2026-01-15T13:30:00Z",
+            "paidAt": null,
+            "paidOutAt": null,
+            "notes": null
+        },
+        {
+            "id": 1008,
+            "userId": 2033,
+            "userName": "Halimah Tussa'diyah",
+            "userEmail": "halimah.ts@gmail.com",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "bookingId": 3008,
+            "packageName": "1x Pertemuan",
+            "amount": 90000,
+            "currency": "IDR",
+            "status": "completed",
+            "paymentMethod": "Xendit",
+            "paymentGatewayRef": "XND-2026-02-0055",
+            "isPaidOut": true,
+            "refundRequested": false,
+            "createdAt": "2026-02-15T10:00:00Z",
+            "paidAt": "2026-02-15T10:02:44Z",
+            "paidOutAt": "2026-02-20T11:00:00Z",
+            "notes": null
+        }
+    ],
+    "bookings": [
+        {
+            "id": 3001,
+            "userId": 2011,
+            "userName": "Ahmad Fauzi",
+            "userEmail": "ahmad.fauzi@gmail.com",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "packageName": "Paket Hemat 5x",
+            "packageKey": "5x",
+            "totalSessions": 5,
+            "completedSessions": 3,
+            "mode": "online",
+            "pricePackage": 382500,
+            "serviceFee": 5000,
+            "totalPayment": 387500,
+            "currency": "IDR",
+            "status": "active",
+            "bookingDate": "2026-02-01T00:00:00Z",
+            "paymentMethod": "Ummi",
+            "paymentGateway": "Midtrans"
+        },
+        {
+            "id": 3002,
+            "userId": 2034,
+            "userName": "Siti Aminah",
+            "userEmail": "siti.aminah@yahoo.com",
+            "trainerId": 302,
+            "trainerName": "Indi fitriani",
+            "packageName": "1x Pertemuan",
+            "packageKey": "1x",
+            "totalSessions": 1,
+            "completedSessions": 0,
+            "mode": "offline",
+            "pricePackage": 85000,
+            "serviceFee": 5000,
+            "totalPayment": 90000,
+            "currency": "IDR",
+            "status": "active",
+            "bookingDate": "2026-02-10T00:00:00Z",
+            "paymentMethod": "Tilawati",
+            "paymentGateway": "Xendit"
+        },
+        {
+            "id": 3003,
+            "userId": 2019,
+            "userName": "Budi Santoso",
+            "userEmail": "budi.santoso@email.com",
+            "trainerId": 303,
+            "trainerName": "Ustadz Iwan",
+            "packageName": "Paket Intensif 10x",
+            "packageKey": "10x",
+            "totalSessions": 10,
+            "completedSessions": 10,
+            "mode": "online",
+            "pricePackage": 700000,
+            "serviceFee": 5000,
+            "totalPayment": 705000,
+            "currency": "IDR",
+            "status": "completed",
+            "bookingDate": "2026-01-01T00:00:00Z",
+            "paymentMethod": "Qiroati",
+            "paymentGateway": "Midtrans"
+        },
+        {
+            "id": 3004,
+            "userId": 2055,
+            "userName": "Dewi Rahayu",
+            "userEmail": "dewi.rahayu@gmail.com",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "packageName": "1x Pertemuan",
+            "packageKey": "1x",
+            "totalSessions": 1,
+            "completedSessions": 1,
+            "mode": "offline",
+            "pricePackage": 85000,
+            "serviceFee": 5000,
+            "totalPayment": 90000,
+            "currency": "IDR",
+            "status": "completed",
+            "bookingDate": "2026-01-05T00:00:00Z",
+            "paymentMethod": "Tartil",
+            "paymentGateway": "Midtrans"
+        },
+        {
+            "id": 3005,
+            "userId": 2072,
+            "userName": "Rizky Pratama",
+            "userEmail": "rizky.pratama@protonmail.com",
+            "trainerId": 304,
+            "trainerName": "Nanda",
+            "packageName": "Paket Hemat 5x",
+            "packageKey": "5x",
+            "totalSessions": 5,
+            "completedSessions": 1,
+            "mode": "online",
+            "pricePackage": 382500,
+            "serviceFee": 5000,
+            "totalPayment": 387500,
+            "currency": "IDR",
+            "status": "active",
+            "bookingDate": "2025-10-01T00:00:00Z",
+            "paymentMethod": "Al-Baghdadi",
+            "paymentGateway": "Xendit"
+        },
+        {
+            "id": 3006,
+            "userId": 2088,
+            "userName": "Nur Hidayah",
+            "userEmail": "nur.hidayah@mail.com",
+            "trainerId": 302,
+            "trainerName": "Indi fitriani",
+            "packageName": "Paket Intensif 10x",
+            "packageKey": "10x",
+            "totalSessions": 10,
+            "completedSessions": 2,
+            "mode": "offline",
+            "pricePackage": 700000,
+            "serviceFee": 5000,
+            "totalPayment": 705000,
+            "currency": "IDR",
+            "status": "cancelled",
+            "bookingDate": "2025-12-01T00:00:00Z",
+            "paymentMethod": "Tafsir",
+            "paymentGateway": "Midtrans"
+        },
+        {
+            "id": 3007,
+            "userId": 2101,
+            "userName": "Farid Al-Amin",
+            "userEmail": "farid.alamin@edu.id",
+            "trainerId": 305,
+            "trainerName": "Zain",
+            "packageName": "Paket Hemat 5x",
+            "packageKey": "5x",
+            "totalSessions": 5,
+            "completedSessions": 0,
+            "mode": "online",
+            "pricePackage": 382500,
+            "serviceFee": 5000,
+            "totalPayment": 387500,
+            "currency": "IDR",
+            "status": "active",
+            "bookingDate": "2026-01-15T00:00:00Z",
+            "paymentMethod": "Talaqqi",
+            "paymentGateway": "Midtrans"
+        },
+        {
+            "id": 3008,
+            "userId": 2033,
+            "userName": "Halimah Tussa'diyah",
+            "userEmail": "halimah.ts@gmail.com",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "packageName": "1x Pertemuan",
+            "packageKey": "1x",
+            "totalSessions": 1,
+            "completedSessions": 0,
+            "mode": "offline",
+            "pricePackage": 85000,
+            "serviceFee": 5000,
+            "totalPayment": 90000,
+            "currency": "IDR",
+            "status": "active",
+            "bookingDate": "2026-02-15T00:00:00Z",
+            "paymentMethod": "Ummi",
+            "paymentGateway": "Xendit"
+        },
+        {
+            "id": 3009,
+            "userId": 2120,
+            "userName": "Muhammad Yusuf",
+            "userEmail": "m.yusuf@qurani.id",
+            "trainerId": 302,
+            "trainerName": "Indi fitriani",
+            "packageName": "Paket Intensif 10x",
+            "packageKey": "10x",
+            "totalSessions": 10,
+            "completedSessions": 4,
+            "mode": "online",
+            "pricePackage": 700000,
+            "serviceFee": 5000,
+            "totalPayment": 705000,
+            "currency": "IDR",
+            "status": "active",
+            "bookingDate": "2026-02-20T00:00:00Z",
+            "paymentMethod": "Tilawati",
+            "paymentGateway": "Midtrans"
+        },
+        {
+            "id": 3010,
+            "userId": 2145,
+            "userName": "Aisyah Putri",
+            "userEmail": "aisyah.putri@gmail.com",
+            "trainerId": 303,
+            "trainerName": "Ustadz Iwan",
+            "packageName": "Paket Hemat 5x",
+            "packageKey": "5x",
+            "totalSessions": 5,
+            "completedSessions": 5,
+            "mode": "online",
+            "pricePackage": 382500,
+            "serviceFee": 5000,
+            "totalPayment": 387500,
+            "currency": "IDR",
+            "status": "completed",
+            "bookingDate": "2025-12-20T00:00:00Z",
+            "paymentMethod": "Ummi",
+            "paymentGateway": "Stripe"
+        }
+    ],
+    "bookingDetails": [
+        {
+            "bookingId": 3001,
+            "member": {
+                "id": 2011,
+                "name": "Ahmad Fauzi",
+                "email": "ahmad.fauzi@gmail.com",
+                "phone": "+62 812-3456-7890",
+                "joinDate": "2024-06-15T00:00:00Z",
+                "location": "Jakarta Selatan"
+            },
+            "trainer": {
+                "id": 301,
+                "name": "Hasyim asy'ari, Lc",
+                "email": "hasyim.lc@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+                "rating": 5.0,
+                "totalStudents": 45,
+                "specialization": "Lulusan Al-Azhar Kairo-Mesir"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-02-03",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": "Perkenalan dan penilaian awal"
+                },
+                {
+                    "no": 2,
+                    "date": "2026-02-10",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": "Materi huruf hijaiyah dasar"
+                },
+                {
+                    "no": 3,
+                    "date": "2026-02-17",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": "Latihan harakat fathah/kasrah/dhommah"
+                },
+                {
+                    "no": 4,
+                    "date": "2026-02-24",
+                    "time": "09:00 – 10:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2026-03-03",
+                    "time": "09:00 – 10:00",
+                    "status": "scheduled",
+                    "notes": null
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3001",
+                "pricePackage": 382500,
+                "serviceFee": 5000,
+                "total": 387500,
+                "method": "Midtrans",
+                "status": "paid",
+                "paidAt": "2026-02-01T08:31:55Z",
+                "receiptRef": "MID-2026-01-0089"
+            }
+        },
+        {
+            "bookingId": 3002,
+            "member": {
+                "id": 2034,
+                "name": "Siti Aminah",
+                "email": "siti.aminah@yahoo.com",
+                "phone": "+62 878-1122-3344",
+                "joinDate": "2025-01-20T00:00:00Z",
+                "location": "Bandung"
+            },
+            "trainer": {
+                "id": 302,
+                "name": "Indi fitriani",
+                "email": "indi.f@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+                "rating": 4.9,
+                "totalStudents": 39,
+                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-02-17",
+                    "time": "14:00 – 15:00",
+                    "status": "scheduled",
+                    "notes": "Sesi perkenalan tatap muka"
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3002",
+                "pricePackage": 85000,
+                "serviceFee": 5000,
+                "total": 90000,
+                "method": "Xendit",
+                "status": "pending",
+                "paidAt": null,
+                "receiptRef": "XND-2026-02-0023"
+            }
+        },
+        {
+            "bookingId": 3003,
+            "member": {
+                "id": 2019,
+                "name": "Budi Santoso",
+                "email": "budi.santoso@email.com",
+                "phone": "+62 856-9988-7766",
+                "joinDate": "2024-09-05T00:00:00Z",
+                "location": "Surabaya"
+            },
+            "trainer": {
+                "id": 303,
+                "name": "Ustadz Iwan",
+                "email": "iwan.ngaji@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+                "rating": 5.0,
+                "totalStudents": 39,
+                "specialization": "Baca Tulis Al-Qur'an Dasar"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-01-05",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": "Tes bacaan awal"
+                },
+                {
+                    "no": 2,
+                    "date": "2026-01-08",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 3,
+                    "date": "2026-01-12",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 4,
+                    "date": "2026-01-15",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2026-01-19",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 6,
+                    "date": "2026-01-22",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 7,
+                    "date": "2026-01-26",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 8,
+                    "date": "2026-01-29",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 9,
+                    "date": "2026-02-02",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 10,
+                    "date": "2026-02-05",
+                    "time": "07:00 – 08:00",
+                    "status": "completed",
+                    "notes": "Ujian akhir & evaluasi"
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3003",
+                "pricePackage": 700000,
+                "serviceFee": 5000,
+                "total": 705000,
+                "method": "Stripe",
+                "status": "paid",
+                "paidAt": "2026-01-01T09:02:10Z",
+                "receiptRef": "STR-2026-01-0044"
+            }
+        },
+        {
+            "bookingId": 3004,
+            "member": {
+                "id": 2055,
+                "name": "Dewi Rahayu",
+                "email": "dewi.rahayu@gmail.com",
+                "phone": "+62 821-5544-3322",
+                "joinDate": "2025-08-12T00:00:00Z",
+                "location": "Yogyakarta"
+            },
+            "trainer": {
+                "id": 301,
+                "name": "Hasyim asy'ari, Lc",
+                "email": "hasyim.lc@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+                "rating": 5.0,
+                "totalStudents": 45,
+                "specialization": "Lulusan Al-Azhar Kairo-Mesir"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-01-10",
+                    "time": "10:00 – 11:00",
+                    "status": "completed",
+                    "notes": "Sesi perkenalan — offline di rumah siswa"
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3004",
+                "pricePackage": 85000,
+                "serviceFee": 5000,
+                "total": 90000,
+                "method": "Midtrans",
+                "status": "paid",
+                "paidAt": "2026-01-05T11:21:33Z",
+                "receiptRef": "MID-2026-01-0101"
+            }
+        },
+        {
+            "bookingId": 3005,
+            "member": {
+                "id": 2072,
+                "name": "Rizky Pratama",
+                "email": "rizky.pratama@protonmail.com",
+                "phone": "+62 895-6677-8899",
+                "joinDate": "2024-07-30T00:00:00Z",
+                "location": "Depok"
+            },
+            "trainer": {
+                "id": 304,
+                "name": "Nanda",
+                "email": "nanda.q@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
+                "rating": 4.9,
+                "totalStudents": 67,
+                "specialization": "Program Tahsin & Tahfidz"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2025-10-07",
+                    "time": "19:00 – 20:00",
+                    "status": "completed",
+                    "notes": "Perkenalan dan tes awal"
+                },
+                {
+                    "no": 2,
+                    "date": "2025-10-14",
+                    "time": "19:00 – 20:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 3,
+                    "date": "2025-10-21",
+                    "time": "19:00 – 20:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 4,
+                    "date": "2025-10-28",
+                    "time": "19:00 – 20:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2025-11-04",
+                    "time": "19:00 – 20:00",
+                    "status": "scheduled",
+                    "notes": null
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2025-3005",
+                "pricePackage": 382500,
+                "serviceFee": 5000,
+                "total": 387500,
+                "method": "Xendit",
+                "status": "paid",
+                "paidAt": "2025-10-01T16:46:20Z",
+                "receiptRef": "XND-2025-10-0031"
+            }
+        },
+        {
+            "bookingId": 3006,
+            "member": {
+                "id": 2088,
+                "name": "Nur Hidayah",
+                "email": "nur.hidayah@mail.com",
+                "phone": "+62 812-9988-1122",
+                "joinDate": "2025-03-18T00:00:00Z",
+                "location": "Bekasi"
+            },
+            "trainer": {
+                "id": 302,
+                "name": "Indi fitriani",
+                "email": "indi.f@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+                "rating": 4.9,
+                "totalStudents": 39,
+                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2025-12-05",
+                    "time": "16:00 – 17:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 2,
+                    "date": "2025-12-09",
+                    "time": "16:00 – 17:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 3,
+                    "date": "2025-12-13",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": "Dibatalkan oleh user"
+                },
+                {
+                    "no": 4,
+                    "date": "2025-12-17",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2025-12-21",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                },
+                {
+                    "no": 6,
+                    "date": "2025-12-25",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                },
+                {
+                    "no": 7,
+                    "date": "2025-12-29",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                },
+                {
+                    "no": 8,
+                    "date": "2026-01-02",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                },
+                {
+                    "no": 9,
+                    "date": "2026-01-06",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                },
+                {
+                    "no": 10,
+                    "date": "2026-01-10",
+                    "time": "16:00 – 17:00",
+                    "status": "cancelled",
+                    "notes": null
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2025-3006",
+                "pricePackage": 700000,
+                "serviceFee": 5000,
+                "total": 705000,
+                "method": "Stripe",
+                "status": "paid",
+                "paidAt": "2025-12-01T08:01:15Z",
+                "receiptRef": "STR-2025-12-0067"
+            }
+        },
+        {
+            "bookingId": 3007,
+            "member": {
+                "id": 2101,
+                "name": "Farid Al-Amin",
+                "email": "farid.alamin@edu.id",
+                "phone": "+62 877-3344-5566",
+                "joinDate": "2025-05-22T00:00:00Z",
+                "location": "Malang"
+            },
+            "trainer": {
+                "id": 305,
+                "name": "Zain",
+                "email": "zain.n@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+                "rating": 5.0,
+                "totalStudents": 42,
+                "specialization": "Tahsin & Mahroj Profesional"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-01-20",
+                    "time": "20:00 – 21:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 2,
+                    "date": "2026-01-27",
+                    "time": "20:00 – 21:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 3,
+                    "date": "2026-02-03",
+                    "time": "20:00 – 21:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 4,
+                    "date": "2026-02-10",
+                    "time": "20:00 – 21:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2026-02-17",
+                    "time": "20:00 – 21:00",
+                    "status": "scheduled",
+                    "notes": null
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3007",
+                "pricePackage": 382500,
+                "serviceFee": 5000,
+                "total": 387500,
+                "method": "Midtrans",
+                "status": "pending",
+                "paidAt": null,
+                "receiptRef": "MID-2026-01-0145"
+            }
+        },
+        {
+            "bookingId": 3008,
+            "member": {
+                "id": 2033,
+                "name": "Halimah Tussa'diyah",
+                "email": "halimah.ts@gmail.com",
+                "phone": "+62 859-7788-0011",
+                "joinDate": "2025-10-01T00:00:00Z",
+                "location": "Tangerang"
+            },
+            "trainer": {
+                "id": 301,
+                "name": "Hasyim asy'ari, Lc",
+                "email": "hasyim.lc@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+                "rating": 5.0,
+                "totalStudents": 45,
+                "specialization": "Lulusan Al-Azhar Kairo-Mesir"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-02-20",
+                    "time": "13:00 – 14:00",
+                    "status": "scheduled",
+                    "notes": "Sesi perkenalan — offline"
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3008",
+                "pricePackage": 85000,
+                "serviceFee": 5000,
+                "total": 90000,
+                "method": "Xendit",
+                "status": "paid",
+                "paidAt": "2026-02-15T10:02:44Z",
+                "receiptRef": "XND-2026-02-0055"
+            }
+        },
+        {
+            "bookingId": 3009,
+            "member": {
+                "id": 2120,
+                "name": "Muhammad Yusuf",
+                "email": "m.yusuf@qurani.id",
+                "phone": "+62 813-2211-4455",
+                "joinDate": "2024-11-10T00:00:00Z",
+                "location": "Bogor"
+            },
+            "trainer": {
+                "id": 302,
+                "name": "Indi fitriani",
+                "email": "indi.f@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+                "rating": 4.9,
+                "totalStudents": 39,
+                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2026-02-22",
+                    "time": "08:00 – 09:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 2,
+                    "date": "2026-02-24",
+                    "time": "08:00 – 09:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 3,
+                    "date": "2026-02-26",
+                    "time": "08:00 – 09:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 4,
+                    "date": "2026-02-28",
+                    "time": "08:00 – 09:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2026-03-02",
+                    "time": "08:00 – 09:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 6,
+                    "date": "2026-03-04",
+                    "time": "08:00 – 09:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 7,
+                    "date": "2026-03-06",
+                    "time": "08:00 – 09:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 8,
+                    "date": "2026-03-08",
+                    "time": "08:00 – 09:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 9,
+                    "date": "2026-03-10",
+                    "time": "08:00 – 09:00",
+                    "status": "scheduled",
+                    "notes": null
+                },
+                {
+                    "no": 10,
+                    "date": "2026-03-12",
+                    "time": "08:00 – 09:00",
+                    "status": "scheduled",
+                    "notes": null
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2026-3009",
+                "pricePackage": 700000,
+                "serviceFee": 5000,
+                "total": 705000,
+                "method": "Midtrans",
+                "status": "paid",
+                "paidAt": "2026-02-20T07:15:00Z",
+                "receiptRef": "MID-2026-02-0200"
+            }
+        },
+        {
+            "bookingId": 3010,
+            "member": {
+                "id": 2145,
+                "name": "Aisyah Putri",
+                "email": "aisyah.putri@gmail.com",
+                "phone": "+62 857-1100-9988",
+                "joinDate": "2025-09-01T00:00:00Z",
+                "location": "Semarang"
+            },
+            "trainer": {
+                "id": 303,
+                "name": "Ustadz Iwan",
+                "email": "iwan.ngaji@superprof.id",
+                "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+                "rating": 5.0,
+                "totalStudents": 39,
+                "specialization": "Baca Tulis Al-Qur'an Dasar"
+            },
+            "sessions": [
+                {
+                    "no": 1,
+                    "date": "2025-12-22",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 2,
+                    "date": "2025-12-26",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 3,
+                    "date": "2025-12-30",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 4,
+                    "date": "2026-01-03",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": null
+                },
+                {
+                    "no": 5,
+                    "date": "2026-01-07",
+                    "time": "09:00 – 10:00",
+                    "status": "completed",
+                    "notes": "Sesi terakhir & evaluasi akhir"
+                }
+            ],
+            "payment": {
+                "invoiceNo": "INV-2025-3010",
+                "pricePackage": 382500,
+                "serviceFee": 5000,
+                "total": 387500,
+                "method": "Stripe",
+                "status": "paid",
+                "paidAt": "2025-12-20T10:30:00Z",
+                "receiptRef": "STR-2025-12-0099"
+            }
+        }
+    ]
+}

@@ -215,31 +215,28 @@ function BillingContent() {
           <div className="inline-flex items-center rounded-full bg-white border shadow-sm p-1">
             <button
               onClick={() => setPeriod("monthly")}
-              className={`px-4 py-1.5 text-sm rounded-full transition ${
-                period === "monthly"
+              className={`px-4 py-1.5 text-sm rounded-full transition ${period === "monthly"
                   ? "bg-emerald-500 text-white shadow-sm"
                   : "text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               {t("billing.periods.monthly", "Monthly")}
             </button>
             <button
               onClick={() => setPeriod("half-yearly")}
-              className={`px-4 py-1.5 text-sm rounded-full transition ${
-                period === "half-yearly"
+              className={`px-4 py-1.5 text-sm rounded-full transition ${period === "half-yearly"
                   ? "bg-emerald-500 text-white shadow-sm"
                   : "text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               {t("billing.periods.half_yearly", "Half-Yearly")}
             </button>
             <button
               onClick={() => setPeriod("yearly")}
-              className={`px-4 py-1.5 text-sm rounded-full transition ${
-                period === "yearly"
+              className={`px-4 py-1.5 text-sm rounded-full transition ${period === "yearly"
                   ? "bg-emerald-500 text-white shadow-sm"
                   : "text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               {t("billing.periods.yearly", "Yearly")}
             </button>
@@ -364,11 +361,10 @@ function BillingContent() {
                     </td>
                     <td className="px-4 py-2.5 text-xs">
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          tx.status === "paid"
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${tx.status === "paid"
                             ? "bg-emerald-50 text-emerald-600"
                             : "bg-amber-50 text-amber-600"
-                        }`}
+                          }`}
                       >
                         {statusLabel(tx.status)}
                       </span>
