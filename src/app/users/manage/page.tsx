@@ -1,4 +1,5 @@
 
+import { Suspense } from "react";
 import Users from "@/components/admin/user";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { I18nProvider } from "@/components/providers/i18n-provider";
@@ -7,7 +8,9 @@ export default function Page() {
     return (
         <DashboardLayout>
             <I18nProvider namespaces={['common', 'admin-users']}>
-                <Users />
+                <Suspense fallback={null}>
+                    <Users />
+                </Suspense>
             </I18nProvider>
         </DashboardLayout>
     )
