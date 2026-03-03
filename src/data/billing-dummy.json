@@ -1,4 +1,230 @@
 {
+    "trainerPackages": [
+        {
+            "id": "tp-3011",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "trainerAvatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+            "name": "1x Pertemuan",
+            "sessions": 1,
+            "basePrice": 120000,
+            "serviceFee": 5000,
+            "totalPrice": 125000,
+            "status": "active",
+            "category": "Satuan",
+            "description": "Satu sesi percobaan bersama Ust. Hasyim lulusan Al-Azhar Kairo.",
+            "totalOrders": 12,
+            "totalRevenue": 1500000
+        },
+        {
+            "id": "tp-3012",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "trainerAvatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+            "name": "5x Pertemuan",
+            "sessions": 5,
+            "basePrice": 550000,
+            "serviceFee": 5000,
+            "totalPrice": 555000,
+            "status": "active",
+            "category": "Hemat",
+            "description": "5 sesi intensif tajwid & makharijul huruf dengan metode talaqqi.",
+            "totalOrders": 28,
+            "totalRevenue": 15540000
+        },
+        {
+            "id": "tp-3013",
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "trainerAvatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+            "name": "10x Pertemuan",
+            "sessions": 10,
+            "basePrice": 1000000,
+            "serviceFee": 5000,
+            "totalPrice": 1005000,
+            "status": "active",
+            "category": "Intensif",
+            "description": "Program tahsin intensif 10 sesi, cocok bagi yang ingin cepat fasih.",
+            "totalOrders": 15,
+            "totalRevenue": 15075000
+        },
+        {
+            "id": "tp-3021",
+            "trainerId": 302,
+            "trainerName": "Indi Fitriani",
+            "trainerAvatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+            "name": "1x Pertemuan",
+            "sessions": 1,
+            "basePrice": 80000,
+            "serviceFee": 5000,
+            "totalPrice": 85000,
+            "status": "active",
+            "category": "Satuan",
+            "description": "Kenali metode mengajar Indi lewat 1 sesi tanpa komitmen.",
+            "totalOrders": 19,
+            "totalRevenue": 1615000
+        },
+        {
+            "id": "tp-3022",
+            "trainerId": 302,
+            "trainerName": "Indi Fitriani",
+            "trainerAvatar": "https://c.superprof.com/i/m/22913978/600/20241221202313/22913978.webp",
+            "name": "5x Pertemuan",
+            "sessions": 5,
+            "basePrice": 375000,
+            "serviceFee": 5000,
+            "totalPrice": 380000,
+            "status": "active",
+            "category": "Hemat",
+            "description": "5 sesi belajar tartil dengan metode Tilawati yang menyenangkan.",
+            "totalOrders": 34,
+            "totalRevenue": 12920000
+        },
+        {
+            "id": "tp-3023",
+            "trainerId": 302,
+            "trainerName": "Indi Fitriani",
+            "trainerAvatar": "https://c.superprof.com/i/m/22913978/600/20241221202313/22913978.webp",
+            "name": "8x Pertemuan",
+            "sessions": 8,
+            "basePrice": 560000,
+            "serviceFee": 5000,
+            "totalPrice": 565000,
+            "status": "active",
+            "category": "Intensif",
+            "description": "8 sesi khusus program hafalan juz 30 untuk pemula.",
+            "totalOrders": 11,
+            "totalRevenue": 6215000
+        },
+        {
+            "id": "tp-3031",
+            "trainerId": 303,
+            "trainerName": "Ustadz Iwan",
+            "trainerAvatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+            "name": "1x Pertemuan",
+            "sessions": 1,
+            "basePrice": 90000,
+            "serviceFee": 5000,
+            "totalPrice": 95000,
+            "status": "active",
+            "category": "Satuan",
+            "description": "Sesi perdana pengenalan metode Qiroati untuk anak-anak.",
+            "totalOrders": 22,
+            "totalRevenue": 2090000
+        },
+        {
+            "id": "tp-3032",
+            "trainerId": 303,
+            "trainerName": "Ustadz Iwan",
+            "trainerAvatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+            "name": "5x Pertemuan",
+            "sessions": 5,
+            "basePrice": 420000,
+            "serviceFee": 5000,
+            "totalPrice": 425000,
+            "status": "active",
+            "category": "Hemat",
+            "description": "Paket 5 sesi metode Qiroati, cocok untuk anak usia dini.",
+            "totalOrders": 18,
+            "totalRevenue": 7650000
+        },
+        {
+            "id": "tp-3033",
+            "trainerId": 303,
+            "trainerName": "Ustadz Iwan",
+            "trainerAvatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+            "name": "10x Pertemuan",
+            "sessions": 10,
+            "basePrice": 800000,
+            "serviceFee": 5000,
+            "totalPrice": 805000,
+            "status": "inactive",
+            "category": "Intensif",
+            "description": "Program 10 sesi intensif. Sementara tidak tersedia.",
+            "totalOrders": 5,
+            "totalRevenue": 4025000
+        },
+        {
+            "id": "tp-3041",
+            "trainerId": 304,
+            "trainerName": "Nanda",
+            "trainerAvatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
+            "name": "1x Pertemuan",
+            "sessions": 1,
+            "basePrice": 75000,
+            "serviceFee": 5000,
+            "totalPrice": 80000,
+            "status": "active",
+            "category": "Satuan",
+            "description": "Sesi pertama bersama Nanda â€” ramah & sabar untuk pemula.",
+            "totalOrders": 14,
+            "totalRevenue": 1120000
+        },
+        {
+            "id": "tp-3042",
+            "trainerId": 304,
+            "trainerName": "Nanda",
+            "trainerAvatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
+            "name": "4x Pertemuan",
+            "sessions": 4,
+            "basePrice": 280000,
+            "serviceFee": 5000,
+            "totalPrice": 285000,
+            "status": "active",
+            "category": "Hemat",
+            "description": "4 sesi perbaikan bacaan Al-Qur'an dari dasar.",
+            "totalOrders": 9,
+            "totalRevenue": 2565000
+        },
+        {
+            "id": "tp-3051",
+            "trainerId": 305,
+            "trainerName": "Zain",
+            "trainerAvatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+            "name": "1x Pertemuan",
+            "sessions": 1,
+            "basePrice": 85000,
+            "serviceFee": 5000,
+            "totalPrice": 90000,
+            "status": "active",
+            "category": "Satuan",
+            "description": "Sesi perkenalan khusus dengan Ustadz Zain.",
+            "totalOrders": 8,
+            "totalRevenue": 720000
+        },
+        {
+            "id": "tp-3052",
+            "trainerId": 305,
+            "trainerName": "Zain",
+            "trainerAvatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+            "name": "5x Pertemuan",
+            "sessions": 5,
+            "basePrice": 400000,
+            "serviceFee": 5000,
+            "totalPrice": 405000,
+            "status": "active",
+            "category": "Hemat",
+            "description": "5 sesi latihan intensif makhraj huruf hijaiyah.",
+            "totalOrders": 6,
+            "totalRevenue": 2430000
+        },
+        {
+            "id": "tp-3053",
+            "trainerId": 305,
+            "trainerName": "Zain",
+            "trainerAvatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+            "name": "10x Pertemuan",
+            "sessions": 10,
+            "basePrice": 750000,
+            "serviceFee": 5000,
+            "totalPrice": 755000,
+            "status": "active",
+            "category": "Intensif",
+            "description": "Program 10 sesi hafalan dengan bimbingan penuh Ustadz Zain.",
+            "totalOrders": 4,
+            "totalRevenue": 3020000
+        }
+    ],
     "stats": {
         "totalRevenue": 184750000,
         "totalRevenueCurrency": "IDR",
@@ -45,13 +271,13 @@
     ],
     "paymentMethodBreakdown": [
         {
-            "method": "Midtrans",
+            "method": "GoPay",
             "count": 654,
             "amount": 98200000,
             "percentage": 53.2
         },
         {
-            "method": "Xendit",
+            "method": "QRIS",
             "count": 387,
             "amount": 55100000,
             "percentage": 46.8
@@ -66,11 +292,11 @@
             "trainerId": 301,
             "trainerName": "Hasyim asy'ari, Lc",
             "bookingId": 3001,
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "amount": 387500,
             "currency": "IDR",
             "status": "completed",
-            "paymentMethod": "Midtrans",
+            "paymentMethod": "GoPay",
             "paymentGatewayRef": "MID-2026-01-0089",
             "isPaidOut": true,
             "refundRequested": false,
@@ -91,8 +317,8 @@
             "amount": 90000,
             "currency": "IDR",
             "status": "pending",
-            "paymentMethod": "Xendit",
-            "paymentGatewayRef": "XND-2026-02-0023",
+            "paymentMethod": "QRIS",
+            "paymentGatewayRef": "QRS-2026-02-0023",
             "isPaidOut": false,
             "refundRequested": false,
             "createdAt": "2026-02-10T14:15:00Z",
@@ -108,12 +334,12 @@
             "trainerId": 303,
             "trainerName": "Ustadz Iwan",
             "bookingId": 3003,
-            "packageName": "Paket Intensif 10x",
+            "packageName": "10x Pertemuan",
             "amount": 705000,
             "currency": "IDR",
             "status": "completed",
-            "paymentMethod": "Midtrans",
-            "paymentGatewayRef": "STR-2026-01-0044",
+            "paymentMethod": "GoPay",
+            "paymentGatewayRef": "OVO-2026-01-0044",
             "isPaidOut": true,
             "refundRequested": false,
             "createdAt": "2026-01-01T09:00:00Z",
@@ -133,7 +359,7 @@
             "amount": 90000,
             "currency": "IDR",
             "status": "completed",
-            "paymentMethod": "Midtrans",
+            "paymentMethod": "GoPay",
             "paymentGatewayRef": "MID-2026-01-0101",
             "isPaidOut": true,
             "refundRequested": false,
@@ -150,12 +376,12 @@
             "trainerId": 304,
             "trainerName": "Nanda",
             "bookingId": 3005,
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "amount": 387500,
             "currency": "IDR",
             "status": "completed",
-            "paymentMethod": "Xendit",
-            "paymentGatewayRef": "XND-2025-10-0031",
+            "paymentMethod": "QRIS",
+            "paymentGatewayRef": "QRS-2025-10-0031",
             "isPaidOut": true,
             "refundRequested": false,
             "createdAt": "2025-10-01T16:45:00Z",
@@ -171,12 +397,12 @@
             "trainerId": 302,
             "trainerName": "Indi fitriani",
             "bookingId": 3006,
-            "packageName": "Paket Intensif 10x",
+            "packageName": "10x Pertemuan",
             "amount": 705000,
             "currency": "IDR",
             "status": "completed",
-            "paymentMethod": "Midtrans",
-            "paymentGatewayRef": "STR-2025-12-0067",
+            "paymentMethod": "GoPay",
+            "paymentGatewayRef": "OVO-2025-12-0067",
             "isPaidOut": false,
             "refundRequested": false,
             "createdAt": "2025-12-01T08:00:00Z",
@@ -192,11 +418,11 @@
             "trainerId": 305,
             "trainerName": "Zain",
             "bookingId": 3007,
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "amount": 387500,
             "currency": "IDR",
             "status": "pending",
-            "paymentMethod": "Midtrans",
+            "paymentMethod": "GoPay",
             "paymentGatewayRef": "MID-2026-01-0145",
             "isPaidOut": false,
             "refundRequested": false,
@@ -217,8 +443,8 @@
             "amount": 90000,
             "currency": "IDR",
             "status": "completed",
-            "paymentMethod": "Xendit",
-            "paymentGatewayRef": "XND-2026-02-0055",
+            "paymentMethod": "QRIS",
+            "paymentGatewayRef": "QRS-2026-02-0055",
             "isPaidOut": true,
             "refundRequested": false,
             "createdAt": "2026-02-15T10:00:00Z",
@@ -235,7 +461,7 @@
             "userEmail": "ahmad.fauzi@gmail.com",
             "trainerId": 301,
             "trainerName": "Hasyim asy'ari, Lc",
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "packageKey": "5x",
             "totalSessions": 5,
             "completedSessions": 3,
@@ -247,7 +473,7 @@
             "status": "active",
             "bookingDate": "2026-02-01T00:00:00Z",
             "paymentMethod": "Ummi",
-            "paymentGateway": "Midtrans"
+            "paymentGateway": "GoPay"
         },
         {
             "id": 3002,
@@ -268,7 +494,7 @@
             "status": "active",
             "bookingDate": "2026-02-10T00:00:00Z",
             "paymentMethod": "Tilawati",
-            "paymentGateway": "Xendit"
+            "paymentGateway": "QRIS"
         },
         {
             "id": 3003,
@@ -277,7 +503,7 @@
             "userEmail": "budi.santoso@email.com",
             "trainerId": 303,
             "trainerName": "Ustadz Iwan",
-            "packageName": "Paket Intensif 10x",
+            "packageName": "10x Pertemuan",
             "packageKey": "10x",
             "totalSessions": 10,
             "completedSessions": 10,
@@ -289,7 +515,7 @@
             "status": "completed",
             "bookingDate": "2026-01-01T00:00:00Z",
             "paymentMethod": "Qiroati",
-            "paymentGateway": "Midtrans"
+            "paymentGateway": "GoPay"
         },
         {
             "id": 3004,
@@ -310,7 +536,7 @@
             "status": "completed",
             "bookingDate": "2026-01-05T00:00:00Z",
             "paymentMethod": "Tartil",
-            "paymentGateway": "Midtrans"
+            "paymentGateway": "GoPay"
         },
         {
             "id": 3005,
@@ -319,7 +545,7 @@
             "userEmail": "rizky.pratama@protonmail.com",
             "trainerId": 304,
             "trainerName": "Nanda",
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "packageKey": "5x",
             "totalSessions": 5,
             "completedSessions": 1,
@@ -331,7 +557,7 @@
             "status": "active",
             "bookingDate": "2025-10-01T00:00:00Z",
             "paymentMethod": "Al-Baghdadi",
-            "paymentGateway": "Xendit"
+            "paymentGateway": "QRIS"
         },
         {
             "id": 3006,
@@ -340,7 +566,7 @@
             "userEmail": "nur.hidayah@mail.com",
             "trainerId": 302,
             "trainerName": "Indi fitriani",
-            "packageName": "Paket Intensif 10x",
+            "packageName": "10x Pertemuan",
             "packageKey": "10x",
             "totalSessions": 10,
             "completedSessions": 2,
@@ -352,7 +578,7 @@
             "status": "cancelled",
             "bookingDate": "2025-12-01T00:00:00Z",
             "paymentMethod": "Tafsir",
-            "paymentGateway": "Midtrans"
+            "paymentGateway": "GoPay"
         },
         {
             "id": 3007,
@@ -361,7 +587,7 @@
             "userEmail": "farid.alamin@edu.id",
             "trainerId": 305,
             "trainerName": "Zain",
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "packageKey": "5x",
             "totalSessions": 5,
             "completedSessions": 0,
@@ -373,7 +599,7 @@
             "status": "active",
             "bookingDate": "2026-01-15T00:00:00Z",
             "paymentMethod": "Talaqqi",
-            "paymentGateway": "Midtrans"
+            "paymentGateway": "GoPay"
         },
         {
             "id": 3008,
@@ -394,7 +620,7 @@
             "status": "active",
             "bookingDate": "2026-02-15T00:00:00Z",
             "paymentMethod": "Ummi",
-            "paymentGateway": "Xendit"
+            "paymentGateway": "QRIS"
         },
         {
             "id": 3009,
@@ -403,7 +629,7 @@
             "userEmail": "m.yusuf@qurani.id",
             "trainerId": 302,
             "trainerName": "Indi fitriani",
-            "packageName": "Paket Intensif 10x",
+            "packageName": "10x Pertemuan",
             "packageKey": "10x",
             "totalSessions": 10,
             "completedSessions": 4,
@@ -415,7 +641,7 @@
             "status": "active",
             "bookingDate": "2026-02-20T00:00:00Z",
             "paymentMethod": "Tilawati",
-            "paymentGateway": "Midtrans"
+            "paymentGateway": "GoPay"
         },
         {
             "id": 3010,
@@ -424,7 +650,7 @@
             "userEmail": "aisyah.putri@gmail.com",
             "trainerId": 303,
             "trainerName": "Ustadz Iwan",
-            "packageName": "Paket Hemat 5x",
+            "packageName": "5x Pertemuan",
             "packageKey": "5x",
             "totalSessions": 5,
             "completedSessions": 5,
@@ -436,7 +662,7 @@
             "status": "completed",
             "bookingDate": "2025-12-20T00:00:00Z",
             "paymentMethod": "Ummi",
-            "paymentGateway": "Stripe"
+            "paymentGateway": "OVO"
         }
     ],
     "bookingDetails": [
@@ -455,7 +681,7 @@
                 "name": "Hasyim asy'ari, Lc",
                 "email": "hasyim.lc@superprof.id",
                 "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
-                "rating": 5.0,
+                "rating": 5,
                 "totalStudents": 45,
                 "specialization": "Lulusan Al-Azhar Kairo-Mesir"
             },
@@ -463,35 +689,35 @@
                 {
                     "no": 1,
                     "date": "2026-02-03",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": "Perkenalan dan penilaian awal"
                 },
                 {
                     "no": 2,
                     "date": "2026-02-10",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": "Materi huruf hijaiyah dasar"
                 },
                 {
                     "no": 3,
                     "date": "2026-02-17",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": "Latihan harakat fathah/kasrah/dhommah"
                 },
                 {
                     "no": 4,
                     "date": "2026-02-24",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-03-03",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -501,7 +727,7 @@
                 "pricePackage": 382500,
                 "serviceFee": 5000,
                 "total": 387500,
-                "method": "Midtrans",
+                "method": "GoPay",
                 "status": "paid",
                 "paidAt": "2026-02-01T08:31:55Z",
                 "receiptRef": "MID-2026-01-0089"
@@ -530,7 +756,7 @@
                 {
                     "no": 1,
                     "date": "2026-02-17",
-                    "time": "14:00 – 15:00",
+                    "time": "14:00 â€“ 15:00",
                     "status": "scheduled",
                     "notes": "Sesi perkenalan tatap muka"
                 }
@@ -540,10 +766,10 @@
                 "pricePackage": 85000,
                 "serviceFee": 5000,
                 "total": 90000,
-                "method": "Xendit",
+                "method": "QRIS",
                 "status": "pending",
                 "paidAt": null,
-                "receiptRef": "XND-2026-02-0023"
+                "receiptRef": "QRS-2026-02-0023"
             }
         },
         {
@@ -561,7 +787,7 @@
                 "name": "Ustadz Iwan",
                 "email": "iwan.ngaji@superprof.id",
                 "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
-                "rating": 5.0,
+                "rating": 5,
                 "totalStudents": 39,
                 "specialization": "Baca Tulis Al-Qur'an Dasar"
             },
@@ -569,70 +795,70 @@
                 {
                     "no": 1,
                     "date": "2026-01-05",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": "Tes bacaan awal"
                 },
                 {
                     "no": 2,
                     "date": "2026-01-08",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2026-01-12",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-01-15",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-01-19",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 6,
                     "date": "2026-01-22",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 7,
                     "date": "2026-01-26",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 8,
                     "date": "2026-01-29",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 9,
                     "date": "2026-02-02",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 10,
                     "date": "2026-02-05",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": "Ujian akhir & evaluasi"
                 }
@@ -642,10 +868,10 @@
                 "pricePackage": 700000,
                 "serviceFee": 5000,
                 "total": 705000,
-                "method": "Stripe",
+                "method": "OVO",
                 "status": "paid",
                 "paidAt": "2026-01-01T09:02:10Z",
-                "receiptRef": "STR-2026-01-0044"
+                "receiptRef": "OVO-2026-01-0044"
             }
         },
         {
@@ -663,7 +889,7 @@
                 "name": "Hasyim asy'ari, Lc",
                 "email": "hasyim.lc@superprof.id",
                 "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
-                "rating": 5.0,
+                "rating": 5,
                 "totalStudents": 45,
                 "specialization": "Lulusan Al-Azhar Kairo-Mesir"
             },
@@ -671,9 +897,9 @@
                 {
                     "no": 1,
                     "date": "2026-01-10",
-                    "time": "10:00 – 11:00",
+                    "time": "10:00 â€“ 11:00",
                     "status": "completed",
-                    "notes": "Sesi perkenalan — offline di rumah siswa"
+                    "notes": "Sesi perkenalan â€” offline di rumah siswa"
                 }
             ],
             "payment": {
@@ -681,7 +907,7 @@
                 "pricePackage": 85000,
                 "serviceFee": 5000,
                 "total": 90000,
-                "method": "Midtrans",
+                "method": "GoPay",
                 "status": "paid",
                 "paidAt": "2026-01-05T11:21:33Z",
                 "receiptRef": "MID-2026-01-0101"
@@ -710,35 +936,35 @@
                 {
                     "no": 1,
                     "date": "2025-10-07",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "completed",
                     "notes": "Perkenalan dan tes awal"
                 },
                 {
                     "no": 2,
                     "date": "2025-10-14",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2025-10-21",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2025-10-28",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2025-11-04",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -748,10 +974,10 @@
                 "pricePackage": 382500,
                 "serviceFee": 5000,
                 "total": 387500,
-                "method": "Xendit",
+                "method": "QRIS",
                 "status": "paid",
                 "paidAt": "2025-10-01T16:46:20Z",
-                "receiptRef": "XND-2025-10-0031"
+                "receiptRef": "QRS-2025-10-0031"
             }
         },
         {
@@ -777,70 +1003,70 @@
                 {
                     "no": 1,
                     "date": "2025-12-05",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2025-12-09",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2025-12-13",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": "Dibatalkan oleh user"
                 },
                 {
                     "no": 4,
                     "date": "2025-12-17",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2025-12-21",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 },
                 {
                     "no": 6,
                     "date": "2025-12-25",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 },
                 {
                     "no": 7,
                     "date": "2025-12-29",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 },
                 {
                     "no": 8,
                     "date": "2026-01-02",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 },
                 {
                     "no": 9,
                     "date": "2026-01-06",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 },
                 {
                     "no": 10,
                     "date": "2026-01-10",
-                    "time": "16:00 – 17:00",
+                    "time": "16:00 â€“ 17:00",
                     "status": "cancelled",
                     "notes": null
                 }
@@ -850,10 +1076,10 @@
                 "pricePackage": 700000,
                 "serviceFee": 5000,
                 "total": 705000,
-                "method": "Stripe",
+                "method": "OVO",
                 "status": "paid",
                 "paidAt": "2025-12-01T08:01:15Z",
-                "receiptRef": "STR-2025-12-0067"
+                "receiptRef": "OVO-2025-12-0067"
             }
         },
         {
@@ -871,7 +1097,7 @@
                 "name": "Zain",
                 "email": "zain.n@superprof.id",
                 "avatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
-                "rating": 5.0,
+                "rating": 5,
                 "totalStudents": 42,
                 "specialization": "Tahsin & Mahroj Profesional"
             },
@@ -879,35 +1105,35 @@
                 {
                     "no": 1,
                     "date": "2026-01-20",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2026-01-27",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2026-02-03",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-02-10",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-02-17",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -917,7 +1143,7 @@
                 "pricePackage": 382500,
                 "serviceFee": 5000,
                 "total": 387500,
-                "method": "Midtrans",
+                "method": "GoPay",
                 "status": "pending",
                 "paidAt": null,
                 "receiptRef": "MID-2026-01-0145"
@@ -938,7 +1164,7 @@
                 "name": "Hasyim asy'ari, Lc",
                 "email": "hasyim.lc@superprof.id",
                 "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
-                "rating": 5.0,
+                "rating": 5,
                 "totalStudents": 45,
                 "specialization": "Lulusan Al-Azhar Kairo-Mesir"
             },
@@ -946,9 +1172,9 @@
                 {
                     "no": 1,
                     "date": "2026-02-20",
-                    "time": "13:00 – 14:00",
+                    "time": "13:00 â€“ 14:00",
                     "status": "scheduled",
-                    "notes": "Sesi perkenalan — offline"
+                    "notes": "Sesi perkenalan â€” offline"
                 }
             ],
             "payment": {
@@ -956,10 +1182,10 @@
                 "pricePackage": 85000,
                 "serviceFee": 5000,
                 "total": 90000,
-                "method": "Xendit",
+                "method": "QRIS",
                 "status": "paid",
                 "paidAt": "2026-02-15T10:02:44Z",
-                "receiptRef": "XND-2026-02-0055"
+                "receiptRef": "QRS-2026-02-0055"
             }
         },
         {
@@ -985,70 +1211,70 @@
                 {
                     "no": 1,
                     "date": "2026-02-22",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2026-02-24",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2026-02-26",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-02-28",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-03-02",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 6,
                     "date": "2026-03-04",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 7,
                     "date": "2026-03-06",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 8,
                     "date": "2026-03-08",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 9,
                     "date": "2026-03-10",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 10,
                     "date": "2026-03-12",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -1058,7 +1284,7 @@
                 "pricePackage": 700000,
                 "serviceFee": 5000,
                 "total": 705000,
-                "method": "Midtrans",
+                "method": "GoPay",
                 "status": "paid",
                 "paidAt": "2026-02-20T07:15:00Z",
                 "receiptRef": "MID-2026-02-0200"
@@ -1079,7 +1305,7 @@
                 "name": "Ustadz Iwan",
                 "email": "iwan.ngaji@superprof.id",
                 "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
-                "rating": 5.0,
+                "rating": 5,
                 "totalStudents": 39,
                 "specialization": "Baca Tulis Al-Qur'an Dasar"
             },
@@ -1087,35 +1313,35 @@
                 {
                     "no": 1,
                     "date": "2025-12-22",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2025-12-26",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2025-12-30",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-01-03",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-01-07",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": "Sesi terakhir & evaluasi akhir"
                 }
@@ -1125,11 +1351,213 @@
                 "pricePackage": 382500,
                 "serviceFee": 5000,
                 "total": 387500,
-                "method": "Stripe",
+                "method": "OVO",
                 "status": "paid",
                 "paidAt": "2025-12-20T10:30:00Z",
-                "receiptRef": "STR-2025-12-0099"
+                "receiptRef": "OVO-2025-12-0099"
             }
+        }
+    ],
+    "discountCodes": [
+        {
+            "id": 5001,
+            "code": "QURANI10",
+            "description": "Diskon 10% untuk semua pengguna baru",
+            "type": "percentage",
+            "value": 10,
+            "minOrderAmount": 0,
+            "maxDiscountAmount": 50000,
+            "usageLimit": 500,
+            "usageCount": 312,
+            "validFrom": "2026-01-01T00:00:00Z",
+            "validUntil": "2026-06-30T23:59:59Z",
+            "isActive": true,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": "CAMP-2026-NEW",
+            "createdBy": "Admin",
+            "createdAt": "2025-12-28T08:00:00Z"
+        },
+        {
+            "id": 5002,
+            "code": "RAMADAN25",
+            "description": "Promo Ramadan 25% semua paket",
+            "type": "percentage",
+            "value": 25,
+            "minOrderAmount": 150000,
+            "maxDiscountAmount": 100000,
+            "usageLimit": 1000,
+            "usageCount": 784,
+            "validFrom": "2026-02-28T00:00:00Z",
+            "validUntil": "2026-03-31T23:59:59Z",
+            "isActive": true,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": "CAMP-2026-RAMADAN",
+            "createdBy": "Admin",
+            "createdAt": "2026-02-01T09:00:00Z"
+        },
+        {
+            "id": 5003,
+            "code": "HEMAT50K",
+            "description": "Potongan Rp 50.000 untuk paket intensif",
+            "type": "fixed",
+            "value": 50000,
+            "minOrderAmount": 300000,
+            "maxDiscountAmount": 50000,
+            "usageLimit": 200,
+            "usageCount": 200,
+            "validFrom": "2026-01-01T00:00:00Z",
+            "validUntil": "2026-01-31T23:59:59Z",
+            "isActive": false,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": null,
+            "createdBy": "Admin",
+            "createdAt": "2025-12-31T10:00:00Z"
+        },
+        {
+            "id": 5004,
+            "code": "REF-HASYIM-A1B2",
+            "description": "Kode referral eksklusif Ust. Hasyim",
+            "type": "percentage",
+            "value": 15,
+            "minOrderAmount": 0,
+            "maxDiscountAmount": 75000,
+            "usageLimit": 100,
+            "usageCount": 43,
+            "validFrom": "2026-01-01T00:00:00Z",
+            "validUntil": "2026-12-31T23:59:59Z",
+            "isActive": true,
+            "isReferral": true,
+            "trainerId": 301,
+            "trainerName": "Hasyim asy'ari, Lc",
+            "campaignId": null,
+            "createdBy": "System",
+            "createdAt": "2026-01-01T00:00:00Z"
+        },
+        {
+            "id": 5005,
+            "code": "REF-INDI-C3D4",
+            "description": "Kode referral eksklusif Indi Fitriani",
+            "type": "percentage",
+            "value": 15,
+            "minOrderAmount": 0,
+            "maxDiscountAmount": 75000,
+            "usageLimit": 100,
+            "usageCount": 27,
+            "validFrom": "2026-01-01T00:00:00Z",
+            "validUntil": "2026-12-31T23:59:59Z",
+            "isActive": true,
+            "isReferral": true,
+            "trainerId": 302,
+            "trainerName": "Indi Fitriani",
+            "campaignId": null,
+            "createdBy": "System",
+            "createdAt": "2026-01-01T00:00:00Z"
+        },
+        {
+            "id": 5006,
+            "code": "COBA-GRATIS",
+            "description": "Sesi pertama gratis (maks 1x per user)",
+            "type": "fixed",
+            "value": 90000,
+            "minOrderAmount": 90000,
+            "maxDiscountAmount": 90000,
+            "usageLimit": 300,
+            "usageCount": 291,
+            "validFrom": "2025-10-01T00:00:00Z",
+            "validUntil": "2026-03-31T23:59:59Z",
+            "isActive": true,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": "CAMP-2025-TRIAL",
+            "createdBy": "Admin",
+            "createdAt": "2025-09-28T11:00:00Z"
+        },
+        {
+            "id": 5007,
+            "code": "FLASH20",
+            "description": "Flash sale 20% â€” weekend saja",
+            "type": "percentage",
+            "value": 20,
+            "minOrderAmount": 100000,
+            "maxDiscountAmount": 80000,
+            "usageLimit": 150,
+            "usageCount": 150,
+            "validFrom": "2026-02-08T00:00:00Z",
+            "validUntil": "2026-02-09T23:59:59Z",
+            "isActive": false,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": "CAMP-FLASH-FEB",
+            "createdBy": "Admin",
+            "createdAt": "2026-02-07T10:00:00Z"
+        },
+        {
+            "id": 5008,
+            "code": "PELAJAR15",
+            "description": "Diskon 15% khusus pelajar & mahasiswa",
+            "type": "percentage",
+            "value": 15,
+            "minOrderAmount": 0,
+            "maxDiscountAmount": 60000,
+            "usageLimit": 400,
+            "usageCount": 118,
+            "validFrom": "2026-01-15T00:00:00Z",
+            "validUntil": "2026-07-15T23:59:59Z",
+            "isActive": true,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": "CAMP-STUDENT",
+            "createdBy": "Admin",
+            "createdAt": "2026-01-14T14:00:00Z"
+        },
+        {
+            "id": 5009,
+            "code": "ANNIVERSARY",
+            "description": "Promo HUT Qurani â€” diskon flat Rp 30.000",
+            "type": "fixed",
+            "value": 30000,
+            "minOrderAmount": 90000,
+            "maxDiscountAmount": 30000,
+            "usageLimit": 500,
+            "usageCount": 0,
+            "validFrom": "2026-03-01T00:00:00Z",
+            "validUntil": "2026-03-07T23:59:59Z",
+            "isActive": false,
+            "isReferral": false,
+            "trainerId": null,
+            "trainerName": null,
+            "campaignId": "CAMP-ANNIV",
+            "createdBy": "Admin",
+            "createdAt": "2026-02-20T08:00:00Z"
+        },
+        {
+            "id": 5010,
+            "code": "REF-NANDA-E5F6",
+            "description": "Kode referral eksklusif Nanda",
+            "type": "percentage",
+            "value": 15,
+            "minOrderAmount": 0,
+            "maxDiscountAmount": 75000,
+            "usageLimit": 100,
+            "usageCount": 9,
+            "validFrom": "2026-01-01T00:00:00Z",
+            "validUntil": "2026-12-31T23:59:59Z",
+            "isActive": true,
+            "isReferral": true,
+            "trainerId": 304,
+            "trainerName": "Nanda",
+            "campaignId": null,
+            "createdBy": "System",
+            "createdAt": "2026-01-01T00:00:00Z"
         }
     ]
 }

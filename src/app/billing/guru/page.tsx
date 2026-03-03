@@ -3,22 +3,14 @@
 import { useState, useMemo } from "react"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
-import {
-    Search,
-    ChevronLeft,
-    ChevronRight,
-    Eye,
-    Star,
-    Users,
-    ChevronsUpDown,
-    CheckCircle2,
-    Clock,
-    XCircle,
-    Sparkles,
-} from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import {
+    Search, ChevronLeft, ChevronRight, Star, Eye, Users,
+    ChevronsUpDown, Sparkles, BadgeCheck, ShieldOff, ShieldCheck,
+} from "lucide-react"
 import dummyData from "@/data/billing-dummy.json"
+import { ToastContainer, showToast } from "@/components/ui/toast-sim"
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function formatRupiah(n: number) {
@@ -30,9 +22,9 @@ function formatRupiah(n: number) {
 
 // ── status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-    verified: { label: "Terverifikasi", bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500", icon: CheckCircle2 },
-    pending: { label: "Menunggu", bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", dot: "bg-amber-500", icon: Clock },
-    suspended: { label: "Nonaktif", bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", dot: "bg-red-500", icon: XCircle },
+    verified: { label: "Terverifikasi", bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500", icon: BadgeCheck },
+    pending: { label: "Menunggu", bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", dot: "bg-amber-500", icon: ShieldOff },
+    suspended: { label: "Nonaktif", bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", dot: "bg-red-500", icon: ShieldOff },
 } as const
 
 type GuruStatus = "all" | "verified" | "pending" | "suspended"
@@ -81,7 +73,26 @@ type SortField = "name" | "rating" | "totalStudents" | "totalRevenue"
 const PAGE_SIZE = 10
 
 function GuruContent() {
-    const guruList = useMemo(() => buildGuruList(), [])
+    const baseGuruList = useMemo(() => buildGuruList(), [])
+    const [guruStatuses, setGuruStatuses] = useState<Record<number, "verified" | "pending" | "suspended">>({})
+
+    const guruList = baseGuruList.map(g => ({
+        ...g,
+        status: guruStatuses[g.id] ?? g.status,
+    }))
+
+    function handleGuruAction(guruId: number, guruName: string, currentStatus: "verified" | "pending" | "suspended") {
+        if (currentStatus === "pending") {
+            setGuruStatuses(prev => ({ ...prev, [guruId]: "verified" }))
+            showToast({ type: "success", title: `${guruName} berhasil diverifikasi`, message: "Guru sekarang dapat menerima murid.", endpoint: `PUT / api / v1 / Trainers / ${guruId}/verify` })
+        } else if (currentStatus === "verified") {
+            setGuruStatuses(prev => ({ ...prev, [guruId]: "suspended" }))
+            showToast({ type: "info", title: `${guruName} dinonaktifkan`, message: "Guru tidak dapat menerima pesanan baru.", endpoint: `PUT /api/v1/Trainers/${guruId}/suspend` })
+        } else { // currentStatus === "suspended"
+            setGuruStatuses(prev => ({ ...prev, [guruId]: "verified" }))
+            showToast({ type: "info", title: `${guruName} diaktifkan kembali`, message: "Status guru dikembalikan menjadi Terverifikasi.", endpoint: `PUT /api/v1/Trainers/${guruId}/unsuspend` })
+        }
+    }
 
     const [search, setSearch] = useState("")
     const [statusFilter, setStatus] = useState<GuruStatus>("all")
@@ -128,18 +139,22 @@ function GuruContent() {
 
     const STATUS_TABS: { key: GuruStatus; label: string; count: number; color: string }[] = [
         { key: "all", label: "Semua", count: guruList.length, color: "emerald" },
-        { key: "verified", label: "Terverifikasi", count: countVerified, color: "blue" },
+        { key: "verified", label: "Terverifikasi", count: countVerified, color: "emerald" },
         { key: "pending", label: "Menunggu", count: countPending, color: "amber" },
         { key: "suspended", label: "Nonaktif", count: countSuspended, color: "red" },
     ]
 
     return (
         <div className="bg-gray-50 dark:bg-gray-950 p-4">
+            <ToastContainer />
             <div className="max-w-[1600px] mx-auto space-y-4">
 
                 {/* ── Header ── */}
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen Guru</h1>
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen Guru</h1>
+                        <p className="text-xs text-gray-400 mt-0.5">Verifikasi, nonaktifkan, atau aktifkan kembali akun guru</p>
+                    </div>
                 </div>
 
                 {/* ── Status filter tabs ── */}
@@ -148,7 +163,6 @@ function GuruContent() {
                         const active = statusFilter === t.key
                         const colorMap: Record<string, string> = {
                             emerald: active ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-emerald-400",
-                            blue: active ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-blue-400",
                             amber: active ? "bg-amber-500 text-white border-amber-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-amber-400",
                             red: active ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-red-400",
                         }
@@ -289,24 +303,31 @@ function GuruContent() {
                                             </td>
                                             {/* Aksi */}
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                                                     <Link
                                                         href={`/billing/guru/${guru.id}`}
-                                                        className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5 font-medium">
+                                                        className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg transition-colors">
                                                         <Eye className="w-3.5 h-3.5" /> Detail
                                                     </Link>
-                                                    <span className="text-gray-200 dark:text-gray-700">|</span>
-                                                    {guru.status === "pending" ? (
-                                                        <button className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-medium">
-                                                            Verifikasi
+                                                    {guru.status === "pending" && (
+                                                        <button
+                                                            onClick={() => handleGuruAction(guru.id, guru.name, guru.status)}
+                                                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg transition-colors">
+                                                            <BadgeCheck className="w-3.5 h-3.5" /> Verifikasi
                                                         </button>
-                                                    ) : guru.status === "verified" ? (
-                                                        <button className="text-xs text-red-500 hover:text-red-600 dark:text-red-400 font-medium">
-                                                            Nonaktifkan
+                                                    )}
+                                                    {guru.status === "verified" && (
+                                                        <button
+                                                            onClick={() => handleGuruAction(guru.id, guru.name, guru.status)}
+                                                            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 dark:text-red-400 font-semibold border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
+                                                            <ShieldOff className="w-3.5 h-3.5" /> Nonaktifkan
                                                         </button>
-                                                    ) : (
-                                                        <button className="text-xs text-amber-500 hover:text-amber-600 dark:text-amber-400 font-medium">
-                                                            Aktifkan Kembali
+                                                    )}
+                                                    {guru.status === "suspended" && (
+                                                        <button
+                                                            onClick={() => handleGuruAction(guru.id, guru.name, guru.status)}
+                                                            className="flex items-center gap-1 text-xs text-amber-500 hover:text-amber-600 dark:text-amber-400 font-semibold border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg transition-colors">
+                                                            <ShieldCheck className="w-3.5 h-3.5" /> Aktifkan Kembali
                                                         </button>
                                                     )}
                                                 </div>

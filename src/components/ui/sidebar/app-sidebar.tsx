@@ -23,6 +23,7 @@ import {
   GraduationCap,
   Package,
   Banknote,
+  Tag,
 } from "lucide-react"
 import { RxDashboard, } from "react-icons/rx"
 import { MdAnnouncement } from "react-icons/md"
@@ -93,7 +94,7 @@ const getSidebarData = (
           icon: RxDashboard,
         },
         {
-          title: t("navigation.billing_members", "Member Subscription"),
+          title: t("navigation.billing_members", "Pesanan"),
           url: "/billing/member-subscription",
           icon: UserCheck,
         },
@@ -111,6 +112,11 @@ const getSidebarData = (
           title: "Payout Guru",
           url: "/billing/payout",
           icon: Banknote,
+        },
+        {
+          title: "Discounts Codes",
+          url: "/billing/discountcodes",
+          icon: Tag,
         },
       ],
     },
@@ -192,7 +198,14 @@ const getSidebarData = (
 
 const Logo = React.memo(function Logo() {
   const { state, isMobile } = useSidebar()
-  const isCollapsed = state === "collapsed" && !isMobile
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Sebelum mount: render expanded view supaya cocok dengan server HTML
+  const isCollapsed = mounted ? (state === "collapsed" && !isMobile) : false
 
   return (
     <div className="transition-all duration-200 ease-in-out">

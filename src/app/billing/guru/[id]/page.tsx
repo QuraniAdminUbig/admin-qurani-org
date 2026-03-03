@@ -27,6 +27,7 @@ import {
     User,
     BadgeCheck,
     CircleDashed,
+    X,
 } from "lucide-react"
 import dummyData from "@/data/billing-dummy.json"
 
@@ -69,7 +70,7 @@ const GURU_STATIC: Record<number, {
         location: "Jakarta Selatan",
         experience: "10 Tahun Pengalaman",
         subjects: ["Tahfidz", "Tajwid", "Al-Qur'an Dasar"],
-        cover: "https://images.unsplash.com/photo-1564459031928-3f52dd97e93a?w=1200&q=80",
+        cover: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=1200&q=80",
         bio: "Assalamualaikum, saya Hasyim Asy'ari, Lc., lulusan Al-Azhar Kairo Mesir jurusan Ushuluddin. Saya telah mengajar Al-Qur'an selama lebih dari 10 tahun dengan spesialisasi di bidang Tahfidzul Qur'an dan Tajwid. Saya percaya bahwa setiap murid memiliki kecepatan belajar yang berbeda, dan pendekatan saya disesuaikan dengan kebutuhan masing-masing santri agar merasa nyaman dan termotivasi.",
         courseDescription: "Kursus ini dirancang untuk membantu Anda menguasai Tajwid dan Tahfidz dengan bimbingan langsung dari saya. Setiap sesi berlangsung selama 60 menit secara online atau offline, dengan materi yang disesuaikan dengan kemampuan dan kebutuhan masing-masing santri. Progres akan dipantau secara berkala.",
         methods: [
@@ -77,9 +78,9 @@ const GURU_STATIC: Record<number, {
             { name: "Talaqqi", desc: "Belajar langsung dari mulut guru ke mulut murid untuk memastikan ketepatan makhraj." },
         ],
         certificates: [
-            { title: "Ijazah Al-Qur'an Sanad Muttasil", issuer: "Al-Azhar University, Cairo", year: "2014", imgUrl: "https://images.unsplash.com/photo-1589330273594-fade1ee91647?w=400&q=80" },
-            { title: "Sertifikat Tahfidz 30 Juz", issuer: "Pondok Pesantren Yanbu'ul Qur'an", year: "2012", imgUrl: "https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?w=400&q=80" },
-            { title: "Sertifikat Pengajar Metode Ummi", issuer: "Yayasan Ummi Foundation", year: "2016", imgUrl: "https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?w=400&q=80" },
+            { title: "Ijazah Al-Qur'an Sanad Muttasil", issuer: "Al-Azhar University, Cairo", year: "2014", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
+            { title: "Sertifikat Tahfidz 30 Juz", issuer: "Pondok Pesantren Yanbu'ul Qur'an", year: "2012", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
+            { title: "Sertifikat Pengajar Metode Ummi", issuer: "Yayasan Ummi Foundation", year: "2016", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
         ],
         gallery: [
             { type: "image", url: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80", caption: "Proses Mengajar Tahsin" },
@@ -105,15 +106,15 @@ const GURU_STATIC: Record<number, {
         location: "Bandung",
         experience: "7 Tahun Pengalaman",
         subjects: ["Tahsinul Qur'an", "Tahfidzul Qur'an"],
-        cover: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&q=80",
+        cover: "https://images.unsplash.com/photo-1542810634-71277d95dcbb?w=1200&q=80",
         bio: "Assalamualaikum, saya Indi Fitriani, pengajar Al-Qur'an dengan spesialisasi Tahsinul Qur'an dan Tahfidzul Qur'an. Latar belakang pendidikan saya dari Pesantren Tahfidz Jawa Barat, dan saya memiliki pengalaman mengajar lebih dari 7 tahun. Saya menyukai pendekatan personal dan sabar dalam membimbing setiap santri.",
         courseDescription: "Program kursus saya mencakup perbaikan bacaan (tahsin) hingga hafalan Al-Qur'an (tahfidz) dengan metode Tilawati yang menyenangkan dan mudah dipahami oleh semua usia. Sesi dilakukan secara fleksibel sesuai dengan jadwal murid.",
         methods: [
             { name: "Tilawati", desc: "Metode belajar membaca Al-Qur'an dengan lagu yang khas dan menyenangkan, tepat untuk semua usia." },
         ],
         certificates: [
-            { title: "Hafizah 30 Juz", issuer: "Pondok Pesantren Al-Hikmah Jabar", year: "2017", imgUrl: "https://images.unsplash.com/photo-1589330273594-fade1ee91647?w=400&q=80" },
-            { title: "Sertifikat Metode Tilawati", issuer: "Yayasan Pondok Tilawati Surabaya", year: "2018", imgUrl: "https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?w=400&q=80" },
+            { title: "Hafizah 30 Juz", issuer: "Pondok Pesantren Al-Hikmah Jabar", year: "2017", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
+            { title: "Sertifikat Metode Tilawati", issuer: "Yayasan Pondok Tilawati Surabaya", year: "2018", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
         ],
         gallery: [
             { type: "image", url: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=600&q=80", caption: "Sesi Tahfidz Online" },
@@ -136,15 +137,15 @@ const GURU_STATIC: Record<number, {
         location: "Surabaya",
         experience: "5 Tahun Pengalaman",
         subjects: ["Baca Tulis Al-Qur'an", "Tajwid Dasar"],
-        cover: "https://images.unsplash.com/photo-1560785496-3c9d27877182?w=1200&q=80",
+        cover: "https://images.unsplash.com/photo-1585036156171-3839efc229b7?w=1200&q=80",
         bio: "Assalamualaikum, saya Ustadz Iwan, pengajar Al-Qur'an untuk anak-anak dan dewasa pemula dengan metode Qiroati. Saya percaya bahwa fondasi baca Al-Qur'an yang benar sejak dini adalah kunci keberhasilan jangka panjang. Saya mengajar dengan penuh semangat dan menyesuaikan materi dengan kondisi murid.",
         courseDescription: "Kursus Baca Tulis Al-Qur'an ini cocok untuk pemula dewasa maupun anak-anak. Materi dimulai dari pengenalan huruf hijaiyah, harakat, hingga tajwid dasar. Sesi berlangsung 60 menit dengan metode yang fun dan interaktif.",
         methods: [
             { name: "Qiroati", desc: "Metode belajar Al-Qur'an yang terstruktur mulai dari pengenalan huruf hingga tajwid, populer di pesantren seluruh Indonesia." },
         ],
         certificates: [
-            { title: "Sertifikat Pengajar Qiroati", issuer: "Lembaga Qiroati Pusat Semarang", year: "2019", imgUrl: "https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?w=400&q=80" },
-            { title: "Sertifikat Pendidik Al-Qur'an", issuer: "LPTQ Jawa Timur", year: "2021", imgUrl: "https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?w=400&q=80" },
+            { title: "Sertifikat Pengajar Qiroati", issuer: "Lembaga Qiroati Pusat Semarang", year: "2019", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
+            { title: "Sertifikat Pendidik Al-Qur'an", issuer: "LPTQ Jawa Timur", year: "2021", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
         ],
         gallery: [
             { type: "image", url: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&q=80", caption: "Kelas Anak-Anak" },
@@ -166,7 +167,7 @@ const GURU_STATIC: Record<number, {
         location: "Depok",
         experience: "2 Tahun Pengalaman",
         subjects: ["Tahsin", "Tahfidz"],
-        cover: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1200&q=80",
+        cover: "https://images.unsplash.com/photo-1591115765373-520b7a2d7a59?w=1200&q=80",
         bio: "Assalamualaikum, saya Nanda, lulusan pesantren tahfidz dan kini bersemangat untuk berbagi ilmu Al-Qur'an kepada lebih banyak murid.",
         courseDescription: "Program tahsin dan tahfidz bagi pemula hingga menengah.",
         methods: [
@@ -186,7 +187,7 @@ const GURU_STATIC: Record<number, {
         location: "Malang",
         experience: "8 Tahun Pengalaman",
         subjects: ["Tahsin", "Makhraj", "Tajwid Lanjut"],
-        cover: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&q=80",
+        cover: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&q=80",
         bio: "Assalamualaikum, saya Zain. Saya berspesialisasi dalam Tahsin dan perbaikan Makhraj secara profesional. Selama 8 tahun saya telah membimbing murid dari berbagai kalangan usia, mulai dari anak-anak hingga dewasa.",
         courseDescription: "Kursus Tahsin dan Makhraj Profesional ini difokuskan pada perbaikan cara baca Al-Qur'an yang benar dari sisi makhraj dan sifat huruf, serta penerapan hukum Tajwid secara praktikal dalam tilawah sehari-hari.",
         methods: [
@@ -194,8 +195,8 @@ const GURU_STATIC: Record<number, {
             { name: "Mujawwad", desc: "Tilawah dengan irama dan lagu yang indah sesuai dengan maqam Al-Qur'an." },
         ],
         certificates: [
-            { title: "Ijazah Sanad Qur'an Riwayat Hafsh", issuer: "Syekh Muhammad Al-Busiri, Mesir", year: "2020", imgUrl: "https://images.unsplash.com/photo-1589330273594-fade1ee91647?w=400&q=80" },
-            { title: "Sertifikat Pengajar Tahsin & Makhraj", issuer: "Markaz Tahsin Internasional", year: "2019", imgUrl: "https://images.unsplash.com/photo-1609342122563-a43ac8917a3a?w=400&q=80" },
+            { title: "Ijazah Sanad Qur'an Riwayat Hafsh", issuer: "Syekh Muhammad Al-Busiri, Mesir", year: "2020", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
+            { title: "Sertifikat Pengajar Tahsin & Makhraj", issuer: "Markaz Tahsin Internasional", year: "2019", imgUrl: "https://image.slidesharecdn.com/sertifikattpq-240124121305-28b6b2f3/75/SERTIFIKAT-TPQ-pdf-5-2048.jpg" },
         ],
         gallery: [
             { type: "image", url: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&q=80", caption: "Sesi Makhraj Intensif" },
@@ -249,6 +250,7 @@ function GuruDetailContent() {
     const extra = GURU_STATIC[id]
 
     const [activeTab, setActiveTab] = useState<Tab>("informasi")
+    const [previewImg, setPreviewImg] = useState<string | null>(null)
 
     if (!trainer || !extra) {
         return (
@@ -280,14 +282,10 @@ function GuruDetailContent() {
                     {/* breadcrumb + title */}
                     <div className="flex items-center gap-2">
                         <Link href="/billing/guru"
-                            className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"
+                            className="group flex items-center justify-center w-9 h-9 text-gray-500 hover:text-emerald-600 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-all shadow-sm"
                             title="Kembali ke Manajemen Guru">
-                            <ArrowLeft className="w-4 h-4" />
+                            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
                         </Link>
-                        <span className="text-gray-300 dark:text-gray-700">/</span>
-                        <span className="text-xs text-gray-400">Manajemen Guru</span>
-                        <span className="text-gray-300 dark:text-gray-700">/</span>
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate max-w-[200px]">{trainer.name}</span>
                     </div>
                     {/* status only — action buttons are in the sidebar verification card */}
                     <div className="flex items-center gap-2">
@@ -309,8 +307,19 @@ function GuruDetailContent() {
                         {/* ── Hero Card (Profile) ── */}
                         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                             {/* Cover + Avatar (positioned absolute on cover) */}
-                            <div className="relative w-full h-44 bg-gradient-to-r from-emerald-600 to-teal-600 overflow-visible">
-                                <Image src={extra.cover} alt="cover" fill className="object-cover opacity-60 rounded-t-2xl" unoptimized />
+                            <div className="relative w-full h-44 bg-emerald-600 overflow-visible">
+                                <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
+                                    {extra.cover && (
+                                        <Image
+                                            src={extra.cover}
+                                            alt=""
+                                            fill
+                                            className="object-cover opacity-80"
+                                            unoptimized
+                                        />
+                                    )}
+                                </div>
+                                <div className="absolute inset-0 bg-black/10 rounded-t-2xl" />
                                 {/* Avatar overlapping cover bottom */}
                                 <div className="absolute -bottom-8 left-6 z-10">
                                     <div className="relative w-20 h-20 rounded-xl overflow-hidden ring-4 ring-white dark:ring-gray-900 shadow-xl">
@@ -439,13 +448,21 @@ function GuruDetailContent() {
                                         ) : (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {extra.certificates.map((c, i) => (
-                                                    <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-amber-100 dark:border-amber-900/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                                    <div key={i}
+                                                        onClick={() => setPreviewImg(c.imgUrl)}
+                                                        className="bg-white dark:bg-gray-900 rounded-xl border border-amber-100 dark:border-amber-900/30 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group/cert active:scale-[0.98]">
                                                         {/* Certificate thumbnail */}
                                                         <div className="relative w-full h-28 bg-amber-50 dark:bg-amber-900/10 overflow-hidden">
-                                                            <Image src={c.imgUrl} alt={c.title} fill className="object-cover opacity-80" unoptimized />
+                                                            <Image src={c.imgUrl} alt={c.title} fill className="object-cover opacity-80 group-hover/cert:scale-110 transition-transform duration-500" unoptimized />
                                                             <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent" />
                                                             <div className="absolute top-2 right-2">
                                                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white shadow">{c.year}</span>
+                                                            </div>
+                                                            {/* Zoom overlay */}
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/cert:opacity-100 transition-opacity">
+                                                                <div className="bg-white/20 backdrop-blur-md rounded-full p-2 border border-white/30">
+                                                                    <ImageIcon className="w-5 h-5 text-white" />
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         {/* Certificate info */}
@@ -503,13 +520,20 @@ function GuruDetailContent() {
                                                     </div>
                                                 ) : (
                                                     // ── Photo ──
-                                                    <div key={i} className="relative rounded-xl overflow-hidden aspect-video group cursor-pointer">
-                                                        <Image src={g.url} alt={g.caption} fill className="object-cover group-hover:scale-105 transition-transform duration-300" unoptimized />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                        <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
-                                                            <div className="flex items-center gap-1 text-white text-xs font-semibold">
-                                                                <ImageIcon className="w-3 h-3 opacity-80" />
-                                                                {g.caption}
+                                                    <div key={i}
+                                                        onClick={() => setPreviewImg(g.url)}
+                                                        className="relative rounded-xl overflow-hidden aspect-video group cursor-pointer active:scale-95 transition-transform shadow-sm">
+                                                        <Image src={g.url} alt={g.caption} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                                                            <div className="flex items-center gap-1.5 text-white text-[10px] font-bold">
+                                                                <ImageIcon className="w-3.5 h-3.5 opacity-80" />
+                                                                <span className="truncate">{g.caption}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="bg-white/20 backdrop-blur-md rounded-full p-2 border border-white/30">
+                                                                <ImageIcon className="w-5 h-5 text-white" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -693,6 +717,30 @@ function GuruDetailContent() {
 
                 </div>
             </div>
+
+            {/* ── Image Preview Modal (Lightbox) ── */}
+            {previewImg && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                    onClick={() => setPreviewImg(null)}>
+                    <button
+                        className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/20"
+                        onClick={() => setPreviewImg(null)}>
+                        <X className="w-6 h-6" />
+                    </button>
+                    <div className="relative w-full max-w-5xl aspect-auto max-h-[85vh] group" onClick={e => e.stopPropagation()}>
+                        <Image
+                            src={previewImg}
+                            alt="Preview"
+                            fill
+                            className="object-contain animate-in zoom-in-95 duration-300"
+                            unoptimized
+                        />
+                    </div>
+                    <div className="absolute bottom-10 text-white/50 text-[10px] font-bold bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md uppercase tracking-widest">
+                        Klik di luar gambar untuk menutup
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

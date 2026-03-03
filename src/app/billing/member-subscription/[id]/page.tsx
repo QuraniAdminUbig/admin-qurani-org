@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
@@ -19,9 +19,12 @@ import {
     Calendar,
     Hash,
     Receipt,
+    ExternalLink,
+    Zap,
 } from "lucide-react"
 import Link from "next/link"
 import dummyData from "@/data/billing-dummy.json"
+import { getSimOrderById, type SimOrder } from "@/lib/sim-store"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function formatRupiah(n: number) {
@@ -65,7 +68,225 @@ const PACKAGE_CFG: Record<string, { cls: string }> = {
     "10x": { cls: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
 }
 
+// ── Sim Order Detail View ─────────────────────────────────────────────────────
+function SimOrderDetail({ order }: { order: SimOrder }) {
+    const isPaid = order.paymentStatus === "paid"
+    const statusLabel = isPaid ? "Aktif" : "Menunggu Bayar"
+    const statusCls = isPaid
+        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+    const statusDot = isPaid ? "bg-emerald-500" : "bg-amber-500"
+
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
+            <div className="max-w-[1200px] mx-auto space-y-4">
+                {/* Header */}
+                <div className="flex items-center gap-3">
+                    <Link href="/billing/member-subscription"
+                        className="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-emerald-600 hover:border-emerald-400 transition-all shadow-sm">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Detail Pesan</h1>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusCls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
+                            {statusLabel}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-bold">
+                            <Zap className="w-2.5 h-2.5" /> SIMULASI
+                        </span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Left */}
+                    <div className="lg:col-span-2 space-y-4">
+                        {/* Info Paket */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Paket
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 text-xs">
+                                <div>
+                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Nama Paket</p>
+                                    <p className="font-black text-gray-950 dark:text-white text-base">{order.pkg.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Metode Belajar</p>
+                                    <p className="font-bold text-gray-700 dark:text-gray-300">{order.mode === "online" ? "🌐 Online" : "Offline"} • {order.paymentMethod}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Mulai Sesi</p>
+                                    <p className="font-bold text-gray-700 dark:text-gray-300">{new Date(order.bookingDate).toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
+                                </div>
+                            </div>
+                            {/* Progress */}
+                            <div>
+                                <div className="flex justify-between text-xs font-bold text-gray-600 dark:text-gray-400 mb-1.5">
+                                    <span>Progress Sesi</span>
+                                    <span>{order.completedSessions}/{order.totalSessions} Selesai</span>
+                                </div>
+                                <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.round(order.completedSessions / order.totalSessions * 100)}%` }} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Jadwal Sesi */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+                            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 mb-4">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
+                                    <Calendar className="w-4 h-4 text-emerald-500" /> Jadwal Sesi
+                                </div>
+                                {isPaid && order.sessions?.length > 0 && (
+                                    <span className="text-[11px] text-gray-400 font-medium">
+                                        {order.sessions.length} sesi terjadwal
+                                    </span>
+                                )}
+                            </div>
+
+                            {!isPaid || !order.sessions?.length ? (
+                                <p className="text-sm text-gray-400 text-center py-6">
+                                    Jadwal sesi akan ditentukan setelah pembayaran dikonfirmasi
+                                </p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {order.sessions.map((sess) => {
+                                        const sessDate = new Date(sess.date)
+                                        const dateStr = sessDate.toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })
+                                        const isSched = sess.status === "scheduled"
+                                        const isDone = sess.status === "completed"
+                                        return (
+                                            <div key={sess.sessionNo}
+                                                className="flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/20">
+                                                {/* Session number bubble */}
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0
+                                                    ${isDone ? "bg-emerald-500 text-white" :
+                                                        isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" :
+                                                            "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
+                                                    {isDone ? "✓" : sess.sessionNo}
+                                                </div>
+                                                {/* Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                        Sesi {sess.sessionNo}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
+                                                </div>
+                                                {/* Waktu */}
+                                                <div className="text-right flex-shrink-0">
+                                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                        {sess.startTime} – {sess.endTime}
+                                                    </p>
+                                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block
+                                                        ${isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                                            isSched ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" :
+                                                                "bg-gray-100 text-gray-500"}`}>
+                                                        {isDone ? "Selesai" : isSched ? "Terjadwal" : "Batal"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pembayaran */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3 mb-4">
+                                <CreditCard className="w-4 h-4 text-emerald-500" /> Informasi Pembayaran
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">#Invoice</p><p className="font-bold text-gray-900 dark:text-white">{order.invoiceNo}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Metode</p><p className="font-bold text-gray-900 dark:text-white">{order.paymentGateway || "—"}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isPaid ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                        {isPaid ? "✅ Lunas" : "⏳ Pending"}
+                                    </span>
+                                </div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Harga Paket</p><p className="font-bold text-gray-900 dark:text-white">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(order.pkg.price)}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Biaya Layanan</p><p className="font-bold text-gray-900 dark:text-white">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(order.pkg.serviceFee)}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1 font-black">Total Bayar</p><p className="font-black text-emerald-600 text-base">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(order.pkg.price + order.pkg.serviceFee)}</p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right sidebar */}
+                    <div className="space-y-4">
+                        {/* Member */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
+                                <User className="w-4 h-4 text-emerald-500" /> Informasi Member
+                            </div>
+                            <a href={`/myqurani/profiles/${order.member.id}`} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-3 group hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl p-2 -mx-2 transition-colors">
+                                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-100 flex-shrink-0">
+                                    <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(order.member.name)}&background=10b981&color=fff`} alt={order.member.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-gray-950 dark:text-white text-base group-hover:text-emerald-600 transition-colors">{order.member.name}</p>
+                                </div>
+                            </a>
+                            <div className="space-y-2 text-xs">
+                                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><Mail className="w-3.5 h-3.5 text-emerald-500" />{order.member.email}</div>
+                                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><Phone className="w-3.5 h-3.5 text-emerald-500" />{order.member.phone}</div>
+                                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><MapPin className="w-3.5 h-3.5 text-emerald-500" />{order.member.location}</div>
+                            </div>
+                        </div>
+
+                        {/* Guru */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Guru
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-emerald-100 flex-shrink-0">
+                                    <img src={order.trainer.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(order.trainer.name)}&background=10b981&color=fff`} alt={order.trainer.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                    <p className="font-black text-gray-950 dark:text-white text-base">{order.trainer.name}</p>
+                                    <p className="text-[11px] text-emerald-600 font-semibold">@{order.trainer.email.split("@")[0]}</p>
+                                </div>
+                            </div>
+                            <div className="space-y-2 text-xs">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded text-amber-600 font-bold text-[10px]">
+                                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />{order.trainer.rating}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-400">{order.trainer.totalStudents} Murid</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-400 font-bold">
+                                    <BookOpen className="w-3.5 h-3.5 text-emerald-500" />{order.trainer.specialization}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function BookingDetailContent({ id }: { id: number }) {
+    // Cek localStorage dulu jika ID >= 9001 (simulasi)
+    const [simOrder, setSimOrder] = useState<SimOrder | null | undefined>(undefined)
+
+    useEffect(() => {
+        if (id >= 9001) {
+            setSimOrder(getSimOrderById(id))
+        } else {
+            setSimOrder(null)
+        }
+    }, [id])
+
+    // Masih loading
+    if (simOrder === undefined) return null
+
+    // Tampilkan sim order jika ada
+    if (simOrder !== null) return <SimOrderDetail order={simOrder} />
+
+    // Fallback: baca dari JSON
     const booking = dummyData.bookings.find(b => b.id === id)
     const detail = dummyData.bookingDetails.find(d => d.bookingId === id)
 
@@ -107,7 +328,6 @@ function BookingDetailContent({ id }: { id: number }) {
                             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                                 Detail Pesan
                             </h1>
-                            <span className="text-gray-400 font-mono text-sm">#{booking.id}</span>
                             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${bStatus?.badgeCls}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${bStatus?.dotCls}`} />
                                 {bStatus?.label}
@@ -194,9 +414,7 @@ function BookingDetailContent({ id }: { id: number }) {
                                                         {sc?.label}
                                                     </span>
                                                 </div>
-                                                {s.notes && (
-                                                    <p className="text-[11px] text-gray-400 mt-0.5 truncate">{s.notes}</p>
-                                                )}
+
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-xs font-bold text-gray-950 dark:text-gray-300">{s.date}</p>
@@ -263,17 +481,22 @@ function BookingDetailContent({ id }: { id: number }) {
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
                                 <User className="w-4 h-4 text-emerald-500" /> Informasi Member
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-14 h-14 rounded-full border-2 border-emerald-100 p-0.5">
-                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden">
-                                        {/* Fallback to initials if no photo */}
+                            {/* Foto + Nama — bisa diklik */}
+                            <a
+                                href={`/myqurani/profiles/${detail.member.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 group cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl p-2 -mx-2 transition-colors"
+                            >
+                                <div className="w-14 h-14 rounded-full border-2 border-emerald-100 p-0.5 flex-shrink-0">
+                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden">
                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(detail.member.name)}&background=10b981&color=fff`} alt={detail.member.name} className="w-full h-full object-cover" />
                                     </div>
                                 </div>
-                                <div>
-                                    <p className="font-black text-gray-950 dark:text-white text-base leading-tight">{detail.member.name}</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-black text-gray-950 dark:text-white text-base leading-tight group-hover:text-emerald-600 transition-colors">{detail.member.name}</p>
                                 </div>
-                            </div>
+                            </a>
                             <div className="space-y-2.5 text-xs">
                                 <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-400">
                                     <Mail className="w-3.5 h-3.5 text-emerald-500" /> {detail.member.email}
@@ -297,30 +520,33 @@ function BookingDetailContent({ id }: { id: number }) {
                                 <BookOpen className="w-4 h-4 text-emerald-500" /> Guru
                             </div>
                             <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-emerald-50 shadow-sm">
+                                {/* Foto bundar */}
+                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-100 shadow-sm flex-shrink-0">
                                     <img
-                                        src={(detail.trainer as any).avatar || (detail.trainer.id % 2 === 0
-                                            ? `https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop`
-                                            : `https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop`)}
+                                        src={(detail.trainer as any).avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(detail.trainer.name)}&background=10b981&color=fff`}
                                         alt={detail.trainer.name}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
                                 <div>
-                                    <p className="font-black text-gray-950 dark:text-white text-base leading-tight mb-1">{detail.trainer.name}</p>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded text-amber-600 font-bold text-[10px]">
-                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                            {detail.trainer.rating}
-                                        </div>
-                                        <span className="text-[10px] font-bold text-gray-400 tracking-tight">{detail.trainer.totalStudents} Murid</span>
-                                    </div>
+                                    {/* Nama */}
+                                    <p className="font-black text-gray-950 dark:text-white text-base leading-tight">{detail.trainer.name}</p>
+                                    {/* Username di bawah nama */}
+                                    <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
+                                        @{detail.trainer.email.split("@")[0]}
+                                    </p>
                                 </div>
                             </div>
                             <div className="space-y-2.5 text-xs">
-                                <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-400 font-medium">
-                                    <Mail className="w-3.5 h-3.5 text-emerald-500" /> {detail.trainer.email}
+                                {/* Bintang & Murid (posisi bekas email) */}
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded text-amber-600 font-bold text-[10px]">
+                                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                        {detail.trainer.rating}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-400 tracking-tight">{detail.trainer.totalStudents} Murid</span>
                                 </div>
+                                {/* Spesialisasi */}
                                 <div className="flex items-start gap-2.5 text-gray-700 dark:text-gray-400 font-bold">
                                     <BookOpen className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
                                     <span>{detail.trainer.specialization}</span>

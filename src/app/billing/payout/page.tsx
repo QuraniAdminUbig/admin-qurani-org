@@ -4,21 +4,13 @@ import { useState, useMemo } from "react"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
-    Search,
-    ChevronLeft,
-    ChevronRight,
-    CheckCircle2,
-    Clock,
-    XCircle,
-    ChevronsUpDown,
-    Sparkles,
-    Wallet,
-    ArrowUpRight,
-    AlertCircle,
-    BadgeCheck,
+    Search, ChevronLeft, ChevronRight, CheckCircle2, Clock, XCircle,
+    ChevronsUpDown, Sparkles, Wallet, ArrowUpRight, AlertCircle, BadgeCheck,
+    SendHorizonal, RotateCcw,
 } from "lucide-react"
 import Image from "next/image"
 import dummyData from "@/data/billing-dummy.json"
+import { ToastContainer, showToast } from "@/components/ui/toast-sim"
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function formatRupiah(n: number) {
@@ -33,6 +25,34 @@ function formatDate(iso: string | null) {
     return new Date(iso).toLocaleDateString("id-ID", {
         day: "2-digit", month: "short", year: "numeric",
     })
+}
+
+function formatRelativeTime(iso: string | null) {
+    if (!iso) return "—"
+    const now = new Date()
+    const past = new Date(iso)
+    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000)
+
+    if (diffInSeconds < 0) return "just now" // handles future dates slightly
+    if (diffInSeconds < 60) return "just now"
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) return `${diffInMinutes} hour${diffInMinutes > 1 ? "s" : ""} ago`.replace("hour", "minute") // shortcut logic
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`
+
+    const diffInWeeks = Math.floor(diffInDays / 7)
+    if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? "s" : ""} ago`
+
+    const diffInMonths = Math.floor(diffInDays / 30)
+    if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths > 1 ? "s" : ""} ago`
+
+    const diffInYears = Math.floor(diffInDays / 365)
+    return `${diffInYears} year${diffInYears > 1 ? "s" : ""} ago`
 }
 
 // ── Derive payout list from bookingDetails & bookings ─────────────────────────
@@ -92,6 +112,7 @@ function buildPayoutList() {
 
 type PayoutStatus = "all" | "pending" | "approved" | "rejected"
 type SortField = "name" | "grossRevenue" | "netPayout" | "requestedAt"
+type PayoutEntry = ReturnType<typeof buildPayoutList>[0] & { _status?: "pending" | "approved" | "rejected"; _rejectReason?: string }
 
 const PAGE_SIZE = 10
 
@@ -101,8 +122,44 @@ const STATUS_CFG = {
     rejected: { label: "Ditolak", bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", dot: "bg-red-500", icon: XCircle },
 } as const
 
+// ── Reject Modal ────────────────────────────────────────────────────────────────
+function RejectModal({ open, trainerName, onConfirm, onCancel }: {
+    open: boolean; trainerName: string
+    onConfirm: (reason: string) => void; onCancel: () => void
+}) {
+    const [reason, setReason] = useState("")
+    if (!open) return null
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Tolak Payout</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Guru: <strong>{trainerName}</strong></p>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Alasan Penolakan *</label>
+                <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3}
+                    placeholder="Contoh: Verifikasi rekening gagal, dokumen tidak lengkap..."
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 resize-none mb-4" />
+                <div className="flex gap-2 justify-end">
+                    <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Batal</button>
+                    <button onClick={() => reason && onConfirm(reason)}
+                        disabled={!reason}
+                        className="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors">Tolak Payout</button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function PayoutContent() {
-    const payouts = useMemo(() => buildPayoutList(), [])
+    const basePayouts = useMemo(() => buildPayoutList(), [])
+    const [payoutStates, setPayoutStates] = useState<Record<number, { status: "pending" | "approved" | "rejected"; rejectReason?: string }>>({})
+    const [rejectTarget, setRejectTarget] = useState<PayoutEntry | null>(null)
+
+    const payouts: PayoutEntry[] = basePayouts.map(p => ({
+        ...p,
+        status: payoutStates[p.trainer.id]?.status ?? p.status,
+        _rejectReason: payoutStates[p.trainer.id]?.rejectReason,
+    }))
 
     const [search, setSearch] = useState("")
     const [statusFilter, setStatus] = useState<PayoutStatus>("all")
@@ -151,12 +208,24 @@ function PayoutContent() {
     const STATUS_TABS: { key: PayoutStatus; label: string; count: number; color: string }[] = [
         { key: "all", label: "Semua", count: payouts.length, color: "emerald" },
         { key: "pending", label: "Menunggu", count: payouts.filter(p => p.status === "pending").length, color: "amber" },
-        { key: "approved", label: "Disetujui", count: payouts.filter(p => p.status === "approved").length, color: "blue" },
+        { key: "approved", label: "Disetujui", count: payouts.filter(p => p.status === "approved").length, color: "emerald" },
         { key: "rejected", label: "Ditolak", count: payouts.filter(p => p.status === "rejected").length, color: "red" },
     ]
 
     return (
         <div className="bg-gray-50 dark:bg-gray-950 p-4">
+            <ToastContainer />
+            <RejectModal
+                open={!!rejectTarget}
+                trainerName={rejectTarget?.trainer.name ?? ""}
+                onConfirm={reason => {
+                    if (!rejectTarget) return
+                    setPayoutStates(prev => ({ ...prev, [rejectTarget.trainer.id]: { status: "rejected", rejectReason: reason } }))
+                    showToast({ type: "info", title: `Payout ${rejectTarget.trainer.name} ditolak`, message: reason, endpoint: `POST /api/v1/Payouts/${rejectTarget.trainer.id}/reject` })
+                    setRejectTarget(null)
+                }}
+                onCancel={() => setRejectTarget(null)}
+            />
             <div className="max-w-[1600px] mx-auto space-y-4">
 
                 {/* ── Header ── */}
@@ -204,7 +273,6 @@ function PayoutContent() {
                             const colorMap: Record<string, string> = {
                                 emerald: active ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-emerald-400",
                                 amber: active ? "bg-amber-500 text-white border-amber-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-amber-400",
-                                blue: active ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-blue-400",
                                 red: active ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-red-400",
                             }
                             return (
@@ -312,9 +380,8 @@ function PayoutContent() {
                                             <td className="px-4 py-3 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                                 {formatRupiah(p.netPayout)}
                                             </td>
-                                            {/* Tgl Request */}
                                             <td className="px-4 py-3 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                                                {formatDate(p.requestedAt)}
+                                                {formatRelativeTime(p.requestedAt)}
                                             </td>
                                             {/* Status */}
                                             <td className="px-4 py-3">
@@ -325,23 +392,49 @@ function PayoutContent() {
                                             </td>
                                             {/* Aksi */}
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                                                     {p.status === "pending" && (
                                                         <>
-                                                            <button className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5 font-medium">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPayoutStates(prev => ({ ...prev, [p.trainer.id]: { status: "approved" } }))
+                                                                    showToast({ type: "success", title: `Payout ${p.trainer.name} disetujui`, message: `Net: ${formatRupiah(p.netPayout)}`, endpoint: `POST /api/v1/Payouts/${p.trainer.id}/approve` })
+                                                                }}
+                                                                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg transition-colors">
                                                                 <CheckCircle2 className="w-3.5 h-3.5" /> Setujui
                                                             </button>
-                                                            <span className="text-gray-200 dark:text-gray-700">|</span>
-                                                            <button className="text-xs text-red-500 hover:text-red-600 dark:text-red-400 font-medium flex items-center gap-0.5">
-                                                                <AlertCircle className="w-3.5 h-3.5" /> Tolak
+                                                            <button
+                                                                onClick={() => setRejectTarget(p as PayoutEntry)}
+                                                                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 dark:text-red-400 font-semibold border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
+                                                                <XCircle className="w-3.5 h-3.5" /> Tolak
                                                             </button>
                                                         </>
                                                     )}
                                                     {p.status === "approved" && (
-                                                        <span className="text-xs text-gray-400 italic">Sudah diproses</span>
+                                                        <>
+                                                            <button
+                                                                onClick={() => {
+                                                                    showToast({ type: "info", title: `Transfer ke ${p.trainer.name} diproses`, message: `${formatRupiah(p.netPayout)} → ${p.bank}`, endpoint: `POST /api/v1/Payouts/${p.trainer.id}/process` })
+                                                                }}
+                                                                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg transition-colors">
+                                                                <SendHorizonal className="w-3.5 h-3.5" /> Proses Transfer
+                                                            </button>
+                                                        </>
                                                     )}
                                                     {p.status === "rejected" && (
-                                                        <span className="text-xs text-red-400 italic">Ditolak</span>
+                                                        <>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPayoutStates(prev => ({ ...prev, [p.trainer.id]: { status: "pending" } }))
+                                                                    showToast({ type: "info", title: "Payout dikembalikan ke pending", endpoint: `PUT /api/v1/Payouts/${p.trainer.id}/status` })
+                                                                }}
+                                                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 font-medium border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-lg transition-colors">
+                                                                <RotateCcw className="w-3 h-3" /> Reset
+                                                            </button>
+                                                            {p._rejectReason && (
+                                                                <span className="text-[10px] text-red-400 italic truncate max-w-[100px]" title={p._rejectReason}>⚠ {p._rejectReason}</span>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>

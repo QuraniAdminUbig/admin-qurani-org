@@ -30,6 +30,7 @@ import Link from "next/link"
 import { Input } from "../ui/input"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/hooks/use-notifications"
+import { SimNotifSection } from "@/components/admin/sim-notif-section"
 
 interface MappedNotification {
     id: string;
@@ -1410,6 +1411,9 @@ export function Notifikasi({ userId }: NotifikasiProps) {
                         {t('notifikasi.tickets', 'Tickets')}
                     </Button>
                 </div>
+
+                {/* Sim Notif Section — dummy notifications from localStorage */}
+                <SimNotifSection />
 
                 {/* Notifications List */}
                 <div className="space-y-2" data-notification-container>

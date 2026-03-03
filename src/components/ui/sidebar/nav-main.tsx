@@ -44,7 +44,8 @@ export const NavMain = React.memo(function NavMain({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({})
   // const { t } = useI18n()
   const { state, isMobile, setOpenMobile } = useSidebar()
-  const isCollapsed = state === "collapsed" && !isMobile // Di mobile, tidak pernah collapsed
+  const [mounted, setMounted] = useState(false)
+  const isCollapsed = mounted ? (state === "collapsed" && !isMobile) : false // Di mobile, tidak pernah collapsed
   const { user, userId } = useAuth()
   const { notifications } = useNotifications(userId)
   const unreadCount = notifications?.filter((n: { is_read: boolean }) => !n.is_read)?.length || 0
@@ -52,6 +53,11 @@ export const NavMain = React.memo(function NavMain({
 
   // PWA Install hook
   const { install: installPWA } = usePWAInstall()
+
+  // Set mounted setelah hydration selesai
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Cek apakah user sedang di halaman notifikasi
   const isOnNotificationsPage = pathname === '/notifikasi'

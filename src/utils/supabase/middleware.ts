@@ -12,6 +12,12 @@ interface MyQuraniUser {
 }
 
 /**
+ * ⚠️  TEMPORARY: Set to true to bypass auth for demo/presentation purposes.
+ * Remember to set back to false before going to production!
+ */
+const BYPASS_AUTH_FOR_DEMO = false;
+
+/**
  * Get user from MyQurani token cookie
  */
 function getMyQuraniUser(request: NextRequest): MyQuraniUser | null {
@@ -35,7 +41,6 @@ function getMyQuraniUser(request: NextRequest): MyQuraniUser | null {
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-
   const pathname = request.nextUrl.pathname;
 
   // Define route types
@@ -53,8 +58,21 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/master-data") ||
     pathname.startsWith("/notification") ||
     pathname.startsWith("/settings");
-  const isUnauthorizedPage = pathname.startsWith("/unauthorized");
   const isBlockedPage = pathname.startsWith("/blocked");
+
+  // ============================================
+  // BYPASS: Demo / Presentation Mode
+  // ============================================
+  if (BYPASS_AUTH_FOR_DEMO) {
+    // Kalau user buka root/login, redirect langsung ke /billing
+    if (isLoginPage || isHomePage) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/billing";
+      return NextResponse.redirect(url);
+    }
+    // Izinkan semua route lain tanpa pengecekan auth
+    return response;
+  }
 
   // ============================================
   // STEP 1: Check for MyQurani API token first
@@ -63,15 +81,6 @@ export async function updateSession(request: NextRequest) {
 
   if (myquraniUser) {
     console.log("[Middleware] MyQurani user found:", myquraniUser?.email || "token-only");
-
-    // TODO: Re-enable role checking after testing
-    // const userRole = myquraniUser.role?.toLowerCase() || "member";
-    // const allowedRoles = ["admin", "billing", "support"];
-    // if (!allowedRoles.includes(userRole) && !isUnauthorizedPage && isProtectedRoute) {
-    //   const url = request.nextUrl.clone();
-    //   url.pathname = "/unauthorized";
-    //   return NextResponse.redirect(url);
-    // }
 
     // Redirect authenticated user away from login/register pages
     if (isLoginPage || isRegisterPage || isHomePage) {
@@ -130,15 +139,6 @@ export async function updateSession(request: NextRequest) {
         url.pathname = "/blocked";
         return NextResponse.redirect(url);
       }
-
-      // TODO: Re-enable role checking after testing
-      // const userRole = userProfile?.role || "member";
-      // const allowedRoles = ["admin", "billing", "support"];
-      // if (!allowedRoles.includes(userRole) && !isUnauthorizedPage && isProtectedRoute) {
-      //   const url = request.nextUrl.clone();
-      //   url.pathname = "/unauthorized";
-      //   return NextResponse.redirect(url);
-      // }
     }
   } catch (error) {
     console.error("[Middleware] Supabase check error:", error);

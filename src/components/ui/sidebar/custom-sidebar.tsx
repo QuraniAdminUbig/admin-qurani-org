@@ -14,7 +14,7 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 // Helper function to get cookie value
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null
-  
+
   const value = `; ${document.cookie}`
   const parts = value.split(`; ${name}=`)
   if (parts.length === 2) {
@@ -65,24 +65,21 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  // Get initial state from cookie, fallback to defaultOpen, then false
-  const getInitialOpenState = React.useCallback(() => {
-    if (typeof window === 'undefined') return defaultOpen ?? false
-    return getSidebarStateFromCookie() ?? defaultOpen ?? false
-  }, [defaultOpen])
-
-  const [_open, _setOpen] = React.useState(getInitialOpenState)
+  // ALWAYS start with defaultOpen ?? false on BOTH server and client
+  // to avoid hydration mismatch. Cookie is read only after mount.
+  const [_open, _setOpen] = React.useState<boolean>(defaultOpen ?? false)
   const open = openProp ?? _open
 
-  // Load state from cookie on client-side mount
+  // Load state from cookie ONLY on client-side mount (after hydration)
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && openProp === undefined) {
+    if (openProp === undefined) {
       const cookieState = getSidebarStateFromCookie()
-      if (cookieState !== null) {
+      if (cookieState !== null && cookieState !== (defaultOpen ?? false)) {
         _setOpen(cookieState)
       }
     }
-  }, [openProp])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -113,7 +110,7 @@ function SidebarProvider({
         event.preventDefault()
         toggleSidebar()
       }
-      
+
       // Close mobile sidebar on Escape
       if (event.key === "Escape" && isMobile && openMobile) {
         event.preventDefault()
@@ -227,7 +224,7 @@ function Sidebar({
           }}
           aria-hidden={!openMobile}
         />
-        
+
         {/* Mobile Sidebar */}
         <div
           role="dialog"
@@ -243,11 +240,11 @@ function Sidebar({
           onTouchStart={(e) => {
             const touch = e.touches[0]
             const startX = touch.clientX
-            
+
             const handleTouchMove = (e: TouchEvent) => {
               const currentTouch = e.touches[0]
               const deltaX = currentTouch.clientX - startX
-              
+
               // Jika swipe ke kiri lebih dari 50px, tutup sidebar
               if (deltaX < -50) {
                 setOpenMobile(false)
@@ -255,12 +252,12 @@ function Sidebar({
                 document.removeEventListener('touchend', handleTouchEnd)
               }
             }
-            
+
             const handleTouchEnd = () => {
               document.removeEventListener('touchmove', handleTouchMove)
               document.removeEventListener('touchend', handleTouchEnd)
             }
-            
+
             document.addEventListener('touchmove', handleTouchMove, { passive: false })
             document.addEventListener('touchend', handleTouchEnd)
           }}
@@ -281,6 +278,7 @@ function Sidebar({
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-side={side}
+      suppressHydrationWarning
     >
       {/* Sidebar gap */}
       <div
@@ -288,8 +286,9 @@ function Sidebar({
           "relative bg-transparent transition-[width] duration-200 ease-in-out",
           state === "collapsed" ? "w-12" : "w-64"
         )}
+        suppressHydrationWarning
       />
-      
+
       {/* Sidebar container */}
       <div
         className={cn(
@@ -299,6 +298,7 @@ function Sidebar({
           "border-r border-gray-200 dark:border-gray-800 shadow-sm",
           className
         )}
+        suppressHydrationWarning
         {...props}
       >
         <div className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 flex h-full w-full flex-col overflow-hidden">
