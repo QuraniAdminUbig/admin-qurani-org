@@ -24,6 +24,7 @@ import {
   Package,
   Banknote,
   Tag,
+  Receipt,
 } from "lucide-react"
 import { RxDashboard, } from "react-icons/rx"
 import { MdAnnouncement } from "react-icons/md"
@@ -117,6 +118,11 @@ const getSidebarData = (
           title: "Discounts Codes",
           url: "/billing/discountcodes",
           icon: Tag,
+        },
+        {
+          title: "Tax Rates",
+          url: "/billing/taxrates",
+          icon: Receipt,
         },
       ],
     },
