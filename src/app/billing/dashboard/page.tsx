@@ -29,8 +29,10 @@ type Payment = {
     userId: number
     userName: string
     userEmail: string
+    userUsername?: string
     trainerId: number
     trainerName: string
+    trainerUsername?: string
     bookingId: number
     packageName: string
     amount: number
@@ -653,69 +655,75 @@ function BillingDashboardContent() {
                         </Card>
                     </div>
 
-                    {/* ── Row 4: Recent Payments ── */}
+                    {/* ── Row 4: Payments ── */}
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-gray-900 dark:text-white text-base">
-                                    Pembayaran Terbaru
+                                    Pembayaran
                                     {filteredPayments.length === 0 && (
                                         <span className="ml-2 text-xs font-normal text-gray-400">— tidak ada data pada periode ini</span>
                                     )}
                                 </CardTitle>
-                                <a href="/billing/member-subscription"
-                                    className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                                    Lihat semua <ArrowUpRight className="w-3 h-3" />
-                                </a>
+                                <span className="text-xs text-gray-400">{filteredPayments.length} transaksi</span>
                             </div>
                         </CardHeader>
                         <CardContent className="pt-2 px-0">
-                            {recentPayments.length === 0 ? (
+                            {filteredPayments.length === 0 ? (
                                 <div className="text-center py-10 text-gray-400 text-sm">
                                     Tidak ada transaksi pada periode yang dipilih
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b border-gray-100 dark:border-gray-800">
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
-                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                                            {recentPayments.map((p) => {
-                                                const s = statusMap[p.status] || { label: p.status, cls: "bg-gray-100 text-gray-600" }
-                                                return (
-                                                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                                        <td className="px-6 py-3 text-xs text-gray-400 font-mono">#{p.id}</td>
-                                                        <td className="px-4 py-3">
-                                                            <div>
-                                                                <p className="font-medium text-gray-900 dark:text-white text-xs">{p.userName}</p>
-                                                                <p className="text-gray-400 dark:text-gray-500 text-[10px]">{p.userEmail}</p>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.trainerName}</td>
-                                                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.paymentMethod}</td>
-                                                        <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatRupiah(p.amount)}</td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
-                                                                {s.label}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-[11px] text-gray-400">
-                                                            {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
-                                                        </td>
-                                                    </tr>
-                                                )
-                                            })}
-                                        </tbody>
-                                    </table>
+                                    <div className="max-h-80 overflow-y-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                                                <tr className="border-b border-gray-100 dark:border-gray-800">
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
+                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                                                {filteredPayments
+                                                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                                    .map((p) => {
+                                                        const s = statusMap[p.status] || { label: p.status, cls: "bg-gray-100 text-gray-600" }
+                                                        return (
+                                                            <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                                <td className="px-6 py-3 text-xs text-gray-400 font-mono">#{p.id}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <div>
+                                                                        <p className="font-medium text-gray-900 dark:text-white text-xs">{p.userName}</p>
+                                                                        <p className="text-gray-400 dark:text-gray-500 text-[10px]">@{p.userUsername ?? p.userEmail.split("@")[0].replace(/[^a-z0-9]/gi, "").toLowerCase()}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    <div>
+                                                                        <p className="text-xs text-gray-600 dark:text-gray-400">{p.trainerName}</p>
+                                                                        <p className="text-gray-400 dark:text-gray-500 text-[10px]">@{p.trainerUsername ?? p.trainerName.toLowerCase().replace(/[^a-z0-9]/g, "")}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.paymentMethod}</td>
+                                                                <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatRupiah(p.amount)}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
+                                                                        {s.label}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-[11px] text-gray-400">
+                                                                    {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
