@@ -194,7 +194,43 @@ function formatRupiah(amount: number) {
 function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: FilterKey) => void }) {
     const [open, setOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
-    const displayDate = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    // Dynamic label on the button based on active filter
+    const displayDate = useMemo(() => {
+        const now = new Date()
+        const pad = (n: number) => String(n).padStart(2, "0")
+        const fmtShort = (d: Date) =>
+            d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+
+        switch (value) {
+            case "today":
+                return fmtShort(now)
+            case "yesterday": {
+                const y = new Date(now); y.setDate(y.getDate() - 1)
+                return fmtShort(y)
+            }
+            case "this_week": {
+                const day = now.getDay()
+                const mon = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
+                const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+                return `${pad(mon.getDate())} – ${pad(sun.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
+            }
+            case "this_month":
+                return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+            case "this_year":
+                return `Year ${now.getFullYear()}`
+            case "last_year":
+                return `Year ${now.getFullYear() - 1}`
+            case "last_7_days": {
+                const from = new Date(now); from.setDate(now.getDate() - 6)
+                return `${fmtShort(from)} – ${pad(now.getDate())}`
+            }
+            case "last_30_days": {
+                const from = new Date(now); from.setDate(now.getDate() - 29)
+                return `${from.toLocaleDateString("en-US", { month: "short", day: "2-digit" })} – ${fmtShort(now)}`
+            }
+        }
+    }, [value])
+
 
     useEffect(() => {
         function handleClickOutside(e: MouseEvent) {
@@ -253,13 +289,21 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
     )
 }
 
-// ─── CircularGauge ────────────────────────────────────────────────────────────
+// ─── CircularGauge — arc animates from 0 to target on mount ──────────────────
 function CircularGauge({ value, max, label, sublabel, color, displayValue }: {
     value: number; max: number; label: string; sublabel: string; color: string; displayValue: string
 }) {
     const r = 42
     const circumference = 2 * Math.PI * r
-    const offset = circumference * (1 - Math.min(value / max, 1))
+    const targetOffset = circumference * (1 - Math.min(value / max, 1))
+    const [animOffset, setAnimOffset] = useState(circumference) // start = full (empty arc)
+
+    useEffect(() => {
+        setAnimOffset(circumference) // reset to empty first
+        const t = setTimeout(() => setAnimOffset(targetOffset), 80)
+        return () => clearTimeout(t)
+    }, [targetOffset, circumference])
+
     return (
         <div className="flex flex-col items-center">
             <div className="relative w-24 h-24">
@@ -267,8 +311,10 @@ function CircularGauge({ value, max, label, sublabel, color, displayValue }: {
                     <circle cx="48" cy="48" r={r} stroke="currentColor" strokeWidth="6" fill="none"
                         className="text-gray-200 dark:text-gray-700" />
                     <circle cx="48" cy="48" r={r} stroke="currentColor" strokeWidth="6" fill="none"
-                        strokeDasharray={`${circumference}`} strokeDashoffset={`${offset}`}
-                        className={`${color} transition-all duration-700`} strokeLinecap="round" />
+                        strokeDasharray={`${circumference}`}
+                        strokeDashoffset={`${animOffset}`}
+                        style={{ transition: "stroke-dashoffset 0.85s cubic-bezier(0.4,0,0.2,1)" }}
+                        className={color} strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-lg font-bold text-gray-900 dark:text-white">{displayValue}</span>
@@ -400,6 +446,18 @@ function BillingDashboardContent() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
+            <style>{`
+                @keyframes chartLineDraw {
+                    from { stroke-dashoffset: 1200; }
+                    to   { stroke-dashoffset: 0; }
+                }
+                .anim-chart-line {
+                    stroke-dasharray: 1200;
+                    stroke-dashoffset: 1200;
+                    animation: chartLineDraw 1.1s ease forwards;
+                }
+            `}</style>
+
             <div className="max-w-[1600px] mx-auto space-y-4">
 
                 {/* ── Header ── */}
@@ -411,255 +469,259 @@ function BillingDashboardContent() {
                     <FilterDropdown value={activeFilter} onChange={setActiveFilter} />
                 </div>
 
-                {/* ── Row 1: Gauge + Revenue ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <Card className="lg:col-span-2 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
-                        <CardHeader className="pb-0">
-                            <CardTitle className="text-gray-900 dark:text-white text-base">Status Keuangan</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="grid grid-cols-3 gap-4">
-                                <CircularGauge
-                                    value={successRate} max={100}
-                                    label="Tingkat Sukses"
-                                    sublabel={`${stats.successfulPayments} dari ${stats.totalPayments}`}
-                                    color="text-emerald-500" displayValue={`${successRate}%`}
-                                />
-                                <CircularGauge
-                                    value={activeSubRate} max={100}
-                                    label="Pesanan Aktif"
-                                    sublabel={`${stats.activeBookings} dari ${stats.totalBookings}`}
-                                    color="text-blue-500" displayValue={`${activeSubRate}%`}
-                                />
-                                <CircularGauge
-                                    value={stats.pendingPayouts} max={150}
-                                    label="Payout Pending"
-                                    sublabel={`${stats.pendingPayouts} menunggu`}
-                                    color="text-amber-500" displayValue={`${stats.pendingPayouts}`}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* key re-mounts children → triggers per-card animations on filter change */}
+                <div key={activeFilter} className="space-y-4">
 
-                    <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
-                        <CardHeader className="pb-0">
-                            <CardTitle className="text-gray-900 dark:text-white text-base">Total Revenue</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-4 px-6 py-4">
-                            <div>
-                                <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                                    {formatRupiah(stats.totalRevenue)}
-                                </span>
-                                <div className="flex items-center gap-1 mt-1">
-                                    <ArrowUpRight className="w-4 h-4 text-emerald-500" />
-                                    <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                                        {stats.successfulPayments} transaksi
-                                    </span>
+                    {/* ── Row 1: Gauge + Revenue ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-2 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
+                            <CardHeader className="pb-0">
+                                <CardTitle className="text-gray-900 dark:text-white text-base">Status Keuangan</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <CircularGauge
+                                        value={successRate} max={100}
+                                        label="Tingkat Sukses"
+                                        sublabel={`${stats.successfulPayments} dari ${stats.totalPayments}`}
+                                        color="text-emerald-500" displayValue={`${successRate}%`}
+                                    />
+                                    <CircularGauge
+                                        value={activeSubRate} max={100}
+                                        label="Pesanan Aktif"
+                                        sublabel={`${stats.activeBookings} dari ${stats.totalBookings}`}
+                                        color="text-blue-500" displayValue={`${activeSubRate}%`}
+                                    />
+                                    <CircularGauge
+                                        value={stats.pendingPayouts} max={150}
+                                        label="Payout Pending"
+                                        sublabel={`${stats.pendingPayouts} menunggu`}
+                                        color="text-amber-500" displayValue={`${stats.pendingPayouts}`}
+                                    />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                {stats.methodBreakdown.length > 0
-                                    ? stats.methodBreakdown.map(m => (
-                                        <div key={m.method}>
-                                            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-0.5">
-                                                <span>{m.method}</span>
-                                                <span>{m.percentage}%</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${m.percentage}%` }} />
-                                            </div>
-                                        </div>
-                                    ))
-                                    : <p className="text-xs text-gray-400 text-center py-2">Tidak ada data pada periode ini</p>
-                                }
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            </CardContent>
+                        </Card>
 
-                {/* ── Row 2: Overview cards ── */}
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
-                    <CardHeader className="pb-0">
-                        <CardTitle className="text-gray-900 dark:text-white text-base font-semibold">Overview</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                            {overviewCards.map((card) => {
-                                const Icon = card.icon
-                                return (
-                                    <Card key={card.title} className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
-                                        <CardContent className="p-4">
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-lg ${colorMap[card.color]} flex items-center justify-center`}>
-                                                        <Icon className={`w-5 h-5 ${iconMap[card.color]}`} />
-                                                    </div>
-                                                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{card.title}</h3>
+                        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
+                            <CardHeader className="pb-0">
+                                <CardTitle className="text-gray-900 dark:text-white text-base">Total Revenue</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-4 px-6 py-4">
+                                <div>
+                                    <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                                        {formatRupiah(stats.totalRevenue)}
+                                    </span>
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                                        <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                                            {stats.successfulPayments} transaksi
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {stats.methodBreakdown.length > 0
+                                        ? stats.methodBreakdown.map(m => (
+                                            <div key={m.method}>
+                                                <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-0.5">
+                                                    <span>{m.method}</span>
+                                                    <span>{m.percentage}%</span>
                                                 </div>
-                                                <div>
-                                                    <p className="text-xl font-bold text-gray-900 dark:text-white">{card.value}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{card.sub}</p>
+                                                <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${m.percentage}%` }} />
                                                 </div>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
+                                        ))
+                                        : <p className="text-xs text-gray-400 text-center py-2">Tidak ada data pada periode ini</p>
+                                    }
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                {/* ── Row 3: Statistics + Revenue Chart ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
+                    {/* ── Row 2: Overview cards ── */}
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
-                            <CardTitle className="text-gray-900 dark:text-white text-base">Statistik Pembayaran</CardTitle>
+                            <CardTitle className="text-gray-900 dark:text-white text-base font-semibold">Overview</CardTitle>
                         </CardHeader>
                         <CardContent className="pt-0">
-                            <div className="grid grid-cols-2 gap-4">
-                                {statusCards.map((s) => {
-                                    const Icon = s.icon
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {overviewCards.map((card) => {
+                                    const Icon = card.icon
                                     return (
-                                        <div key={s.label}
-                                            className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className={`w-12 h-12 rounded-lg ${colorMap[s.color]} flex items-center justify-center`}>
-                                                    <Icon className={`w-6 h-6 ${iconMap[s.color]}`} />
+                                        <Card key={card.title} className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+                                            <CardContent className="p-4">
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 rounded-lg ${colorMap[card.color]} flex items-center justify-center`}>
+                                                            <Icon className={`w-5 h-5 ${iconMap[card.color]}`} />
+                                                        </div>
+                                                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{card.title}</h3>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xl font-bold text-gray-900 dark:text-white">{card.value}</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{card.sub}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{s.label}</h4>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Transaksi</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className={`text-sm px-2 py-1 rounded ${badgeMap[s.color]}`}>Active</span>
-                                                <span className="text-lg font-bold text-gray-900 dark:text-white">{s.count}</span>
-                                            </div>
-                                        </div>
+                                            </CardContent>
+                                        </Card>
                                     )
                                 })}
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* ── Row 3: Statistics + Revenue Chart ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
+                            <CardHeader className="pb-0">
+                                <CardTitle className="text-gray-900 dark:text-white text-base">Statistik Pembayaran</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <div className="grid grid-cols-2 gap-4">
+                                    {statusCards.map((s) => {
+                                        const Icon = s.icon
+                                        return (
+                                            <div key={s.label}
+                                                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <div className={`w-12 h-12 rounded-lg ${colorMap[s.color]} flex items-center justify-center`}>
+                                                        <Icon className={`w-6 h-6 ${iconMap[s.color]}`} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900 dark:text-white">{s.label}</h4>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">Transaksi</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-sm px-2 py-1 rounded ${badgeMap[s.color]}`}>Active</span>
+                                                    <span className="text-lg font-bold text-gray-900 dark:text-white">{s.count}</span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
+                            <CardHeader className="pb-0">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-gray-900 dark:text-white text-base">Tren Revenue</CardTitle>
+                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Revenue
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-2">
+                                <div className="space-y-3">
+                                    <div className="h-44 relative">
+                                        {chartData.every(d => d.revenue === 0) ? (
+                                            <div className="h-full flex items-center justify-center text-xs text-gray-400">
+                                                Tidak ada data revenue pada periode ini
+                                            </div>
+                                        ) : (
+                                            <svg className="w-full h-full" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
+                                                {[0, 1, 2, 3, 4].map(i => (
+                                                    <line key={i} x1="0" y1={i * 25} x2={chartW} y2={i * 25}
+                                                        stroke="currentColor" strokeWidth="0.5"
+                                                        className="text-gray-200 dark:text-gray-700" />
+                                                ))}
+                                                {areaPath && <path d={areaPath} fill="currentColor" className="text-emerald-500 opacity-20" />}
+                                                {pts.length > 1 && (
+                                                    <polyline points={polyline} fill="none" stroke="currentColor" strokeWidth="2"
+                                                        className="text-emerald-500 anim-chart-line" strokeLinejoin="round" strokeLinecap="round" />
+                                                )}
+                                                {chartData.map((d, i) => {
+                                                    const x = chartData.length > 1 ? (i / (chartData.length - 1)) * chartW : chartW / 2
+                                                    const y = chartH - (d.revenue / maxRevChart) * chartH
+                                                    return <circle key={i} cx={x} cy={y} r="4" fill="white"
+                                                        stroke="currentColor" strokeWidth="2" className="text-emerald-500" />
+                                                })}
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between px-1">
+                                        {chartData.map(d => (
+                                            <span key={d.label} className="text-[10px] text-gray-400 dark:text-gray-500">{d.label}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* ── Row 4: Recent Payments ── */}
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
                             <div className="flex items-center justify-between">
-                                <CardTitle className="text-gray-900 dark:text-white text-base">Tren Revenue</CardTitle>
-                                <div className="flex items-center gap-3 text-xs text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Revenue
-                                    </span>
-                                </div>
+                                <CardTitle className="text-gray-900 dark:text-white text-base">
+                                    Pembayaran Terbaru
+                                    {filteredPayments.length === 0 && (
+                                        <span className="ml-2 text-xs font-normal text-gray-400">— tidak ada data pada periode ini</span>
+                                    )}
+                                </CardTitle>
+                                <a href="/billing/member-subscription"
+                                    className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                    Lihat semua <ArrowUpRight className="w-3 h-3" />
+                                </a>
                             </div>
                         </CardHeader>
-                        <CardContent className="pt-2">
-                            <div className="space-y-3">
-                                <div className="h-44 relative">
-                                    {chartData.every(d => d.revenue === 0) ? (
-                                        <div className="h-full flex items-center justify-center text-xs text-gray-400">
-                                            Tidak ada data revenue pada periode ini
-                                        </div>
-                                    ) : (
-                                        <svg className="w-full h-full" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
-                                            {[0, 1, 2, 3, 4].map(i => (
-                                                <line key={i} x1="0" y1={i * 25} x2={chartW} y2={i * 25}
-                                                    stroke="currentColor" strokeWidth="0.5"
-                                                    className="text-gray-200 dark:text-gray-700" />
-                                            ))}
-                                            {areaPath && <path d={areaPath} fill="currentColor" className="text-emerald-500 opacity-20" />}
-                                            {pts.length > 1 && (
-                                                <polyline points={polyline} fill="none" stroke="currentColor" strokeWidth="2"
-                                                    className="text-emerald-500" strokeLinejoin="round" strokeLinecap="round" />
-                                            )}
-                                            {chartData.map((d, i) => {
-                                                const x = chartData.length > 1 ? (i / (chartData.length - 1)) * chartW : chartW / 2
-                                                const y = chartH - (d.revenue / maxRevChart) * chartH
-                                                return <circle key={i} cx={x} cy={y} r="4" fill="white"
-                                                    stroke="currentColor" strokeWidth="2" className="text-emerald-500" />
+                        <CardContent className="pt-2 px-0">
+                            {recentPayments.length === 0 ? (
+                                <div className="text-center py-10 text-gray-400 text-sm">
+                                    Tidak ada transaksi pada periode yang dipilih
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-100 dark:border-gray-800">
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
+                                                <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                                            {recentPayments.map((p) => {
+                                                const s = statusMap[p.status] || { label: p.status, cls: "bg-gray-100 text-gray-600" }
+                                                return (
+                                                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                        <td className="px-6 py-3 text-xs text-gray-400 font-mono">#{p.id}</td>
+                                                        <td className="px-4 py-3">
+                                                            <div>
+                                                                <p className="font-medium text-gray-900 dark:text-white text-xs">{p.userName}</p>
+                                                                <p className="text-gray-400 dark:text-gray-500 text-[10px]">{p.userEmail}</p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.trainerName}</td>
+                                                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.paymentMethod}</td>
+                                                        <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatRupiah(p.amount)}</td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
+                                                                {s.label}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-[11px] text-gray-400">
+                                                            {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                                                        </td>
+                                                    </tr>
+                                                )
                                             })}
-                                        </svg>
-                                    )}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div className="flex justify-between px-1">
-                                    {chartData.map(d => (
-                                        <span key={d.label} className="text-[10px] text-gray-400 dark:text-gray-500">{d.label}</span>
-                                    ))}
-                                </div>
-                            </div>
+                            )}
                         </CardContent>
                     </Card>
-                </div>
 
-                {/* ── Row 4: Recent Payments ── */}
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
-                    <CardHeader className="pb-0">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-gray-900 dark:text-white text-base">
-                                Pembayaran Terbaru
-                                {filteredPayments.length === 0 && (
-                                    <span className="ml-2 text-xs font-normal text-gray-400">— tidak ada data pada periode ini</span>
-                                )}
-                            </CardTitle>
-                            <a href="/billing/member-subscription"
-                                className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                                Lihat semua <ArrowUpRight className="w-3 h-3" />
-                            </a>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-2 px-0">
-                        {recentPayments.length === 0 ? (
-                            <div className="text-center py-10 text-gray-400 text-sm">
-                                Tidak ada transaksi pada periode yang dipilih
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 dark:border-gray-800">
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
-                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                                        {recentPayments.map((p) => {
-                                            const s = statusMap[p.status] || { label: p.status, cls: "bg-gray-100 text-gray-600" }
-                                            return (
-                                                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                                    <td className="px-6 py-3 text-xs text-gray-400 font-mono">#{p.id}</td>
-                                                    <td className="px-4 py-3">
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white text-xs">{p.userName}</p>
-                                                            <p className="text-gray-400 dark:text-gray-500 text-[10px]">{p.userEmail}</p>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.trainerName}</td>
-                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.paymentMethod}</td>
-                                                    <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatRupiah(p.amount)}</td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
-                                                            {s.label}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-[11px] text-gray-400">
-                                                        {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
-                                                    </td>
-                                                </tr>
-                                            )
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
+                </div> {/* end filter-animate */}
             </div>
         </div>
     )
