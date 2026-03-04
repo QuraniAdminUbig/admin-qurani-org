@@ -466,7 +466,6 @@ function BillingDashboardContent() {
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Billing Dashboard</h1>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
                     </div>
                     <FilterDropdown value={activeFilter} onChange={setActiveFilter} />
                 </div>
