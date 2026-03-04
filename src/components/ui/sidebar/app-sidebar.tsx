@@ -94,36 +94,6 @@ const getSidebarData = (
           url: "/billing/dashboard",
           icon: RxDashboard,
         },
-        {
-          title: t("navigation.billing_members", "Pesanan"),
-          url: "/billing/member-subscription",
-          icon: UserCheck,
-        },
-        {
-          title: "Manajemen Guru",
-          url: "/billing/guru",
-          icon: GraduationCap,
-        },
-        {
-          title: "Manajemen Paket",
-          url: "/billing/paket",
-          icon: Package,
-        },
-        {
-          title: "Payout Guru",
-          url: "/billing/payout",
-          icon: Banknote,
-        },
-        {
-          title: "Discounts Codes",
-          url: "/billing/discountcodes",
-          icon: Tag,
-        },
-        {
-          title: "Tax Rates",
-          url: "/billing/taxrates",
-          icon: Receipt,
-        },
       ],
     },
     {
@@ -182,6 +152,36 @@ const getSidebarData = (
           title: t("navigation.manage_categories", "Group Categories"),
           url: "/groups/categories",
           icon: Tags,
+        },
+        {
+          title: "Tax Rates",
+          url: "/billing/taxrates",
+          icon: Receipt,
+        },
+        {
+          title: "Manajemen Pesanan",
+          url: "/billing/member-subscription",
+          icon: UserCheck,
+        },
+        {
+          title: "Manajemen Guru",
+          url: "/billing/guru",
+          icon: GraduationCap,
+        },
+        {
+          title: "Manajemen Paket",
+          url: "/billing/paket",
+          icon: Package,
+        },
+        {
+          title: "Payout Guru",
+          url: "/billing/payout",
+          icon: Banknote,
+        },
+        {
+          title: "Discounts Codes",
+          url: "/billing/discountcodes",
+          icon: Tag,
         },
       ],
     },

@@ -79,6 +79,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('auth-change', handleAuthChange);
     }, []);
 
+    // ── Proactive Token Auto-Refresh ──────────────────────────────────────────
+    // Cek setiap 1 menit, refresh token jika kurang dari 5 menit lagi expired
+    useEffect(() => {
+        const checkAndRefresh = async () => {
+            const stored = getStoredAuth();
+            if (!stored?.accessToken || !stored?.expiresAt) return;
+
+            const expiresAt = new Date(stored.expiresAt).getTime();
+            const now = Date.now();
+            const fiveMinutes = 5 * 60 * 1000;
+
+            // Refresh jika token akan expired dalam 5 menit
+            if (expiresAt - now < fiveMinutes) {
+                console.log('[AuthProvider] Token expiring soon, auto-refreshing...');
+                try {
+                    const res = await fetch('/api/auth/refresh', { method: 'POST' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data?.accessToken) {
+                            // Update localStorage
+                            const newAuth = { ...stored, accessToken: data.accessToken, expiresAt: data.expiresAt || stored.expiresAt };
+                            localStorage.setItem('myqurani_auth', JSON.stringify(newAuth));
+
+                            // Update cookie agar middleware tidak redirect
+                            const expires = new Date(newAuth.expiresAt).toUTCString();
+                            document.cookie = `myqurani_access_token=${data.accessToken}; expires=${expires}; path=/; SameSite=Lax`;
+
+                            setCustomUser(newAuth);
+                            console.log('[AuthProvider] Token refreshed successfully ✅');
+                        }
+                    } else {
+                        console.warn('[AuthProvider] Token refresh failed, status:', res.status);
+                    }
+                } catch (err) {
+                    console.warn('[AuthProvider] Token refresh error:', err);
+                }
+            }
+        };
+
+        // Jalankan langsung saat mount
+        checkAndRefresh();
+
+        // Lalu cek setiap 60 detik
+        const interval = setInterval(checkAndRefresh, 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+
     // Fetch user profile from API - only called if no cached profile
     const fetchUserProfile = useCallback(
         async (authId: string): Promise<UserProfile | null> => {

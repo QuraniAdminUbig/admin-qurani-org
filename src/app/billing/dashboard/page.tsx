@@ -1,11 +1,11 @@
 "use client"
 
+import { useState, useMemo, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
     CreditCard,
-    TrendingUp,
     RefreshCcw,
     Users,
     DollarSign,
@@ -14,12 +14,173 @@ import {
     XCircle,
     ArrowUpRight,
     Banknote,
-    BarChart3,
-    Wallet,
+    Calendar,
+    ChevronDown,
+    Check,
+    Timer,
+    BarChart2,
+    History,
 } from "lucide-react"
-import dummyData from "@/data/billing-dummy.json"
+import rawData from "@/data/billing-dummy.json"
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Payment = {
+    id: number
+    userId: number
+    userName: string
+    userEmail: string
+    trainerId: number
+    trainerName: string
+    bookingId: number
+    packageName: string
+    amount: number
+    currency: string
+    status: string
+    paymentMethod: string
+    paymentGatewayRef: string
+    isPaidOut: boolean
+    refundRequested: boolean
+    createdAt: string
+    paidAt: string | null
+    paidOutAt: string | null
+    notes: string | null
+}
+
+type Booking = {
+    id: number
+    userId: number
+    userName: string
+    userEmail: string
+    trainerId: number
+    trainerName: string
+    packageName: string
+    packageKey: string
+    totalSessions: number
+    completedSessions: number
+    mode: string
+    pricePackage: number
+    serviceFee: number
+    totalPayment: number
+    currency: string
+    status: string
+    bookingDate: string
+    paymentMethod: string
+    paymentGateway: string
+}
+
+const allPayments: Payment[] = (rawData as { payments?: Payment[] }).payments ?? []
+const allBookings: Booking[] = (rawData as { bookings?: Booking[] }).bookings ?? []
+
+// ─── Filter Config ────────────────────────────────────────────────────────────
+type FilterKey =
+    | "today" | "yesterday"
+    | "this_week" | "this_month" | "this_year" | "last_year"
+    | "last_7_days" | "last_30_days"
+
+const FILTER_OPTIONS: { key: FilterKey; label: string; group: string }[] = [
+    { key: "today", label: "Today", group: "Quick" },
+    { key: "yesterday", label: "Yesterday", group: "Quick" },
+    { key: "this_week", label: "This week", group: "Period" },
+    { key: "this_month", label: "This month", group: "Period" },
+    { key: "this_year", label: "This year", group: "Period" },
+    { key: "last_year", label: "Last year", group: "Period" },
+    { key: "last_7_days", label: "Last 7 days", group: "Historical" },
+    { key: "last_30_days", "label": "Last 30 days", "group": "Historical" },
+]
+
+const GROUP_ICONS: Record<string, React.ReactNode> = {
+    Quick: <Timer className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Period: <BarChart2 className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Historical: <History className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+}
+
+// ── Display label per filter ──────────────────────────────────────────────────
+function getFilterLabel(filter: FilterKey): string {
+    const now = new Date()
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+    switch (filter) {
+        case "today": return `Data: ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
+        case "yesterday": {
+            const y = new Date(now.getTime() - 86400000)
+            return `Data: ${y.getDate()} ${months[y.getMonth()]} ${y.getFullYear()}`
+        }
+        case "this_week": return `Data: Minggu ini`
+        case "this_month": return `Data: ${months[now.getMonth()]} ${now.getFullYear()}`
+        case "this_year": return `Data: Tahun ${now.getFullYear()}`
+        case "last_year": return `Data: Tahun ${now.getFullYear() - 1}`
+        case "last_7_days": return `Data: 7 hari terakhir`
+        case "last_30_days": return `Data: 30 hari terakhir`
+    }
+}
+
+// ── Slice dummy data differently per filter so data always changes ─────────────
+// Each filter key returns a deterministic but DIFFERENT subset of the JSON data.
+const FILTER_SLICES: Record<FilterKey, { paymentIdx: number[]; bookingIdx: number[] }> = {
+    // today: payment id 1011 (Mar 04 07:30) & 1012 (Mar 04 09:15) → idx 10,11
+    today: { paymentIdx: [10, 11], bookingIdx: [0] },
+    // yesterday: payment id 1013 (Mar 03 14:20) & 1014 (Mar 03 10:00) → idx 12,13
+    yesterday: { paymentIdx: [12, 13], bookingIdx: [1] },
+    // this week: Mar 01-04 → idx 10-15
+    this_week: { paymentIdx: [10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2] },
+    // this month (Mar 2026): idx 10-15
+    this_month: { paymentIdx: [10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    // this year (all 2026): idx 0-15
+    this_year: { paymentIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    // last year (2025): id 1005,1006,1010,1017,1018,1019,1020 → idx 4,5,9,16,17,18,19
+    last_year: { paymentIdx: [4, 5, 9, 16, 17, 18, 19], bookingIdx: [4, 5] },
+    // last 7 days (Feb 26 - Mar 04): idx 10-15
+    last_7_days: { paymentIdx: [10, 11, 12, 13, 14], bookingIdx: [0, 1, 2] },
+    // last 30 days (Feb 03 - Mar 04): idx 0,1,7,8,9,10,11,12,13,14,15
+    last_30_days: { paymentIdx: [0, 1, 7, 8, 9, 10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+}
+
+function getFilteredData(filter: FilterKey) {
+    const { paymentIdx, bookingIdx } = FILTER_SLICES[filter]
+    return {
+        payments: paymentIdx.map(i => allPayments[i]).filter(Boolean),
+        bookings: bookingIdx.map(i => allBookings[i]).filter(Boolean),
+    }
+}
+
+// ── Chart groupings per filter ────────────────────────────────────────────────
+function buildChartData(filter: FilterKey, payments: Payment[]) {
+    const completed = payments.filter(p => p.status === "completed")
+    const completed2 = [...completed]
+
+    if (["today", "yesterday"].includes(filter)) {
+        const labels = ["06:00", "09:00", "12:00", "15:00", "18:00", "21:00"]
+        const buckets = labels.map((label, i) => ({
+            label,
+            revenue: completed2[i] ? completed2[i % completed2.length].amount * (0.4 + i * 0.15) : 0
+        }))
+        return buckets
+    }
+    if (["this_week", "last_7_days"].includes(filter)) {
+        const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
+        return days.map((label, i) => ({
+            label,
+            revenue: completed2[i % Math.max(completed2.length, 1)]
+                ? completed2[i % completed2.length].amount * (0.5 + i * 0.1)
+                : 0
+        }))
+    }
+    if (["this_month", "last_30_days"].includes(filter)) {
+        const weeks = ["W1", "W2", "W3", "W4"]
+        return weeks.map((label, i) => ({
+            label,
+            revenue: completed2.slice(i * 2, i * 2 + 2).reduce((s, p) => s + p.amount, 0)
+        }))
+    }
+    // Year / last_year → by month
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+    const yearRev = filter === "last_year"
+        ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => completed2[i % Math.max(completed2.length, 1)]?.amount * (0.6 + i * 0.05) || 0)
+        : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => completed2[i % Math.max(completed2.length, 1)]?.amount * (0.8 + i * 0.03) || 0)
+    return months.map((label, i) => ({ label, revenue: Math.round(yearRev[i] || 0) }))
+}
+
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatRupiah(amount: number) {
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -29,26 +190,76 @@ function formatRupiah(amount: number) {
     }).format(amount)
 }
 
-// ─── CircularGauge component ─────────────────────────────────────────────────
-function CircularGauge({
-    value,
-    max,
-    label,
-    sublabel,
-    color,
-    displayValue,
-}: {
-    value: number
-    max: number
-    label: string
-    sublabel: string
-    color: string
-    displayValue: string
+// ─── Filter Dropdown ──────────────────────────────────────────────────────────
+function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: FilterKey) => void }) {
+    const [open, setOpen] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    const displayDate = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
+
+    const groups = ["Quick", "Period", "Historical"]
+
+    return (
+        <div className="relative" ref={ref}>
+            {/* Trigger button */}
+            <button
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 transition-all shadow-sm min-w-[180px]"
+            >
+                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="flex-1 text-left font-medium text-xs">{displayDate}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+
+            {/* Dropdown */}
+            {open && (
+                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                    {groups.map((group, gi) => {
+                        const items = FILTER_OPTIONS.filter(o => o.group === group)
+                        return (
+                            <div key={group}>
+                                {gi > 0 && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-3" />}
+                                <div className="px-3 py-2">
+                                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center mb-1">
+                                        {GROUP_ICONS[group]}{group}
+                                    </p>
+                                    {items.map(opt => (
+                                        <button
+                                            key={opt.key}
+                                            onClick={() => { onChange(opt.key); setOpen(false) }}
+                                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm text-left transition-colors ${value === opt.key
+                                                ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
+                                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                                                }`}
+                                        >
+                                            {opt.label}
+                                            {value === opt.key && <Check className="w-3 h-3 text-emerald-500" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── CircularGauge ────────────────────────────────────────────────────────────
+function CircularGauge({ value, max, label, sublabel, color, displayValue }: {
+    value: number; max: number; label: string; sublabel: string; color: string; displayValue: string
 }) {
     const r = 42
     const circumference = 2 * Math.PI * r
-    const pct = Math.min(value / max, 1)
-    const offset = circumference * (1 - pct)
+    const offset = circumference * (1 - Math.min(value / max, 1))
     return (
         <div className="flex flex-col items-center">
             <div className="relative w-24 h-24">
@@ -56,10 +267,8 @@ function CircularGauge({
                     <circle cx="48" cy="48" r={r} stroke="currentColor" strokeWidth="6" fill="none"
                         className="text-gray-200 dark:text-gray-700" />
                     <circle cx="48" cy="48" r={r} stroke="currentColor" strokeWidth="6" fill="none"
-                        strokeDasharray={`${circumference}`}
-                        strokeDashoffset={`${offset}`}
-                        className={`${color} transition-all duration-700`}
-                        strokeLinecap="round" />
+                        strokeDasharray={`${circumference}`} strokeDashoffset={`${offset}`}
+                        className={`${color} transition-all duration-700`} strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-lg font-bold text-gray-900 dark:text-white">{displayValue}</span>
@@ -73,47 +282,68 @@ function CircularGauge({
     )
 }
 
-// ─── Main content ─────────────────────────────────────────────────────────────
+// ─── Main Content ─────────────────────────────────────────────────────────────
 function BillingDashboardContent() {
-    const { stats, revenueByMonth, paymentMethodBreakdown, payments } = dummyData
-    // bookings list available via dummyData.bookings
+    const [activeFilter, setActiveFilter] = useState<FilterKey>("this_month")
 
-    const successRate = Math.round((stats.successfulPayments / stats.totalPayments) * 100)
-    const activeSubRate = Math.round((stats.activeBookings / stats.totalBookings) * 100)
+    // Get different data slice per filter — data always changes when filter changes
+    const { payments: filteredPayments, bookings: filteredBookings } = useMemo(
+        () => getFilteredData(activeFilter),
+        [activeFilter]
+    )
 
-    // Overview cards (mirroring master-data style)
+    const label = useMemo(() => getFilterLabel(activeFilter), [activeFilter])
+
+    // Compute stats from filtered slice
+    const stats = useMemo(() => {
+        const completed = filteredPayments.filter(p => p.status === "completed")
+        const pending = filteredPayments.filter(p => p.status === "pending")
+        const failed = filteredPayments.filter(p => p.status === "failed")
+        const refundReq = filteredPayments.filter(p => p.refundRequested)
+        const totalRev = completed.reduce((s, p) => s + p.amount, 0)
+        const activeBook = filteredBookings.filter(b => b.status === "active")
+        const pendingOut = filteredPayments.filter(p => p.status === "completed" && !p.isPaidOut).length
+
+        const methodMap: Record<string, number> = {}
+        completed.forEach(p => { methodMap[p.paymentMethod] = (methodMap[p.paymentMethod] || 0) + p.amount })
+        const totalMethodRev = Object.values(methodMap).reduce((s, v) => s + v, 0) || 1
+        const methodBreakdown = Object.entries(methodMap)
+            .sort((a, b) => b[1] - a[1]).slice(0, 4)
+            .map(([method, amount]) => ({ method, percentage: Math.round((amount / totalMethodRev) * 100), amount }))
+
+        return {
+            totalRevenue: totalRev,
+            totalPayments: filteredPayments.length,
+            successfulPayments: completed.length,
+            pendingPayments: pending.length,
+            failedPayments: failed.length,
+            pendingRefunds: refundReq.length,
+            activeBookings: activeBook.length,
+            totalBookings: filteredBookings.length,
+            pendingPayouts: pendingOut,
+            avgTransaction: completed.length > 0 ? Math.round(totalRev / completed.length) : 0,
+            methodBreakdown,
+        }
+    }, [filteredPayments, filteredBookings])
+
+    // Build chart — different grouping per filter period
+    const chartData = useMemo(
+        () => buildChartData(activeFilter, filteredPayments),
+        [activeFilter, filteredPayments]
+    )
+
+    const successRate = stats.totalPayments > 0
+        ? Math.round((stats.successfulPayments / stats.totalPayments) * 100) : 0
+    const activeSubRate = stats.totalBookings > 0
+        ? Math.round((stats.activeBookings / stats.totalBookings) * 100) : 0
+
     const overviewCards = [
-        {
-            title: "Total Revenue",
-            icon: DollarSign,
-            value: formatRupiah(stats.totalRevenue),
-            sub: `+${stats.revenueGrowth}% dari bulan lalu`,
-            color: "emerald",
-        },
-        {
-            title: "Total Pembayaran",
-            icon: CreditCard,
-            value: stats.totalPayments.toLocaleString("id-ID"),
-            sub: `${stats.successfulPayments} berhasil`,
-            color: "blue",
-        },
-        {
-            title: "Pesanan Aktif",
-            icon: Users,
-            value: stats.activeBookings.toLocaleString("id-ID"),
-            sub: `+${stats.bookingGrowth}% dari bulan lalu`,
-            color: "violet",
-        },
-        {
-            title: "Avg. Transaksi",
-            icon: Banknote,
-            value: formatRupiah(stats.avgTransactionValue),
-            sub: `${stats.totalPayments} transaksi`,
-            color: "amber",
-        },
+        { title: "Total Revenue", icon: DollarSign, value: formatRupiah(stats.totalRevenue), sub: `${stats.successfulPayments} transaksi berhasil`, color: "emerald" },
+        { title: "Total Pembayaran", icon: CreditCard, value: stats.totalPayments.toLocaleString("id-ID"), sub: `${stats.successfulPayments} berhasil`, color: "blue" },
+        { title: "Pesanan Aktif", icon: Users, value: stats.activeBookings.toLocaleString("id-ID"), sub: `dari ${stats.totalBookings} total pesanan`, color: "violet" },
+        { title: "Avg. Transaksi", icon: Banknote, value: formatRupiah(stats.avgTransaction), sub: `${stats.successfulPayments} transaksi`, color: "amber" },
     ]
 
-    // Status cards
     const statusCards = [
         { label: "Berhasil", icon: CheckCircle2, count: stats.successfulPayments, color: "emerald" },
         { label: "Pending", icon: Clock, count: stats.pendingPayments, color: "amber" },
@@ -121,22 +351,24 @@ function BillingDashboardContent() {
         { label: "Refund", icon: RefreshCcw, count: stats.pendingRefunds, color: "blue" },
     ]
 
-    // Chart: max value for scaling
-    const maxRevenue = Math.max(...revenueByMonth.map(d => d.revenue))
+    // Chart rendering
+    const maxRevChart = Math.max(...chartData.map(d => d.revenue), 1)
     const chartH = 100
     const chartW = 400
-    const pts = revenueByMonth.map((d, i) => {
-        const x = (i / (revenueByMonth.length - 1)) * chartW
-        const y = chartH - (d.revenue / maxRevenue) * chartH
+    const pts = chartData.map((d, i) => {
+        const x = chartData.length > 1 ? (i / (chartData.length - 1)) * chartW : chartW / 2
+        const y = chartH - (d.revenue / maxRevChart) * chartH
         return `${x},${y}`
     })
     const polyline = pts.join(" ")
-    const areaPath = `M${pts[0]} L${pts.slice(1).join(" L")} L${chartW},${chartH} L0,${chartH} Z`
+    const areaPath = pts.length > 1
+        ? `M${pts[0]} L${pts.slice(1).join(" L")} L${chartW},${chartH} L0,${chartH} Z`
+        : ""
 
     // Recent payments (latest 5)
-    const recentPayments = [...payments].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ).slice(0, 5)
+    const recentPayments = [...filteredPayments]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
 
     const statusMap: Record<string, { label: string; cls: string }> = {
         completed: { label: "Berhasil", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
@@ -145,24 +377,42 @@ function BillingDashboardContent() {
         refund_requested: { label: "Refund", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
     }
 
+    const colorMap: Record<string, string> = {
+        emerald: "bg-emerald-100 dark:bg-emerald-900/20",
+        blue: "bg-blue-100 dark:bg-blue-900/20",
+        violet: "bg-violet-100 dark:bg-violet-900/20",
+        amber: "bg-amber-100 dark:bg-amber-900/20",
+        red: "bg-red-100 dark:bg-red-900/20",
+    }
+    const iconMap: Record<string, string> = {
+        emerald: "text-emerald-600 dark:text-emerald-400",
+        blue: "text-blue-600 dark:text-blue-400",
+        violet: "text-violet-600 dark:text-violet-400",
+        amber: "text-amber-600 dark:text-amber-400",
+        red: "text-red-600 dark:text-red-400",
+    }
+    const badgeMap: Record<string, string> = {
+        emerald: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
+        amber: "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+        red: "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400",
+        blue: "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
             <div className="max-w-[1600px] mx-auto space-y-4">
 
                 {/* ── Header ── */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Billing Dashboard</h1>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
                     </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5">
-                        Data: Feb 2026 <span className="ml-1 inline-block w-2 h-2 rounded-full bg-emerald-500 align-middle" />
-                    </span>
+                    <FilterDropdown value={activeFilter} onChange={setActiveFilter} />
                 </div>
 
-                {/* ── Row 1: Gauge + Revenue Trend ── */}
+                {/* ── Row 1: Gauge + Revenue ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-                    {/* Gauges */}
                     <Card className="lg:col-span-2 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
                             <CardTitle className="text-gray-900 dark:text-white text-base">Status Keuangan</CardTitle>
@@ -173,28 +423,24 @@ function BillingDashboardContent() {
                                     value={successRate} max={100}
                                     label="Tingkat Sukses"
                                     sublabel={`${stats.successfulPayments} dari ${stats.totalPayments}`}
-                                    color="text-emerald-500"
-                                    displayValue={`${successRate}%`}
+                                    color="text-emerald-500" displayValue={`${successRate}%`}
                                 />
                                 <CircularGauge
                                     value={activeSubRate} max={100}
                                     label="Pesanan Aktif"
                                     sublabel={`${stats.activeBookings} dari ${stats.totalBookings}`}
-                                    color="text-blue-500"
-                                    displayValue={`${activeSubRate}%`}
+                                    color="text-blue-500" displayValue={`${activeSubRate}%`}
                                 />
                                 <CircularGauge
                                     value={stats.pendingPayouts} max={150}
                                     label="Payout Pending"
                                     sublabel={`${stats.pendingPayouts} menunggu`}
-                                    color="text-amber-500"
-                                    displayValue={`${stats.pendingPayouts}`}
+                                    color="text-amber-500" displayValue={`${stats.pendingPayouts}`}
                                 />
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Total Revenue spotlight */}
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
                             <CardTitle className="text-gray-900 dark:text-white text-base">Total Revenue</CardTitle>
@@ -207,33 +453,31 @@ function BillingDashboardContent() {
                                 <div className="flex items-center gap-1 mt-1">
                                     <ArrowUpRight className="w-4 h-4 text-emerald-500" />
                                     <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                                        +{stats.revenueGrowth}%
+                                        {stats.successfulPayments} transaksi
                                     </span>
-                                    <span className="text-xs text-gray-400 ml-1">vs bulan lalu</span>
                                 </div>
                             </div>
-                            {/* Payment method split */}
                             <div className="space-y-2">
-                                {paymentMethodBreakdown.map(m => (
-                                    <div key={m.method}>
-                                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-0.5">
-                                            <span>{m.method}</span>
-                                            <span>{m.percentage}%</span>
+                                {stats.methodBreakdown.length > 0
+                                    ? stats.methodBreakdown.map(m => (
+                                        <div key={m.method}>
+                                            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-0.5">
+                                                <span>{m.method}</span>
+                                                <span>{m.percentage}%</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${m.percentage}%` }} />
+                                            </div>
                                         </div>
-                                        <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full rounded-full bg-emerald-500"
-                                                style={{ width: `${m.percentage}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                    : <p className="text-xs text-gray-400 text-center py-2">Tidak ada data pada periode ini</p>
+                                }
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* ── Row 2: Overview cards (like master-data) ── */}
+                {/* ── Row 2: Overview cards ── */}
                 <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                     <CardHeader className="pb-0">
                         <CardTitle className="text-gray-900 dark:text-white text-base font-semibold">Overview</CardTitle>
@@ -242,18 +486,6 @@ function BillingDashboardContent() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             {overviewCards.map((card) => {
                                 const Icon = card.icon
-                                const colorMap: Record<string, string> = {
-                                    emerald: "bg-emerald-100 dark:bg-emerald-900/20",
-                                    blue: "bg-blue-100 dark:bg-blue-900/20",
-                                    violet: "bg-violet-100 dark:bg-violet-900/20",
-                                    amber: "bg-amber-100 dark:bg-amber-900/20",
-                                }
-                                const iconMap: Record<string, string> = {
-                                    emerald: "text-emerald-600 dark:text-emerald-400",
-                                    blue: "text-blue-600 dark:text-blue-400",
-                                    violet: "text-violet-600 dark:text-violet-400",
-                                    amber: "text-amber-600 dark:text-amber-400",
-                                }
                                 return (
                                     <Card key={card.title} className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
                                         <CardContent className="p-4">
@@ -280,7 +512,6 @@ function BillingDashboardContent() {
                 {/* ── Row 3: Statistics + Revenue Chart ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-                    {/* Payment Status Statistics */}
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
                             <CardTitle className="text-gray-900 dark:text-white text-base">Statistik Pembayaran</CardTitle>
@@ -289,24 +520,6 @@ function BillingDashboardContent() {
                             <div className="grid grid-cols-2 gap-4">
                                 {statusCards.map((s) => {
                                     const Icon = s.icon
-                                    const colorMap: Record<string, string> = {
-                                        emerald: "bg-emerald-100 dark:bg-emerald-900/20",
-                                        amber: "bg-amber-100 dark:bg-amber-900/20",
-                                        red: "bg-red-100 dark:bg-red-900/20",
-                                        blue: "bg-blue-100 dark:bg-blue-900/20",
-                                    }
-                                    const iconMap: Record<string, string> = {
-                                        emerald: "text-emerald-600 dark:text-emerald-400",
-                                        amber: "text-amber-600 dark:text-amber-400",
-                                        red: "text-red-600 dark:text-red-400",
-                                        blue: "text-blue-600 dark:text-blue-400",
-                                    }
-                                    const badgeMap: Record<string, string> = {
-                                        emerald: "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
-                                        amber: "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
-                                        red: "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400",
-                                        blue: "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
-                                    }
                                     return (
                                         <div key={s.label}
                                             className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors">
@@ -320,9 +533,7 @@ function BillingDashboardContent() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className={`text-sm px-2 py-1 rounded ${badgeMap[s.color]}`}>
-                                                    Active
-                                                </span>
+                                                <span className={`text-sm px-2 py-1 rounded ${badgeMap[s.color]}`}>Active</span>
                                                 <span className="text-lg font-bold text-gray-900 dark:text-white">{s.count}</span>
                                             </div>
                                         </div>
@@ -332,7 +543,6 @@ function BillingDashboardContent() {
                         </CardContent>
                     </Card>
 
-                    {/* Revenue Trend Chart */}
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                         <CardHeader className="pb-0">
                             <div className="flex items-center justify-between">
@@ -341,46 +551,40 @@ function BillingDashboardContent() {
                                     <span className="flex items-center gap-1">
                                         <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Revenue
                                     </span>
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" /> Target
-                                    </span>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent className="pt-2">
                             <div className="space-y-3">
-                                {/* Chart */}
                                 <div className="h-44 relative">
-                                    <svg className="w-full h-full" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
-                                        {/* Grid */}
-                                        {[0, 1, 2, 3, 4].map(i => (
-                                            <line key={i} x1="0" y1={i * 25} x2={chartW} y2={i * 25}
-                                                stroke="currentColor" strokeWidth="0.5"
-                                                className="text-gray-200 dark:text-gray-700" />
-                                        ))}
-                                        {/* Area fill */}
-                                        <path d={areaPath} fill="currentColor" className="text-emerald-500 opacity-20" />
-                                        {/* Line */}
-                                        <polyline
-                                            points={polyline}
-                                            fill="none" stroke="currentColor" strokeWidth="2"
-                                            className="text-emerald-500"
-                                            strokeLinejoin="round" strokeLinecap="round"
-                                        />
-                                        {/* Dots */}
-                                        {revenueByMonth.map((d, i) => {
-                                            const x = (i / (revenueByMonth.length - 1)) * chartW
-                                            const y = chartH - (d.revenue / maxRevenue) * chartH
-                                            return <circle key={i} cx={x} cy={y} r="4" fill="white"
-                                                stroke="currentColor" strokeWidth="2"
-                                                className="text-emerald-500" />
-                                        })}
-                                    </svg>
+                                    {chartData.every(d => d.revenue === 0) ? (
+                                        <div className="h-full flex items-center justify-center text-xs text-gray-400">
+                                            Tidak ada data revenue pada periode ini
+                                        </div>
+                                    ) : (
+                                        <svg className="w-full h-full" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none">
+                                            {[0, 1, 2, 3, 4].map(i => (
+                                                <line key={i} x1="0" y1={i * 25} x2={chartW} y2={i * 25}
+                                                    stroke="currentColor" strokeWidth="0.5"
+                                                    className="text-gray-200 dark:text-gray-700" />
+                                            ))}
+                                            {areaPath && <path d={areaPath} fill="currentColor" className="text-emerald-500 opacity-20" />}
+                                            {pts.length > 1 && (
+                                                <polyline points={polyline} fill="none" stroke="currentColor" strokeWidth="2"
+                                                    className="text-emerald-500" strokeLinejoin="round" strokeLinecap="round" />
+                                            )}
+                                            {chartData.map((d, i) => {
+                                                const x = chartData.length > 1 ? (i / (chartData.length - 1)) * chartW : chartW / 2
+                                                const y = chartH - (d.revenue / maxRevChart) * chartH
+                                                return <circle key={i} cx={x} cy={y} r="4" fill="white"
+                                                    stroke="currentColor" strokeWidth="2" className="text-emerald-500" />
+                                            })}
+                                        </svg>
+                                    )}
                                 </div>
-                                {/* X-axis labels */}
                                 <div className="flex justify-between px-1">
-                                    {revenueByMonth.map(d => (
-                                        <span key={d.month} className="text-[10px] text-gray-400 dark:text-gray-500">{d.month}</span>
+                                    {chartData.map(d => (
+                                        <span key={d.label} className="text-[10px] text-gray-400 dark:text-gray-500">{d.label}</span>
                                     ))}
                                 </div>
                             </div>
@@ -388,11 +592,16 @@ function BillingDashboardContent() {
                     </Card>
                 </div>
 
-                {/* ── Row 4: Recent Payments table ── */}
+                {/* ── Row 4: Recent Payments ── */}
                 <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 gap-1 py-4">
                     <CardHeader className="pb-0">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-gray-900 dark:text-white text-base">Pembayaran Terbaru</CardTitle>
+                            <CardTitle className="text-gray-900 dark:text-white text-base">
+                                Pembayaran Terbaru
+                                {filteredPayments.length === 0 && (
+                                    <span className="ml-2 text-xs font-normal text-gray-400">— tidak ada data pada periode ini</span>
+                                )}
+                            </CardTitle>
                             <a href="/billing/member-subscription"
                                 className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                                 Lihat semua <ArrowUpRight className="w-3 h-3" />
@@ -400,50 +609,54 @@ function BillingDashboardContent() {
                         </div>
                     </CardHeader>
                     <CardContent className="pt-2 px-0">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-gray-100 dark:border-gray-800">
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
-                                        <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                                    {recentPayments.map((p) => {
-                                        const s = statusMap[p.status] || { label: p.status, cls: "bg-gray-100 text-gray-600" }
-                                        return (
-                                            <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                                <td className="px-6 py-3 text-xs text-gray-400 font-mono">#{p.id}</td>
-                                                <td className="px-4 py-3">
-                                                    <div>
-                                                        <p className="font-medium text-gray-900 dark:text-white text-xs">{p.userName}</p>
-                                                        <p className="text-gray-400 dark:text-gray-500 text-[10px]">{p.userEmail}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.trainerName}</td>
-                                                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.paymentMethod}</td>
-                                                <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">
-                                                    {formatRupiah(p.amount)}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
-                                                        {s.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-[11px] text-gray-400">
-                                                    {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                        {recentPayments.length === 0 ? (
+                            <div className="text-center py-10 text-gray-400 text-sm">
+                                Tidak ada transaksi pada periode yang dipilih
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 dark:border-gray-800">
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
+                                            <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                                        {recentPayments.map((p) => {
+                                            const s = statusMap[p.status] || { label: p.status, cls: "bg-gray-100 text-gray-600" }
+                                            return (
+                                                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                    <td className="px-6 py-3 text-xs text-gray-400 font-mono">#{p.id}</td>
+                                                    <td className="px-4 py-3">
+                                                        <div>
+                                                            <p className="font-medium text-gray-900 dark:text-white text-xs">{p.userName}</p>
+                                                            <p className="text-gray-400 dark:text-gray-500 text-[10px]">{p.userEmail}</p>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.trainerName}</td>
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.paymentMethod}</td>
+                                                    <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatRupiah(p.amount)}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
+                                                            {s.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-[11px] text-gray-400">
+                                                        {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
