@@ -82,6 +82,16 @@ const getSidebarData = (
           url: "/support/recitation",
           icon: BookOpen,
         },
+        {
+          title: "KYC Member",
+          url: "/support/kyc-member",
+          icon: UserCheck,
+        },
+        {
+          title: "KYC Organisasi",
+          url: "/support/kyc-organisasi",
+          icon: GraduationCap,
+        },
       ],
     },
     {

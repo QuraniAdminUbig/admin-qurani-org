@@ -1,0 +1,210 @@
+{
+    "kyc_organisasi": [
+        {
+            "id": 1,
+            "nama": "Pesantren Al-Quran Nurul Iman",
+            "singkatan": "PQNI",
+            "avatar": "NI",
+            "avatarBg": "bg-purple-500",
+            "tipe": [
+                "YAYASAN",
+                "PENDIDIKAN"
+            ],
+            "kategori": "Tahfiz",
+            "user": "Ahmad Fauzi",
+            "tglPengajuan": "10 Feb 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 2,
+            "nama": "Lembaga Tilawati Nusantara",
+            "singkatan": "",
+            "avatar": "TN",
+            "avatarBg": "bg-emerald-500",
+            "tipe": [
+                "LEMBAGA"
+            ],
+            "kategori": "Tilawati",
+            "user": "Siti Aminah",
+            "tglPengajuan": "11 Feb 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 3,
+            "nama": "Yayasan Qurani Madani",
+            "singkatan": "YQM",
+            "avatar": "QM",
+            "avatarBg": "bg-teal-500",
+            "tipe": [
+                "YAYASAN"
+            ],
+            "kategori": "Ummi",
+            "user": "Budi Santoso",
+            "tglPengajuan": "13 Feb 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 4,
+            "nama": "Madrasah Ibtidaiyah Terpadu",
+            "singkatan": "MIT",
+            "avatar": "MI",
+            "avatarBg": "bg-blue-500",
+            "tipe": [
+                "MADRASAH",
+                "PENDIDIKAN"
+            ],
+            "kategori": "Tajwid",
+            "user": "Dewi Rahayu",
+            "tglPengajuan": "14 Feb 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 5,
+            "nama": "Pondok Pesantren Al-Hikmah",
+            "singkatan": "PPAH",
+            "avatar": "AH",
+            "avatarBg": "bg-amber-600",
+            "tipe": [
+                "PESANTREN"
+            ],
+            "kategori": "Tahfiz",
+            "user": "Rizky Pratama",
+            "tglPengajuan": "14 Feb 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 6,
+            "nama": "Komunitas Ngaji Online Indonesia",
+            "singkatan": "",
+            "avatar": "KN",
+            "avatarBg": "bg-cyan-500",
+            "tipe": [
+                "KOMUNITAS"
+            ],
+            "kategori": "Online",
+            "user": "Nur Hidayah",
+            "tglPengajuan": "15 Feb 2026",
+            "status": "disetujui"
+        },
+        {
+            "id": 7,
+            "nama": "Lembaga Pendidikan Quran Ar-Rahman",
+            "singkatan": "",
+            "avatar": "AR",
+            "avatarBg": "bg-indigo-500",
+            "tipe": [
+                "LEMBAGA"
+            ],
+            "kategori": "Iqro",
+            "user": "Farid Al-Amin",
+            "tglPengajuan": "15 Feb 2026",
+            "status": "disetujui"
+        },
+        {
+            "id": 8,
+            "nama": "Yayasan Pendidikan Islam Terpadu",
+            "singkatan": "YPIT",
+            "avatar": "YP",
+            "avatarBg": "bg-rose-500",
+            "tipe": [
+                "YAYASAN"
+            ],
+            "kategori": "Tahsin",
+            "user": "Halimah Tussa",
+            "tglPengajuan": "19 Feb 2026",
+            "status": "ditolak"
+        }
+    ],
+    "kyc_member": [
+        {
+            "id": 1,
+            "nama": "Ahmad Fauzi Ramadhan",
+            "avatar": "AF",
+            "avatarBg": "bg-orange-400",
+            "tipeDokumen": "KTP",
+            "retryCount": 3,
+            "tglPengajuan": "27 Jan 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 2,
+            "nama": "Siti Nurhaliza",
+            "avatar": "SN",
+            "avatarBg": "bg-pink-500",
+            "tipeDokumen": "KTP",
+            "retryCount": 1,
+            "tglPengajuan": "26 Jan 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 3,
+            "nama": "Muhamad Rizki Hakim",
+            "avatar": "MR",
+            "avatarBg": "bg-blue-500",
+            "tipeDokumen": "KTP",
+            "retryCount": 0,
+            "tglPengajuan": "25 Jan 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 4,
+            "nama": "Dewi Rahayu Putri",
+            "avatar": "DR",
+            "avatarBg": "bg-purple-500",
+            "tipeDokumen": "KTP",
+            "retryCount": 0,
+            "tglPengajuan": "24 Jan 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 5,
+            "nama": "Rizky Maulana",
+            "avatar": "RM",
+            "avatarBg": "bg-teal-500",
+            "tipeDokumen": "KTP",
+            "retryCount": 0,
+            "tglPengajuan": "23 Jan 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 6,
+            "nama": "Laila Nur Aini",
+            "avatar": "LN",
+            "avatarBg": "bg-rose-400",
+            "tipeDokumen": "KTP",
+            "retryCount": 2,
+            "tglPengajuan": "28 Jan 2026",
+            "status": "menunggu"
+        },
+        {
+            "id": 7,
+            "nama": "Bagas Prasetyo",
+            "avatar": "BP",
+            "avatarBg": "bg-indigo-500",
+            "tipeDokumen": "KTP",
+            "retryCount": 0,
+            "tglPengajuan": "20 Feb 2026",
+            "status": "disetujui"
+        },
+        {
+            "id": 8,
+            "nama": "Nurul Hidayah",
+            "avatar": "NH",
+            "avatarBg": "bg-emerald-500",
+            "tipeDokumen": "KTP",
+            "retryCount": 0,
+            "tglPengajuan": "18 Feb 2026",
+            "status": "disetujui"
+        },
+        {
+            "id": 9,
+            "nama": "Farhan Muttaqin",
+            "avatar": "FM",
+            "avatarBg": "bg-amber-600",
+            "tipeDokumen": "KTP",
+            "retryCount": 0,
+            "tglPengajuan": "10 Feb 2026",
+            "status": "ditolak"
+        }
+    ]
+}
