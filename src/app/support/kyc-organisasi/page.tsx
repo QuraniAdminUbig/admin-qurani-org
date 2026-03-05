@@ -6,7 +6,9 @@ import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
     Search, Filter, MoreHorizontal, Calendar,
     ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle,
-    Building2, Users, ChevronDown, Check
+    Building2, Users, ChevronDown, Check,
+    X, FileText, Mail, Phone, MapPin, Globe,
+    Building, AlertCircle, CheckCircle, Eye
 } from "lucide-react"
 import rawData from "@/data/kyc-dummy.json"
 
@@ -17,11 +19,21 @@ type KycOrg = {
     singkatan?: string
     avatar: string
     avatarBg: string
+    gradientFrom: string
+    gradientTo: string
     tipe: string[]
     kategori: string
     user: string
     tglPengajuan: string
     status: "menunggu" | "disetujui" | "ditolak"
+    namaResmi: string
+    email: string
+    telepon: string
+    alamat: string
+    website: string
+    deskripsi: string
+    lat: string
+    lng: string
 }
 
 const DATA: KycOrg[] = rawData.kyc_organisasi as KycOrg[]
@@ -42,7 +54,13 @@ const STATUS_CONFIG = {
     ditolak: { label: "Ditolak", cls: "bg-red-50 text-red-600 border border-red-200", icon: XCircle },
 }
 
-// ─── Per-Page Custom Dropdown ────────────────────────────────────────────────
+const STATUS_BADGE: Record<string, string> = {
+    menunggu: "bg-amber-100 text-amber-700 border border-amber-200",
+    disetujui: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    ditolak: "bg-red-100 text-red-600 border border-red-200",
+}
+
+// ─── Per-Page Custom Dropdown ─────────────────────────────────────────────────
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
 function PerPageSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -80,10 +98,10 @@ function PerPageSelect({ value, onChange }: { value: number; onChange: (v: numbe
 }
 
 // ─── Dropdown Aksi ────────────────────────────────────────────────────────────
-function AksiDropdown({ id }: { id: number }) {
+function AksiDropdown({ id, onView }: { id: number; onView: () => void }) {
     const [open, setOpen] = useState(false)
     return (
-        <div className="relative">
+        <div className="relative" onClick={e => e.stopPropagation()}>
             <button
                 onClick={() => setOpen(o => !o)}
                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -92,24 +110,291 @@ function AksiDropdown({ id }: { id: number }) {
             </button>
             {open && (
                 <div
-                    className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
                     onMouseLeave={() => setOpen(false)}
                 >
-                    {[
-                        { label: "Lihat Detail" },
-                        { label: "Setujui" },
-                        { label: "Tolak" },
-                    ].map(item => (
-                        <button
-                            key={item.label}
-                            onClick={() => setOpen(false)}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            {item.label}
-                        </button>
-                    ))}
+                    <button
+                        onClick={() => setOpen(false)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        Setujui
+                    </button>
+                    <button
+                        onClick={() => setOpen(false)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        Tolak
+                    </button>
                 </div>
             )}
+        </div>
+    )
+}
+
+// ─── Dokumen Card (persis MagangHub) ─────────────────────────────────────────────────
+function DocCard({
+    nama, file, warning, hasValidasi, noPreview, iconType,
+}: {
+    nama: string
+    file?: string
+    warning?: string
+    hasValidasi?: boolean
+    noPreview?: boolean
+    iconType?: "doc" | "building"
+}) {
+    const IconComp = iconType === "building" ? Building2 : FileText
+    return (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 overflow-hidden">
+            {/* Card header */}
+            <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-2">
+                <div className="flex items-start gap-2.5">
+                    <IconComp className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white leading-tight">{nama}</p>
+                        {warning && (
+                            <p className="text-[10px] font-bold text-orange-500 uppercase tracking-wide mt-0.5">{warning}</p>
+                        )}
+                    </div>
+                </div>
+                {/* Plain ✓ and × — no button border, just icons */}
+                <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+                    <button className="text-gray-300 hover:text-emerald-500 transition-colors">
+                        <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button className="text-gray-300 hover:text-red-500 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Card body — plain white area, file name at bottom (lebih tinggi seperti MagangHub) */}
+            <div className="mx-4 mb-3 h-28 rounded-lg bg-white dark:bg-gray-800/30 flex items-end justify-center pb-2">
+                {noPreview ? (
+                    <div className="flex flex-col items-center gap-1 mb-6">
+                        <Eye className="w-5 h-5 text-gray-300" />
+                        <span className="text-xs text-gray-400">No Preview</span>
+                    </div>
+                ) : file ? (
+                    <span className="text-xs text-blue-400 dark:text-blue-400 flex items-center gap-1">
+                        <FileText className="w-3 h-3" /> {file}
+                    </span>
+                ) : null}
+            </div>
+
+            {/* Validasi Real-time button */}
+            {hasValidasi && (
+                <div className="px-4 pb-4">
+                    <button className="w-full py-2 bg-gray-900 dark:bg-gray-950 text-white text-xs font-semibold rounded-lg hover:bg-gray-800 transition-colors">
+                        Validasi Real-time
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── KYC Detail Modal ─────────────────────────────────────────────────────────
+function KycDetailModal({ org, onClose }: { org: KycOrg; onClose: () => void }) {
+    const [docTab, setDocTab] = useState<"umum" | "industri" | "pendidikan">("umum")
+
+    const hasPendidikan = org.tipe.includes("PENDIDIKAN") || org.tipe.includes("MADRASAH")
+
+    const statusBadge = STATUS_BADGE[org.status]
+    const statusLabel = STATUS_CONFIG[org.status].label.toUpperCase()
+
+    // Dokumen per tab
+    const dokumenUmum = [
+        { nama: "KTP Penanggung Jawab", file: `KTP-${org.user.replace(" ", "")}.jpg`, warning: undefined, hasValidasi: false, noPreview: false },
+        { nama: "Foto Gedung / Kantor", file: `gedung-${org.singkatan?.toLowerCase() || org.id}.jpg`, warning: undefined, hasValidasi: false, noPreview: false },
+        { nama: "Surat Keabsahan Dokumen", file: `SK-Penunjukan-${org.singkatan || "ORG"}-...`, warning: undefined, hasValidasi: false, noPreview: false },
+    ]
+    const dokumenIndustri = [
+        { nama: "Nomor Induk Berusaha (NIB)", file: `91203${org.id}334444`, warning: org.status === "ditolak" ? "NIB TIDAK VALID" : undefined, hasValidasi: true, noPreview: false },
+        { nama: "NPWP Badan", file: `01.234.567.${org.id}-012.000`, warning: undefined, hasValidasi: false, noPreview: false },
+        { nama: "SK Kemenkumham", file: undefined, warning: undefined, hasValidasi: false, noPreview: false },
+    ]
+    const dokumenPendidikan = [
+        { nama: "NPSN (Nomor Pokok Sekolah Nasional)", file: `2021${org.id}345`, warning: "CEK DI DATA KEMDIKBUD", hasValidasi: true, noPreview: false },
+        { nama: "Izin Operasional Sekolah", file: undefined, warning: undefined, hasValidasi: false, noPreview: true },
+        { nama: "Bukti Akreditasi", file: undefined, warning: undefined, hasValidasi: false, noPreview: false },
+    ]
+
+    const currentDocs = docTab === "umum" ? dokumenUmum : docTab === "industri" ? dokumenIndustri : dokumenPendidikan
+
+    const infoAlert = docTab === "industri"
+        ? "Pastikan NIB terdaftar dan aktif di portal validasi OSS."
+        : docTab === "pendidikan"
+            ? "Verifikasi NPSN dan status akreditasi melalui PDDIKTI/Dapodik."
+            : null
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
+            {/* Modal Panel — hampir memenuhi layar seperti MagangHub */}
+            <div className="relative w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ maxWidth: "calc(100vw - 80px)", height: "96vh" }}>
+
+                {/* ── Header ── */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <Building className="w-5 h-5 text-orange-500" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm leading-tight">Verifikasi Organisasi</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusBadge}`}>
+                            {statusLabel}
+                        </span>
+                        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* ── Body (2 cols) ── */}
+                <div className="flex flex-1 overflow-hidden">
+
+                    {/* Left: Org Info — lebar dan no visible scrollbar */}
+                    <div
+                        className="w-[370px] flex-shrink-0 border-r border-gray-100 dark:border-gray-800 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                        style={{ scrollbarWidth: 'none' }}
+                    >
+                        <div className="p-9">
+                            {/* Avatar: bulat penuh */}
+                            <div
+                                className="w-[110px] h-[110px] rounded-full mx-auto mb-5 shadow-md"
+                                style={{ background: `linear-gradient(135deg, ${org.gradientFrom}, ${org.gradientTo})` }}
+                            />
+
+                            {/* Name + badges */}
+                            <h2 className="text-center font-bold text-gray-900 dark:text-white text-base mb-2 leading-snug">{org.nama}</h2>
+                            <div className="flex flex-wrap justify-center gap-1 mb-3">
+                                {org.tipe.map(t => {
+                                    const conf = TIPE_CONFIG[t] ?? { cls: "bg-gray-100 text-gray-600 border border-gray-200", icon: null }
+                                    return (
+                                        <span key={t} className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded ${conf.cls}`}>
+                                            {conf.icon}{t}
+                                        </span>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Description — dark gray (bukan biru) */}
+                            {org.deskripsi && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 text-center leading-relaxed mb-4">{org.deskripsi}</p>
+                            )}
+
+                            {/* Contact section */}
+                            <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <AlertCircle className="w-3.5 h-3.5 text-gray-400" />
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Informasi Kontak &amp; Lokasi</span>
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { icon: Building, label: "NAMA RESMI", value: org.namaResmi },
+                                        { icon: Mail, label: "EMAIL PERUSAHAAN", value: org.email },
+                                        { icon: Phone, label: "NOMOR TELEPON", value: org.telepon },
+                                        { icon: MapPin, label: "ALAMAT", value: org.alamat },
+                                    ].map(item => (
+                                        <div key={item.label} className="flex items-start gap-2.5">
+                                            <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <item.icon className="w-3.5 h-3.5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{item.label}</p>
+                                                <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{item.value}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {org.website && (
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <Globe className="w-3.5 h-3.5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">WEBSITE</p>
+                                                <a href={org.website} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 block hover:underline">{org.website}</a>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Koordinat */}
+                                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl text-center">
+                                    <MapPin className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Peta Belum Tersedia</p>
+                                    <p className="text-[10px] text-gray-400">Integrasi Maps dinonaktifkan sementara.</p>
+                                    <div className="mt-2 px-3 py-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                                        <span className="text-[10px] text-gray-500">Koordinat: {org.lat}, {org.lng}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Dokumen Legalitas */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        <div className="p-5 pb-3 flex-shrink-0">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Dokumen Legalitas</h3>
+                            <p className="text-sm text-gray-400 mb-4">Periksa keabsahan dokumen yang diunggah.</p>
+
+                            {/* Doc tabs */}
+                            <div className="flex gap-2">
+                                {(["umum", "industri", ...(hasPendidikan ? ["pendidikan"] : [])] as const).map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setDocTab(tab as typeof docTab)}
+                                        className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize border transition-colors ${docTab === tab
+                                            ? "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white shadow-sm"
+                                            : "border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                            }`}
+                                    >
+                                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Doc content */}
+                        <div className="flex-1 overflow-y-auto px-5 pb-5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                            {/* Info alert */}
+                            {infoAlert && (
+                                <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl text-sm text-blue-700 dark:text-blue-300 mb-4">
+                                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                                    {infoAlert}
+                                </div>
+                            )}
+
+                            {/* Document grid */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {currentDocs.map((doc, i) => (
+                                    <DocCard key={i} {...doc} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Footer ── */}
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex-shrink-0 bg-white dark:bg-gray-900">
+                    <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                        ID: #{org.id.toString().padStart(3, "0")}
+                    </span>
+                    <div className="flex items-center gap-3">
+                        <button className="flex items-center gap-2 px-5 py-2 border-2 border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-semibold rounded-xl transition-colors">
+                            <XCircle className="w-4 h-4" /> Tolak
+                        </button>
+                        <button className="flex items-center gap-2 px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors">
+                            <CheckCircle2 className="w-4 h-4" /> Setujui
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
@@ -120,6 +405,7 @@ function KycOrganisasiContent() {
     const [search, setSearch] = useState("")
     const [page, setPage] = useState(1)
     const [perPage, setPerPage] = useState(10)
+    const [selectedOrg, setSelectedOrg] = useState<KycOrg | null>(null)
 
     const filteredData = useMemo(() => {
         let data = DATA
@@ -150,9 +436,14 @@ function KycOrganisasiContent() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-5">
+            {/* Detail Modal */}
+            {selectedOrg && (
+                <KycDetailModal org={selectedOrg} onClose={() => setSelectedOrg(null)} />
+            )}
+
             <div className="max-w-[1600px] mx-auto">
 
-                {/* ── Search + Filter Bar (OUTSIDE the table card) ── */}
+                {/* ── Search + Filter Bar ── */}
                 <div className="flex items-center gap-2 mb-3">
                     <div className="relative w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -172,7 +463,7 @@ function KycOrganisasiContent() {
                     </button>
                 </div>
 
-                {/* ── Tabs (OUTSIDE the table card) ── */}
+                {/* ── Tabs ── */}
                 <div className="flex gap-0 mb-0">
                     {tabs.map(tab => (
                         <button
@@ -184,7 +475,6 @@ function KycOrganisasiContent() {
                                 }`}
                         >
                             {tab.label}
-                            {/* count badge hanya muncul di tab aktif */}
                             {activeTab === tab.key && tabCounts[tab.key] > 0 && (
                                 <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-emerald-500 text-white">
                                     {tabCounts[tab.key]}
@@ -194,7 +484,7 @@ function KycOrganisasiContent() {
                     ))}
                 </div>
 
-                {/* ── Table Card (SEPARATE white card below tabs) ── */}
+                {/* ── Table Card ── */}
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -219,8 +509,11 @@ function KycOrganisasiContent() {
                                     const status = STATUS_CONFIG[org.status]
                                     const StatusIcon = status.icon
                                     return (
-                                        <tr key={org.id} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-
+                                        <tr
+                                            key={org.id}
+                                            onClick={() => setSelectedOrg(org)}
+                                            className="border-b border-gray-50 dark:border-gray-800 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer"
+                                        >
                                             {/* Organisasi */}
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center gap-3">
@@ -272,7 +565,7 @@ function KycOrganisasiContent() {
 
                                             {/* Aksi */}
                                             <td className="px-4 py-4">
-                                                <AksiDropdown id={org.id} />
+                                                <AksiDropdown id={org.id} onView={() => setSelectedOrg(org)} />
                                             </td>
                                         </tr>
                                     )
@@ -280,11 +573,9 @@ function KycOrganisasiContent() {
                             </tbody>
                         </table>
                     </div>
-
-                    {/* card ends here */}
                 </div>
 
-                {/* ── Pagination (OUTSIDE the card, on gray background) ── */}
+                {/* ── Pagination (OUTSIDE the card) ── */}
                 <div className="flex items-center justify-between px-1 py-4">
                     <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-1">
                         Menampilkan{" "}
@@ -309,8 +600,8 @@ function KycOrganisasiContent() {
                                 key={p}
                                 onClick={() => setPage(p)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-colors ${page === p
-                                        ? "bg-emerald-500 text-white"
-                                        : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    ? "bg-emerald-500 text-white"
+                                    : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                                     }`}
                             >
                                 {p}

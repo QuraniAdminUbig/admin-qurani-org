@@ -6,6 +6,8 @@
             "singkatan": "PQNI",
             "avatar": "NI",
             "avatarBg": "bg-purple-500",
+            "gradientFrom": "#7C3AED",
+            "gradientTo": "#EC4899",
             "tipe": [
                 "YAYASAN",
                 "PENDIDIKAN"
@@ -13,7 +15,15 @@
             "kategori": "Tahfiz",
             "user": "Ahmad Fauzi",
             "tglPengajuan": "10 Feb 2026",
-            "status": "menunggu"
+            "status": "menunggu",
+            "namaResmi": "Pesantren Al-Quran Nurul Iman",
+            "email": "info@pqni.ac.id",
+            "telepon": "081234567890",
+            "alamat": "Jl. Pesantren No. 1, Bandung, Jawa Barat",
+            "website": "https://pqni.ac.id",
+            "deskripsi": "Pesantren modern yang memfokuskan pada pendidikan Al-Quran dengan metode tahfiz terstruktur dan berbasis teknologi.",
+            "lat": "-6.9175",
+            "lng": "107.6191"
         },
         {
             "id": 2,
@@ -21,13 +31,23 @@
             "singkatan": "",
             "avatar": "TN",
             "avatarBg": "bg-emerald-500",
+            "gradientFrom": "#059669",
+            "gradientTo": "#0891B2",
             "tipe": [
                 "LEMBAGA"
             ],
             "kategori": "Tilawati",
             "user": "Siti Aminah",
             "tglPengajuan": "11 Feb 2026",
-            "status": "menunggu"
+            "status": "menunggu",
+            "namaResmi": "Lembaga Tilawati Nusantara",
+            "email": "tilawati@ltn.or.id",
+            "telepon": "082345678901",
+            "alamat": "Jl. Masjid Raya No. 5, Surabaya, Jawa Timur",
+            "website": "https://tilawatinusantara.or.id",
+            "deskripsi": "Lembaga pendidikan Al-Quran metode Tilawati yang tersebar di seluruh nusantara dengan ribuan santri aktif.",
+            "lat": "-7.2575",
+            "lng": "112.7521"
         },
         {
             "id": 3,
@@ -35,13 +55,23 @@
             "singkatan": "YQM",
             "avatar": "QM",
             "avatarBg": "bg-teal-500",
+            "gradientFrom": "#0D9488",
+            "gradientTo": "#6366F1",
             "tipe": [
                 "YAYASAN"
             ],
             "kategori": "Ummi",
             "user": "Budi Santoso",
             "tglPengajuan": "13 Feb 2026",
-            "status": "menunggu"
+            "status": "menunggu",
+            "namaResmi": "Yayasan Qurani Madani",
+            "email": "sekretariat@yqm.or.id",
+            "telepon": "083456789012",
+            "alamat": "Jl. Madani No. 12, Yogyakarta, DIY",
+            "website": "https://yayasanquranmadani.or.id",
+            "deskripsi": "Yayasan yang bergerak di bidang pendidikan Al-Quran dengan program unggulan metode Ummi untuk semua usia.",
+            "lat": "-7.7956",
+            "lng": "110.3695"
         },
         {
             "id": 4,
@@ -49,6 +79,8 @@
             "singkatan": "MIT",
             "avatar": "MI",
             "avatarBg": "bg-blue-500",
+            "gradientFrom": "#2563EB",
+            "gradientTo": "#7C3AED",
             "tipe": [
                 "MADRASAH",
                 "PENDIDIKAN"
@@ -56,7 +88,15 @@
             "kategori": "Tajwid",
             "user": "Dewi Rahayu",
             "tglPengajuan": "14 Feb 2026",
-            "status": "menunggu"
+            "status": "menunggu",
+            "namaResmi": "Madrasah Ibtidaiyah Terpadu MIT",
+            "email": "admin@mit.sch.id",
+            "telepon": "084567890123",
+            "alamat": "Jl. Pendidikan Raya No. 8, Semarang, Jawa Tengah",
+            "website": "https://mit.sch.id",
+            "deskripsi": "Madrasah terpadu yang menggabungkan kurikulum nasional dengan pendidikan Al-Quran berbasis tajwid.",
+            "lat": "-6.9932",
+            "lng": "110.4229"
         },
         {
             "id": 5,
@@ -64,13 +104,23 @@
             "singkatan": "PPAH",
             "avatar": "AH",
             "avatarBg": "bg-amber-600",
+            "gradientFrom": "#D97706",
+            "gradientTo": "#DC2626",
             "tipe": [
                 "PESANTREN"
             ],
             "kategori": "Tahfiz",
             "user": "Rizky Pratama",
             "tglPengajuan": "14 Feb 2026",
-            "status": "menunggu"
+            "status": "menunggu",
+            "namaResmi": "Pondok Pesantren Al-Hikmah",
+            "email": "info@ppalhikmah.id",
+            "telepon": "085678901234",
+            "alamat": "Jl. Al-Hikmah No. 3, Bekasi, Jawa Barat",
+            "website": "https://ppalhikmah.id",
+            "deskripsi": "Pondok pesantren salafiyah dengan program tahfiz Al-Quran 30 juz dalam waktu 3 tahun.",
+            "lat": "-6.2383",
+            "lng": "107.0257"
         },
         {
             "id": 6,
@@ -78,13 +128,23 @@
             "singkatan": "",
             "avatar": "KN",
             "avatarBg": "bg-cyan-500",
+            "gradientFrom": "#0891B2",
+            "gradientTo": "#059669",
             "tipe": [
                 "KOMUNITAS"
             ],
             "kategori": "Online",
             "user": "Nur Hidayah",
             "tglPengajuan": "15 Feb 2026",
-            "status": "disetujui"
+            "status": "disetujui",
+            "namaResmi": "Komunitas Ngaji Online Indonesia",
+            "email": "halo@ngajionline.id",
+            "telepon": "086789012345",
+            "alamat": "Jl. Digital No. 17, Jakarta Selatan, DKI Jakarta",
+            "website": "https://ngajionline.id",
+            "deskripsi": "Komunitas pembelajaran Al-Quran online yang menjangkau seluruh pelosok Indonesia melalui platform digital.",
+            "lat": "-6.2615",
+            "lng": "106.8106"
         },
         {
             "id": 7,
@@ -92,13 +152,23 @@
             "singkatan": "",
             "avatar": "AR",
             "avatarBg": "bg-indigo-500",
+            "gradientFrom": "#4F46E5",
+            "gradientTo": "#7C3AED",
             "tipe": [
                 "LEMBAGA"
             ],
             "kategori": "Iqro",
             "user": "Farid Al-Amin",
             "tglPengajuan": "15 Feb 2026",
-            "status": "disetujui"
+            "status": "disetujui",
+            "namaResmi": "Lembaga Pendidikan Quran Ar-Rahman",
+            "email": "lpq.arrahman@gmail.com",
+            "telepon": "087890123456",
+            "alamat": "Jl. Ar-Rahman No. 22, Medan, Sumatera Utara",
+            "website": "",
+            "deskripsi": "Lembaga pendidikan Al-Quran dengan metode Iqro yang telah mendidik lebih dari 5000 santri.",
+            "lat": "3.5952",
+            "lng": "98.6722"
         },
         {
             "id": 8,
@@ -106,13 +176,23 @@
             "singkatan": "YPIT",
             "avatar": "YP",
             "avatarBg": "bg-rose-500",
+            "gradientFrom": "#E11D48",
+            "gradientTo": "#F97316",
             "tipe": [
                 "YAYASAN"
             ],
             "kategori": "Tahsin",
             "user": "Halimah Tussa",
             "tglPengajuan": "19 Feb 2026",
-            "status": "ditolak"
+            "status": "ditolak",
+            "namaResmi": "Yayasan Pendidikan Islam Terpadu",
+            "email": "ypit@pendidikanislam.or.id",
+            "telepon": "088901234567",
+            "alamat": "Jl. Islam Terpadu No. 9, Makassar, Sulawesi Selatan",
+            "website": "https://ypit.or.id",
+            "deskripsi": "Yayasan pendidikan Islam terpadu yang menyelenggarakan program tahsin Al-Quran dari tingkat dasar hingga mahir.",
+            "lat": "-5.1477",
+            "lng": "119.4327"
         }
     ],
     "kyc_member": [

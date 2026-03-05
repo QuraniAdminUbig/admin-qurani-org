@@ -81,11 +81,10 @@ function AksiDropdown({ id }: { id: number }) {
             </button>
             {open && (
                 <div
-                    className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
                     onMouseLeave={() => setOpen(false)}
                 >
                     {[
-                        { label: "Lihat Detail" },
                         { label: "Setujui" },
                         { label: "Tolak" },
                     ].map(item => (
@@ -289,8 +288,8 @@ function KycMemberContent() {
                                 key={p}
                                 onClick={() => setPage(p)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-colors ${page === p
-                                        ? "bg-emerald-500 text-white"
-                                        : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    ? "bg-emerald-500 text-white"
+                                    : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                                     }`}
                             >
                                 {p}
