@@ -8,7 +8,7 @@ import {
     ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle,
     Building2, Users, ChevronDown, Check,
     X, FileText, Mail, Phone, MapPin, Globe,
-    Building, AlertCircle, CheckCircle, Eye
+    Building, AlertCircle, CheckCircle, Eye, RotateCcw
 } from "lucide-react"
 import rawData from "@/data/kyc-dummy.json"
 
@@ -399,6 +399,157 @@ function KycDetailModal({ org, onClose }: { org: KycOrg; onClose: () => void }) 
     )
 }
 
+// ─── Filter Constants ─────────────────────────────────────────────────────────
+const TIPE_OPTIONS = ["Industri", "Pendidikan"] as const
+const KATEGORI_PENDIDIKAN = ["Kursus", "Lembaga Pelatihan", "Perguruan Tinggi", "Pesantren", "SMA", "SMK", "Yayasan Pendidikan"] as const
+const KATEGORI_PERUSAHAAN = ["Finansial", "Kesehatan", "Konstruksi", "Kreatif", "Logistik", "Manufaktur", "Pertambangan", "Teknologi"] as const
+
+type FilterState = {
+    tipe: string[]
+    kategoriPendidikan: string[]
+    kategoriPerusahaan: string[]
+}
+const EMPTY_FILTER: FilterState = { tipe: [], kategoriPendidikan: [], kategoriPerusahaan: [] }
+
+// ─── FilterModal Component ────────────────────────────────────────────────────
+function FilterModal({
+    initial,
+    onApply,
+    onClose,
+}: {
+    initial: FilterState
+    onApply: (f: FilterState) => void
+    onClose: () => void
+}) {
+    const [draft, setDraft] = useState<FilterState>({
+        tipe: [...initial.tipe],
+        kategoriPendidikan: [...initial.kategoriPendidikan],
+        kategoriPerusahaan: [...initial.kategoriPerusahaan],
+    })
+
+    const toggle = (key: keyof FilterState, val: string) => {
+        setDraft(prev => ({
+            ...prev,
+            [key]: prev[key].includes(val)
+                ? prev[key].filter(v => v !== val)
+                : [...prev[key], val],
+        }))
+    }
+
+    const ChipBtn = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
+        <button
+            onClick={onClick}
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${active
+                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-700 bg-white dark:bg-gray-800"
+                }`}
+        >
+            {label}
+        </button>
+    )
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
+            {/* Panel */}
+            <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-[480px] max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                            <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            <h2 className="text-base font-bold text-gray-900 dark:text-white">Filter Data</h2>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <X className="w-4 h-4 text-gray-400" />
+                        </button>
+                    </div>
+                    <p className="text-sm text-emerald-500 mb-5">tampilkan data spesifik berdasarkan kriteria.</p>
+
+                    {/* ── Tipe Organisasi ── */}
+                    <div className="mb-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Building2 className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Tipe Organisasi</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {TIPE_OPTIONS.map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => toggle("tipe", t)}
+                                    className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${draft.tipe.includes(t)
+                                        ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                                        : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-700 bg-white dark:bg-gray-800"
+                                        }`}
+                                >
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Kategori Pendidikan ── */}
+                    <div className="mb-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Building className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Kategori Pendidikan</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {KATEGORI_PENDIDIKAN.map(k => (
+                                <ChipBtn
+                                    key={k}
+                                    label={k}
+                                    active={draft.kategoriPendidikan.includes(k)}
+                                    onClick={() => toggle("kategoriPendidikan", k)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Kategori Perusahaan ── */}
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Building2 className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Kategori Perusahaan</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {KATEGORI_PERUSAHAAN.map(k => (
+                                <ChipBtn
+                                    key={k}
+                                    label={k}
+                                    active={draft.kategoriPerusahaan.includes(k)}
+                                    onClick={() => toggle("kategoriPerusahaan", k)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Footer ── */}
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <button
+                            onClick={() => setDraft(EMPTY_FILTER)}
+                            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> Reset
+                        </button>
+                        <button
+                            onClick={() => { onApply(draft); onClose() }}
+                            className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // ─── Main Content ─────────────────────────────────────────────────────────────
 function KycOrganisasiContent() {
     const [activeTab, setActiveTab] = useState<"menunggu" | "disetujui" | "ditolak" | "semua">("menunggu")
@@ -406,6 +557,8 @@ function KycOrganisasiContent() {
     const [page, setPage] = useState(1)
     const [perPage, setPerPage] = useState(10)
     const [selectedOrg, setSelectedOrg] = useState<KycOrg | null>(null)
+    const [showFilter, setShowFilter] = useState(false)
+    const [appliedFilter, setAppliedFilter] = useState<FilterState>(EMPTY_FILTER)
 
     const filteredData = useMemo(() => {
         let data = DATA
@@ -414,8 +567,25 @@ function KycOrganisasiContent() {
             d.nama.toLowerCase().includes(search.toLowerCase()) ||
             d.user.toLowerCase().includes(search.toLowerCase())
         )
+        // Tipe filter: Industri = non-PENDIDIKAN primary, Pendidikan = has PENDIDIKAN
+        if (appliedFilter.tipe.length > 0) {
+            data = data.filter(org =>
+                appliedFilter.tipe.some(t =>
+                    t === "Pendidikan" ? org.tipe.includes("PENDIDIKAN")
+                        : t === "Industri" ? org.tipe.some(tp => tp !== "PENDIDIKAN")
+                            : false
+                )
+            )
+        }
+        // Kategori filter: union of both sections
+        const allKat = [...appliedFilter.kategoriPendidikan, ...appliedFilter.kategoriPerusahaan]
+        if (allKat.length > 0) {
+            data = data.filter(org =>
+                allKat.some(k => org.kategori.toLowerCase() === k.toLowerCase())
+            )
+        }
         return data
-    }, [activeTab, search])
+    }, [activeTab, search, appliedFilter])
 
     const totalPages = Math.max(1, Math.ceil(filteredData.length / perPage))
     const paginatedData = filteredData.slice((page - 1) * perPage, page * perPage)
@@ -441,6 +611,15 @@ function KycOrganisasiContent() {
                 <KycDetailModal org={selectedOrg} onClose={() => setSelectedOrg(null)} />
             )}
 
+            {/* Filter Modal */}
+            {showFilter && (
+                <FilterModal
+                    initial={appliedFilter}
+                    onApply={f => { setAppliedFilter(f); setPage(1) }}
+                    onClose={() => setShowFilter(false)}
+                />
+            )}
+
             <div className="max-w-[1600px] mx-auto">
 
                 {/* ── Search + Filter Bar ── */}
@@ -458,8 +637,19 @@ function KycOrganisasiContent() {
                     <button className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors">
                         <Search className="w-3.5 h-3.5" /> Cari
                     </button>
-                    <button className="flex items-center gap-1.5 px-3 py-2 text-gray-600 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <button
+                        onClick={() => setShowFilter(true)}
+                        className={`relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors border ${(appliedFilter.tipe.length + appliedFilter.kategoriPendidikan.length + appliedFilter.kategoriPerusahaan.length) > 0
+                            ? "border-emerald-400 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-600"
+                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
+                    >
                         <Filter className="w-4 h-4" /> Filter
+                        {(appliedFilter.tipe.length + appliedFilter.kategoriPendidikan.length + appliedFilter.kategoriPerusahaan.length) > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold bg-emerald-500 text-white rounded-full">
+                                {appliedFilter.tipe.length + appliedFilter.kategoriPendidikan.length + appliedFilter.kategoriPerusahaan.length}
+                            </span>
+                        )}
                     </button>
                 </div>
 

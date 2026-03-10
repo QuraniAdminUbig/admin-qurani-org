@@ -7,7 +7,7 @@ import {
     Search, Filter, MoreHorizontal, Calendar,
     ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle,
     CreditCard, RefreshCw, ChevronDown, Check,
-    X, Phone, MapPin, User, Flag, Hash, Shield
+    X, Phone, MapPin, User, Flag, Hash, Shield, RotateCcw, FileText
 } from "lucide-react"
 import rawData from "@/data/kyc-dummy.json"
 
@@ -187,8 +187,137 @@ function SelfiePlaceholder({ member }: { member: KycMember }) {
         </div>
     )
 }
+// ─── Filter Constants (Member) ───────────────────────────────────────────────
+const TIPE_DOKUMEN_OPTIONS = ["KTP", "Kartu Pelajar"] as const
+const RIWAYAT_OPTIONS = ["0x (Baru)", "1x Gagal", "2-3x Gagal", ">3x Gagal"] as const
 
-// ─── KYC Member Detail Modal ──────────────────────────────────────────────────
+type MemberFilterState = {
+    tipeDokumen: string[]
+    riwayat: string[]
+}
+const MEMBER_EMPTY_FILTER: MemberFilterState = { tipeDokumen: [], riwayat: [] }
+
+// ─── Member FilterModal ───────────────────────────────────────────────────────
+function MemberFilterModal({
+    initial,
+    onApply,
+    onClose,
+}: {
+    initial: MemberFilterState
+    onApply: (f: MemberFilterState) => void
+    onClose: () => void
+}) {
+    const [draft, setDraft] = useState<MemberFilterState>({
+        tipeDokumen: [...initial.tipeDokumen],
+        riwayat: [...initial.riwayat],
+    })
+
+    const toggle = (key: keyof MemberFilterState, val: string) => {
+        setDraft(prev => ({
+            ...prev,
+            [key]: prev[key].includes(val)
+                ? prev[key].filter(v => v !== val)
+                : [...prev[key], val],
+        }))
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
+            {/* Panel */}
+            <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-[480px]">
+                <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                            <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            <h2 className="text-base font-bold text-gray-900 dark:text-white">Filter Data</h2>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <X className="w-4 h-4 text-gray-400" />
+                        </button>
+                    </div>
+                    <p className="text-sm text-emerald-500 mb-5">Tampilkan data spesifik berdasarkan kriteria.</p>
+
+                    {/* ── Tipe Dokumen (checkbox style) ── */}
+                    <div className="mb-1">
+                        <div className="flex items-center gap-2 mb-3">
+                            <FileText className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Tipe Dokumen</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-6 mb-4">
+                            {TIPE_DOKUMEN_OPTIONS.map(t => (
+                                <label
+                                    key={t}
+                                    className="flex items-center gap-2.5 cursor-pointer group"
+                                    onClick={() => toggle("tipeDokumen", t)}
+                                >
+                                    <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${draft.tipeDokumen.includes(t)
+                                        ? "bg-emerald-500 border-emerald-500"
+                                        : "border-gray-300 dark:border-gray-600 group-hover:border-emerald-400"
+                                        }`}>
+                                        {draft.tipeDokumen.includes(t) && (
+                                            <Check className="w-2.5 h-2.5 text-white" />
+                                        )}
+                                    </span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">{t}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {/* Divider */}
+                        <div className="border-t border-gray-100 dark:border-gray-800 mb-4" />
+                    </div>
+
+                    {/* ── Riwayat Penolakan (pill chips) ── */}
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <RotateCcw className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Riwayat Penolakan</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {RIWAYAT_OPTIONS.map(r => (
+                                <button
+                                    key={r}
+                                    onClick={() => toggle("riwayat", r)}
+                                    className={`px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${draft.riwayat.includes(r)
+                                        ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                                        : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 bg-white dark:bg-gray-800"
+                                        }`}
+                                >
+                                    {r}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Footer ── */}
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <button
+                            onClick={() => setDraft(MEMBER_EMPTY_FILTER)}
+                            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> Reset
+                        </button>
+                        <button
+                            onClick={() => { onApply(draft); onClose() }}
+                            className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors"
+                        >
+                            Terapkan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+
 function KycMemberDetailModal({
     member,
     onClose,
@@ -447,6 +576,8 @@ function KycMemberContent() {
     const [perPage, setPerPage] = useState(10)
     const [selectedMember, setSelectedMember] = useState<KycMember | null>(null)
     const [members, setMembers] = useState<KycMember[]>(DATA)
+    const [showFilter, setShowFilter] = useState(false)
+    const [appliedFilter, setAppliedFilter] = useState<MemberFilterState>(MEMBER_EMPTY_FILTER)
 
     const handleUpdateStatus = (id: number, status: "disetujui" | "ditolak", rejectionReason?: string) => {
         setMembers(prev => prev.map(m =>
@@ -467,8 +598,28 @@ function KycMemberContent() {
         if (search.trim()) data = data.filter(d =>
             d.nama.toLowerCase().includes(search.toLowerCase())
         )
+        // Tipe Dokumen filter
+        if (appliedFilter.tipeDokumen.length > 0) {
+            data = data.filter(d => appliedFilter.tipeDokumen.some(t =>
+                t === "Kartu Pelajar"
+                    ? d.tipeDokumen.toLowerCase().includes("pelajar")
+                    : d.tipeDokumen.toUpperCase() === t.toUpperCase()
+            ))
+        }
+        // Riwayat Penolakan filter
+        if (appliedFilter.riwayat.length > 0) {
+            data = data.filter(d => {
+                const rc = d.retryCount
+                return appliedFilter.riwayat.some(r =>
+                    r === "0x (Baru)" ? rc === 0 :
+                        r === "1x Gagal" ? rc === 1 :
+                            r === "2-3x Gagal" ? (rc >= 2 && rc <= 3) :
+                                r === ">3x Gagal" ? rc > 3 : false
+                )
+            })
+        }
         return data
-    }, [activeTab, search, members])
+    }, [activeTab, search, members, appliedFilter])
 
     const totalPages = Math.max(1, Math.ceil(filteredData.length / perPage))
     const paginatedData = filteredData.slice((page - 1) * perPage, page * perPage)
@@ -494,6 +645,15 @@ function KycMemberContent() {
                 <KycMemberDetailModal member={selectedMember} onClose={() => setSelectedMember(null)} onUpdateStatus={handleUpdateStatus} />
             )}
 
+            {/* Filter Modal */}
+            {showFilter && (
+                <MemberFilterModal
+                    initial={appliedFilter}
+                    onApply={f => { setAppliedFilter(f); setPage(1) }}
+                    onClose={() => setShowFilter(false)}
+                />
+            )}
+
             <div className="max-w-[1600px] mx-auto">
 
                 {/* ── Search + Filter Bar ── */}
@@ -511,8 +671,19 @@ function KycMemberContent() {
                     <button className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors">
                         <Search className="w-3.5 h-3.5" /> Cari
                     </button>
-                    <button className="flex items-center gap-1.5 px-3 py-2 text-gray-600 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <button
+                        onClick={() => setShowFilter(true)}
+                        className={`relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors border ${(appliedFilter.tipeDokumen.length + appliedFilter.riwayat.length) > 0
+                            ? "border-emerald-400 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-600"
+                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
+                    >
                         <Filter className="w-4 h-4" /> Filter
+                        {(appliedFilter.tipeDokumen.length + appliedFilter.riwayat.length) > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold bg-emerald-500 text-white rounded-full">
+                                {appliedFilter.tipeDokumen.length + appliedFilter.riwayat.length}
+                            </span>
+                        )}
                     </button>
                 </div>
 
