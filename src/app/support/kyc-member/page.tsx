@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
@@ -48,6 +48,39 @@ const STATUS_BADGE: Record<string, string> = {
     menunggu: "bg-amber-100 text-amber-700 border border-amber-200",
     disetujui: "bg-emerald-100 text-emerald-700 border border-emerald-200",
     ditolak: "bg-red-100 text-red-600 border border-red-200",
+}
+
+// ─── Toast Component ───────────────────────────────────────────────────────
+type ToastData = { id: number; message: string; type: "success" | "error" }
+
+function Toast({ toasts, onRemove }: { toasts: ToastData[]; onRemove: (id: number) => void }) {
+    return (
+        <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
+            {toasts.map(t => (
+                <div
+                    key={t.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium pointer-events-auto
+                        animate-in slide-in-from-right-5 duration-300
+                        ${t.type === "success"
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300"
+                            : "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300"
+                        }`}
+                >
+                    {t.type === "success"
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        : <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    }
+                    <span>{t.message}</span>
+                    <button
+                        onClick={() => onRemove(t.id)}
+                        className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            ))}
+        </div>
+    )
 }
 
 // ─── Per-Page Custom Dropdown ─────────────────────────────────────────────────
@@ -578,8 +611,20 @@ function KycMemberContent() {
     const [members, setMembers] = useState<KycMember[]>(DATA)
     const [showFilter, setShowFilter] = useState(false)
     const [appliedFilter, setAppliedFilter] = useState<MemberFilterState>(MEMBER_EMPTY_FILTER)
+    const [toasts, setToasts] = useState<ToastData[]>([])
+
+    const removeToast = useCallback((id: number) => {
+        setToasts(prev => prev.filter(t => t.id !== id))
+    }, [])
+
+    const showToast = useCallback((message: string, type: "success" | "error") => {
+        const id = Date.now()
+        setToasts(prev => [...prev, { id, message, type }])
+        setTimeout(() => removeToast(id), 3500)
+    }, [removeToast])
 
     const handleUpdateStatus = (id: number, status: "disetujui" | "ditolak", rejectionReason?: string) => {
+        const member = members.find(m => m.id === id)
         setMembers(prev => prev.map(m =>
             m.id === id
                 ? {
@@ -590,6 +635,11 @@ function KycMemberContent() {
                 : m
         ))
         setSelectedMember(null)
+        if (status === "disetujui") {
+            showToast(`✓ KYC ${member?.nama ?? "Member"} berhasil disetujui`, "success")
+        } else {
+            showToast(`✗ KYC ${member?.nama ?? "Member"} telah ditolak`, "error")
+        }
     }
 
     const filteredData = useMemo(() => {
@@ -640,6 +690,8 @@ function KycMemberContent() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-5">
+            {/* Toast Notifications */}
+            <Toast toasts={toasts} onRemove={removeToast} />
             {/* Detail Modal */}
             {selectedMember && (
                 <KycMemberDetailModal member={selectedMember} onClose={() => setSelectedMember(null)} onUpdateStatus={handleUpdateStatus} />
