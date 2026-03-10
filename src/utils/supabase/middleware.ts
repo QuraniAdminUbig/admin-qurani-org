@@ -11,11 +11,6 @@ interface MyQuraniUser {
   role?: string;
 }
 
-/**
- * ⚠️  TEMPORARY: Set to true to bypass auth for demo/presentation purposes.
- * Remember to set back to false before going to production!
- */
-const BYPASS_AUTH_FOR_DEMO = false;
 
 /**
  * Get user from MyQurani token cookie
@@ -60,19 +55,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/settings");
   const isBlockedPage = pathname.startsWith("/blocked");
 
-  // ============================================
-  // BYPASS: Demo / Presentation Mode
-  // ============================================
-  if (BYPASS_AUTH_FOR_DEMO) {
-    // Kalau user buka root/login, redirect langsung ke /billing
-    if (isLoginPage || isHomePage) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/billing";
-      return NextResponse.redirect(url);
-    }
-    // Izinkan semua route lain tanpa pengecekan auth
-    return response;
-  }
+
 
   // ============================================
   // STEP 1: Check for MyQurani API token first
