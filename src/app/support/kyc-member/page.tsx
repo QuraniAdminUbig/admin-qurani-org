@@ -396,7 +396,12 @@ function KycMemberDetailModal({
                                 <span className="text-white text-sm font-bold">{member.avatar}</span>
                             )}
                         </div>
-                        <p className="font-bold text-gray-900 dark:text-white text-base">{member.nama}</p>
+                        <div className="flex flex-col">
+                            <p className="font-bold text-gray-900 dark:text-white text-base">{member.nama}</p>
+                            {member.username && (
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">@{member.username}</p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right: Status Pengajuan + Close */}
