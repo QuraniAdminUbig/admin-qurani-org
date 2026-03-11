@@ -804,12 +804,17 @@ function KycMemberContent() {
                                                             <span className="text-white text-xs font-bold">{member.avatar}</span>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{member.nama}</p>
-                                                        {member.retryCount > 0 && (
-                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 px-1.5 py-0.5 rounded-full">
-                                                                <RefreshCw className="w-2.5 h-2.5" />{member.retryCount}x
-                                                            </span>
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{member.nama}</p>
+                                                            {member.retryCount > 0 && (
+                                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 px-1.5 py-0.5 rounded-full">
+                                                                    <RefreshCw className="w-2.5 h-2.5" />{member.retryCount}x
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {member.username && (
+                                                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">@{member.username}</p>
                                                         )}
                                                     </div>
                                                 </div>

@@ -72,9 +72,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Handle redirect for unauthenticated users
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push("/login");
+      // Gunakan force-logout (bypass middleware) agar hapus httpOnly cookies
+      // sebelum ke login — mencegah infinite redirect loop
+      window.location.href = '/api/auth/force-logout';
     }
-  }, [loading, isAuthenticated, router]);
+  }, [loading, isAuthenticated]);
 
   // Show loading only while checking session
   if (loading) {

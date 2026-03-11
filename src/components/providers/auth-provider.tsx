@@ -226,19 +226,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         initialized.current = true;
 
         const getInitialSession = async () => {
+            // Safety timeout: paksa berhenti loading setelah 6 detik
+            const timeoutId = setTimeout(() => {
+                console.warn('[AuthProvider] Auth timeout - forcing loading false');
+                setAuthLoading(false);
+            }, 6000);
+
             try {
                 // Skip Supabase if we have custom auth
                 if (getStoredAuth()) {
                     console.log('[AuthProvider] Custom auth found, skipping Supabase');
+                    clearTimeout(timeoutId);
                     setAuthLoading(false);
                     return;
                 }
+
+                // ─── STALE COOKIE DETECTION ───────────────────────────────────
+                // Jika cookie MyQurani ada tapi localStorage KOSONG → stale state.
+                // Redirect ke /api/auth/force-logout (exclude dari middleware)
+                // agar cookie dihapus server-side, lalu redirect bersih ke /login.
+                const hasMyQuraniCookie = document.cookie.includes('myqurani_access_token=');
+                if (hasMyQuraniCookie) {
+                    console.warn('[AuthProvider] Stale MyQurani cookie (no localStorage). Force logout...');
+                    clearTimeout(timeoutId);
+                    setAuthLoading(false);
+                    window.location.href = '/api/auth/force-logout';
+                    return;
+                }
+                // ─────────────────────────────────────────────────────────────
 
                 // Try to get Supabase user
                 const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
 
                 if (userError) {
-                    // Ignore "Auth session missing" error - it's expected when not logged in
                     if (userError.message?.includes('session missing') || userError.message?.includes('Auth session missing')) {
                         console.log('[AuthProvider] No Supabase session, this is OK');
                     } else {
@@ -249,8 +269,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             } catch (err) {
                 console.error("Error in getInitialSession:", err);
-                // Don't set error for expected "no session" cases
             } finally {
+                clearTimeout(timeoutId);
                 setAuthLoading(false);
             }
         };
@@ -323,7 +343,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const isAuthenticated = useMemo(() => !!user || !!customUser, [user, customUser]);
 
-    const loading = authLoading || (!!user && !profile && !profileError);
+    // FIX: jika customUser (MyQurani) ada → effectiveProfile sudah tersedia → tidak perlu tunggu SWR
+    const loading = authLoading || (!customUser && !!user && !profile && !profileError);
 
     // Build effective profile from custom user if available
     const effectiveProfile = useMemo(() => {
