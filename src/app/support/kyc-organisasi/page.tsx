@@ -24,6 +24,7 @@ type KycOrg = {
     tipe: string[]
     kategori: string
     user: string
+    userUsername?: string
     tglPengajuan: string
     status: "menunggu" | "disetujui" | "ditolak"
     namaResmi: string
@@ -735,7 +736,14 @@ function KycOrganisasiContent() {
                                             </td>
 
                                             {/* User */}
-                                            <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">{org.user}</td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col">
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">{org.user}</p>
+                                                    {org.userUsername && (
+                                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">@{org.userUsername}</p>
+                                                    )}
+                                                </div>
+                                            </td>
 
                                             {/* Tgl Pengajuan */}
                                             <td className="px-4 py-4">
