@@ -104,6 +104,11 @@ const getSidebarData = (
           url: "/billing/dashboard",
           icon: RxDashboard,
         },
+        {
+          title: "Pesanan",
+          url: "/billing/pesanan",
+          icon: Receipt,
+        },
       ],
     },
     {
@@ -169,17 +174,17 @@ const getSidebarData = (
           icon: Receipt,
         },
         {
-          title: "Manajemen Pesanan",
+          title: "Pesanan",
           url: "/billing/member-subscription",
           icon: UserCheck,
         },
         {
-          title: "Manajemen Guru",
+          title: "Guru",
           url: "/billing/guru",
           icon: GraduationCap,
         },
         {
-          title: "Manajemen Paket",
+          title: "Paket",
           url: "/billing/paket",
           icon: Package,
         },
