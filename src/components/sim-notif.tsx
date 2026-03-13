@@ -28,6 +28,8 @@ export function SimToast() {
                 }, 5000)
             }
         }
+        // Cek saat mount (untuk menangkap event yang sudah terjadi sebelum komponen mount)
+        onUpdate()
         window.addEventListener("sim-notif-update", onUpdate)
         return () => window.removeEventListener("sim-notif-update", onUpdate)
     }, [])
@@ -108,12 +110,12 @@ export function SimNotifBell() {
                         <p className="text-xs text-gray-400 text-center py-6">Belum ada notifikasi</p>
                     ) : (
                         <div className="divide-y divide-gray-50 dark:divide-gray-800 max-h-64 overflow-y-auto">
-                            {notifs.map(n => {
+                            {notifs.map((n, i) => {
                                 const isPaid = n.type === "payment_success"
                                 const isPending = n.type === "new_order"
                                 return (
                                     <div
-                                        key={n.id}
+                                        key={`${n.id}-${i}`}
                                         onClick={() => {
                                             if (isPending && n.orderId) {
                                                 setOpen(false)

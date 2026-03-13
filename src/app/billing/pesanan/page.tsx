@@ -124,102 +124,102 @@ const STAGES: {
     actionColor: string
     nextStatus: PipelineStatus | null
 }[] = [
-        {
-            key: "baru",
-            label: "Pesanan Masuk",
-            color: "text-sky-700 dark:text-sky-400",
-            bg: "bg-sky-50 dark:bg-sky-900/10",
-            border: "border-sky-200 dark:border-sky-800",
-            countBg: "bg-sky-500",
-            dot: "bg-sky-500",
-            actionLabel: "Lunas",
-            actionColor: "bg-emerald-500 hover:bg-emerald-600 text-white",
-            nextStatus: "lunas",
-            illustration: (
-                <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                    <rect x="12" y="14" width="56" height="34" rx="5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="1.5" />
-                    <rect x="18" y="6" width="44" height="12" rx="4" fill="#BAE6FD" />
-                    <circle cx="30" cy="12" r="2" fill="#0EA5E9" />
-                    <circle cx="40" cy="12" r="2" fill="#0EA5E9" />
-                    <circle cx="50" cy="12" r="2" fill="#0EA5E9" />
-                    <rect x="20" y="26" width="40" height="3.5" rx="1.75" fill="#BAE6FD" />
-                    <rect x="20" y="33" width="28" height="3" rx="1.5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="0.5" />
-                    <rect x="20" y="39" width="18" height="3" rx="1.5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="0.5" />
-                    <circle cx="60" cy="42" r="7" fill="#0EA5E9" />
-                    <path d="M57 42l2.5 2.5 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            ),
-        },
-        {
-            key: "aktif",
-            label: "Sedang Berjalan",
-            color: "text-amber-700 dark:text-amber-400",
-            bg: "bg-amber-50 dark:bg-amber-900/10",
-            border: "border-amber-200 dark:border-amber-700",
-            countBg: "bg-amber-500",
-            dot: "bg-amber-400",
-            actionLabel: "Selesaikan",
-            actionColor: "bg-amber-500 hover:bg-amber-600 text-white",
-            nextStatus: "selesai",
-            illustration: (
-                <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                    <circle cx="40" cy="27" r="18" fill="#FFFBEB" stroke="#FDE68A" strokeWidth="1.5" />
-                    <path d="M40 16v11l7 4" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="40" cy="27" r="2.5" fill="#F59E0B" />
-                    <path d="M40 9 A18 18 0 0 1 58 27" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
-                    <rect x="16" y="48" width="48" height="3.5" rx="1.75" fill="#FDE68A" />
-                    <rect x="16" y="48" width="30" height="3.5" rx="1.75" fill="#F59E0B" />
-                </svg>
-            ),
-        },
-        {
-            key: "selesai",
-            label: "Sesi Selesai",
-            color: "text-emerald-700 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-emerald-900/10",
-            border: "border-emerald-200 dark:border-emerald-800",
-            countBg: "bg-emerald-500",
-            dot: "bg-emerald-500",
-            actionLabel: "Tandai Lunas",
-            actionColor: "bg-emerald-500 hover:bg-emerald-600 text-white",
-            nextStatus: "lunas",
-            illustration: (
-                <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                    <circle cx="40" cy="26" r="17" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5" />
-                    <path d="M30 26l7 7 13-13" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="18" cy="48" r="3" fill="#A7F3D0" />
-                    <circle cx="28" cy="51" r="2" fill="#A7F3D0" />
-                    <circle cx="62" cy="48" r="3" fill="#A7F3D0" />
-                    <circle cx="52" cy="51" r="2" fill="#A7F3D0" />
-                    <path d="M13 40 Q40 56 67 40" stroke="#A7F3D0" strokeWidth="1" strokeDasharray="2 2" />
-                </svg>
-            ),
-        },
-        {
-            key: "lunas",
-            label: "Lunas",
-            color: "text-emerald-700 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-emerald-900/10",
-            border: "border-emerald-200 dark:border-emerald-800",
-            countBg: "bg-emerald-600",
-            dot: "bg-emerald-500",
-            actionLabel: "",
-            actionColor: "",
-            nextStatus: null,
-            illustration: (
-                <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                    <rect x="14" y="16" width="52" height="30" rx="5" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5" />
-                    <path d="M14 24h52" stroke="#A7F3D0" strokeWidth="1" />
-                    <circle cx="40" cy="33" r="8" fill="#10B981" />
-                    <path d="M36 33l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M22 39h8M50 39h8" stroke="#A7F3D0" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="64" cy="12" r="5" fill="#10B981" opacity="0.15" />
-                    <circle cx="64" cy="12" r="2.5" fill="#10B981" opacity="0.4" />
-                    <circle cx="16" cy="12" r="4" fill="#A7F3D0" opacity="0.6" />
-                </svg>
-            ),
-        },
-    ]
+    {
+        key: "baru",
+        label: "Pesanan Masuk",
+        color: "text-sky-700 dark:text-sky-400",
+        bg: "bg-sky-50 dark:bg-sky-900/10",
+        border: "border-sky-200 dark:border-sky-800",
+        countBg: "bg-sky-500",
+        dot: "bg-sky-500",
+        actionLabel: "Lunas",
+        actionColor: "bg-emerald-500 hover:bg-emerald-600 text-white",
+        nextStatus: "lunas",
+        illustration: (
+            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
+                <rect x="12" y="14" width="56" height="34" rx="5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="1.5" />
+                <rect x="18" y="6" width="44" height="12" rx="4" fill="#BAE6FD" />
+                <circle cx="30" cy="12" r="2" fill="#0EA5E9" />
+                <circle cx="40" cy="12" r="2" fill="#0EA5E9" />
+                <circle cx="50" cy="12" r="2" fill="#0EA5E9" />
+                <rect x="20" y="26" width="40" height="3.5" rx="1.75" fill="#BAE6FD" />
+                <rect x="20" y="33" width="28" height="3" rx="1.5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="0.5" />
+                <rect x="20" y="39" width="18" height="3" rx="1.5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="0.5" />
+                <circle cx="60" cy="42" r="7" fill="#0EA5E9" />
+                <path d="M57 42l2.5 2.5 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        ),
+    },
+    {
+        key: "lunas",
+        label: "Lunas",
+        color: "text-emerald-700 dark:text-emerald-400",
+        bg: "bg-emerald-50 dark:bg-emerald-900/10",
+        border: "border-emerald-200 dark:border-emerald-800",
+        countBg: "bg-emerald-600",
+        dot: "bg-emerald-500",
+        actionLabel: "",
+        actionColor: "",
+        nextStatus: null,
+        illustration: (
+            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
+                <rect x="14" y="16" width="52" height="30" rx="5" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5" />
+                <path d="M14 24h52" stroke="#A7F3D0" strokeWidth="1" />
+                <circle cx="40" cy="33" r="8" fill="#10B981" />
+                <path d="M36 33l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M22 39h8M50 39h8" stroke="#A7F3D0" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="64" cy="12" r="5" fill="#10B981" opacity="0.15" />
+                <circle cx="64" cy="12" r="2.5" fill="#10B981" opacity="0.4" />
+                <circle cx="16" cy="12" r="4" fill="#A7F3D0" opacity="0.6" />
+            </svg>
+        ),
+    },
+    {
+        key: "aktif",
+        label: "Sedang Berjalan",
+        color: "text-amber-700 dark:text-amber-400",
+        bg: "bg-amber-50 dark:bg-amber-900/10",
+        border: "border-amber-200 dark:border-amber-700",
+        countBg: "bg-amber-500",
+        dot: "bg-amber-400",
+        actionLabel: "Selesaikan",
+        actionColor: "bg-amber-500 hover:bg-amber-600 text-white",
+        nextStatus: "selesai",
+        illustration: (
+            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
+                <circle cx="40" cy="27" r="18" fill="#FFFBEB" stroke="#FDE68A" strokeWidth="1.5" />
+                <path d="M40 16v11l7 4" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="40" cy="27" r="2.5" fill="#F59E0B" />
+                <path d="M40 9 A18 18 0 0 1 58 27" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
+                <rect x="16" y="48" width="48" height="3.5" rx="1.75" fill="#FDE68A" />
+                <rect x="16" y="48" width="30" height="3.5" rx="1.75" fill="#F59E0B" />
+            </svg>
+        ),
+    },
+    {
+        key: "selesai",
+        label: "Sesi Selesai",
+        color: "text-teal-700 dark:text-teal-400",
+        bg: "bg-teal-50 dark:bg-teal-900/10",
+        border: "border-teal-200 dark:border-teal-800",
+        countBg: "bg-teal-500",
+        dot: "bg-teal-500",
+        actionLabel: "",
+        actionColor: "",
+        nextStatus: null,
+        illustration: (
+            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
+                <circle cx="40" cy="26" r="17" fill="#F0FDFA" stroke="#99F6E4" strokeWidth="1.5" />
+                <path d="M30 26l7 7 13-13" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="18" cy="48" r="3" fill="#99F6E4" />
+                <circle cx="28" cy="51" r="2" fill="#99F6E4" />
+                <circle cx="62" cy="48" r="3" fill="#99F6E4" />
+                <circle cx="52" cy="51" r="2" fill="#99F6E4" />
+                <path d="M13 40 Q40 56 67 40" stroke="#99F6E4" strokeWidth="1" strokeDasharray="2 2" />
+            </svg>
+        ),
+    },
+]
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
 const SIM_MEMBERS = dummyData.bookingDetails.reduce((acc, d) => {
@@ -474,7 +474,7 @@ function OrderCard({ order, stage, onAdvance }: {
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-[11px] text-gray-400 dark:text-gray-500">@{order.username}</p>
-                        {order.isPendingPayment && (
+                        {order.isPendingPayment && stage.key === "baru" && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700 flex-shrink-0">
                                 ⏳ Belum Lunas
                             </span>
@@ -516,17 +516,17 @@ function OrderCard({ order, stage, onAdvance }: {
             <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-800">
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{formatRupiah(order.harga)}</span>
                 <div className="flex items-center gap-1.5">
-                    {stage.nextStatus && stage.actionLabel ? (
+                    {stage.key === "lunas" ? (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            ✓ Lunas
+                        </span>
+                    ) : stage.nextStatus && stage.actionLabel ? (
                         <button
                             onClick={e => { e.stopPropagation(); onAdvance(order.id, stage.nextStatus!) }}
                             className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${stage.actionColor}`}
                         >
                             {stage.actionLabel}
                         </button>
-                    ) : !stage.nextStatus ? (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                            ✓ Lunas
-                        </span>
                     ) : null}
                 </div>
             </div>
@@ -582,7 +582,6 @@ function PesananContent() {
     const [search, setSearch] = useState("")
     const [simOrders, setSimOrders] = useState<SimOrder[]>([])
     const [showSim, setShowSim] = useState(false)
-    // Local status overrides (advance pesanan di UI tanpa mengubah JSON)
     const [statusOverrides, setStatusOverrides] = useState<Record<string | number, PipelineStatus>>({})
 
     const refreshSim = useCallback(() => setSimOrders(getSimOrders()), [])
@@ -660,7 +659,11 @@ function PesananContent() {
         )
     }, [search, allOrders])
 
-    const byStage = (key: PipelineStatus) => filtered.filter(o => o.status === key)
+    // Card lunas juga muncul di kolom "Sedang Berjalan"
+    const byStage = (key: PipelineStatus) => {
+        if (key === "aktif") return filtered.filter(o => o.status === "aktif" || o.status === "lunas")
+        return filtered.filter(o => o.status === key)
+    }
 
     const stats = useMemo(() => ({
         total: allOrders.length,
