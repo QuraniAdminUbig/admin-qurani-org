@@ -70,11 +70,14 @@ const BACK_URL = "/billing/pesanan"
 // ── Sim Order Detail View ─────────────────────────────────────────────────────
 function SimOrderDetail({ order }: { order: SimOrder }) {
     const isPaid = order.paymentStatus === "paid"
-    const statusLabel = isPaid ? "Aktif" : "Menunggu Bayar"
-    const statusCls = isPaid
+    const isCancelled = order.status === "cancelled"
+    const statusLabel = isCancelled ? "Batal" : isPaid ? "Lunas" : "Menunggu Bayar"
+    const statusCls = isCancelled
+        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+        : isPaid
         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
         : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-    const statusDot = isPaid ? "bg-emerald-500" : "bg-amber-500"
+    const statusDot = isCancelled ? "bg-red-500" : isPaid ? "bg-emerald-500" : "bg-amber-500"
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">

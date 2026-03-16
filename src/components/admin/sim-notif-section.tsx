@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { CheckCircle2, ShoppingBag, Zap, Trash2, ExternalLink } from "lucide-react"
-import { getSimNotifs, markSimNotifsRead, updateSimOrderPayment, addSimNotif, type SimNotif } from "@/lib/sim-store"
+import { getSimNotifs, markSimNotifsRead, updateSimOrderPayment, cancelSimOrder, addSimNotif, getSimOrderById, type SimNotif } from "@/lib/sim-store"
 import { useRouter } from "next/navigation"
 
 // ── Time ago helper ───────────────────────────────────────────────────────────
@@ -18,10 +18,11 @@ function timeAgo(iso: string): string {
 }
 
 // ── Single Sim Notif Item ─────────────────────────────────────────────────────
-function SimNotifItem({ notif, onItemClick, onPayClick }: {
+function SimNotifItem({ notif, onItemClick, onPayClick, onCancelClick }: {
     notif: SimNotif
     onItemClick: () => void
     onPayClick: (orderId: number) => void
+    onCancelClick: (orderId: number) => void
 }) {
     const isPaid = notif.type === "payment_success"
     const isPending = notif.type === "new_order"
@@ -40,13 +41,7 @@ function SimNotifItem({ notif, onItemClick, onPayClick }: {
                 <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse z-10" />
             )}
 
-            {/* SIMULASI badge */}
-            <div className="absolute top-2 left-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                <Zap className="w-2.5 h-2.5" />
-                SIM
-            </div>
-
-            <div className="flex items-start gap-3 mt-4">
+            <div className="flex items-start gap-3 mt-2">
                 {/* Icon */}
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white dark:border-slate-700 shadow-lg
                     ${isPaid ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
@@ -70,15 +65,23 @@ function SimNotifItem({ notif, onItemClick, onPayClick }: {
                         {notif.subMessage}
                     </p>
 
-                    {/* Action button for pending orders */}
+                    {/* Action buttons for pending orders */}
                     {isPending && notif.orderId && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onPayClick(notif.orderId) }}
-                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-all duration-150 active:scale-95 shadow-sm"
-                        >
-                            <ExternalLink className="w-3 h-3" />
-                            Lihat & Bayar
-                        </button>
+                        <div className="mt-2 flex items-center gap-2">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onPayClick(notif.orderId) }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-all duration-150 active:scale-95 shadow-sm"
+                            >
+                                <ExternalLink className="w-3 h-3" />
+                                Lihat &amp; Bayar
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onCancelClick(notif.orderId) }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-700 text-xs font-semibold rounded-lg transition-all duration-150 active:scale-95"
+                            >
+                                Batal
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -109,13 +112,30 @@ export function SimNotifSection() {
 
     const unreadCount = notifs.filter(n => !n.isRead).length
 
+    function handleCancelClick(orderId: number) {
+        const existingOrder = getSimOrderById(orderId)
+        cancelSimOrder(orderId)
+        addSimNotif({
+            type: "order_cancelled",
+            message: `Pesanan Batal ❌ — Pesanan #${orderId}`,
+            subMessage: `Pesanan ${existingOrder?.member?.name ?? ""} • ${existingOrder?.pkg?.name ?? ""} telah dibatalkan`,
+            isRead: false,
+            orderId,
+        })
+        window.dispatchEvent(new Event("sim-notif-update"))
+        router.push("/billing/pesanan")
+    }
+
     function handlePayClick(orderId: number) {
-        // Langsung konfirmasi bayar sim order
-        updateSimOrderPayment(orderId, "Transfer")
+        // Ambil gateway dari sim order yang sudah ada
+        const existingOrder = getSimOrderById(orderId)
+        const gateway = existingOrder?.paymentGateway || "Transfer"
+        // Konfirmasi bayar sim order
+        updateSimOrderPayment(orderId, gateway)
         addSimNotif({
             type: "payment_success",
             message: `Pembayaran Lunas 💰 — Pesanan #${orderId}`,
-            subMessage: "Pembayaran dikonfirmasi via Notifikasi",
+            subMessage: `Pesanan telah dibayar lunas via ${gateway}`,
             isRead: false,
             orderId,
         })
@@ -161,6 +181,7 @@ export function SimNotifSection() {
                             notif={n}
                             onItemClick={handleItemClick}
                             onPayClick={handlePayClick}
+                            onCancelClick={handleCancelClick}
                         />
                     ))}
 

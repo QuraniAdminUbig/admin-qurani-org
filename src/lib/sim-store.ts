@@ -57,7 +57,7 @@ export interface SimOrder {
 
 export interface SimNotif {
     id: string
-    type: "new_order" | "payment_success"
+    type: "new_order" | "payment_success" | "order_cancelled"
     message: string
     subMessage: string
     isRead: boolean
@@ -110,6 +110,15 @@ function generateSessions(totalSessions: number, bookingDate: string): SimSessio
         })
     }
     return sessions
+}
+
+export function cancelSimOrder(id: number): void {
+    const orders = getSimOrders()
+    const idx = orders.findIndex(o => o.id === id)
+    if (idx !== -1) {
+        orders[idx].status = "cancelled"
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders))
+    }
 }
 
 export function updateSimOrderPayment(id: number, gateway: string): void {

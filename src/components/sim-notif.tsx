@@ -40,14 +40,21 @@ export function SimToast() {
         <div className="fixed top-4 right-4 z-[9999] space-y-2 pointer-events-none">
             {toasts.map(t => {
                 const isPaid = t.notif.type === "payment_success"
+                const isCancelled = t.notif.type === "order_cancelled"
                 return (
                     <div
                         key={t.id}
                         className="pointer-events-auto flex items-start gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg px-4 py-3 min-w-[300px] max-w-[360px] animate-in slide-in-from-right-4"
                     >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${isPaid ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            isPaid ? "bg-emerald-100 dark:bg-emerald-900/30"
+                            : isCancelled ? "bg-rose-100 dark:bg-rose-900/30"
+                            : "bg-amber-100 dark:bg-amber-900/30"
+                        }`}>
                             {isPaid
                                 ? <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                : isCancelled
+                                ? <X className="w-5 h-5 text-rose-500 dark:text-rose-400" />
                                 : <ShoppingBag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                             }
                         </div>
@@ -112,6 +119,7 @@ export function SimNotifBell() {
                         <div className="divide-y divide-gray-50 dark:divide-gray-800 max-h-64 overflow-y-auto">
                             {notifs.map((n, i) => {
                                 const isPaid = n.type === "payment_success"
+                                const isCancelled = n.type === "order_cancelled"
                                 const isPending = n.type === "new_order"
                                 return (
                                     <div
@@ -126,9 +134,15 @@ export function SimNotifBell() {
                                             ${!n.isRead ? "bg-emerald-50/50 dark:bg-emerald-900/10" : ""}
                                             ${isPending && n.orderId ? "cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/10" : ""}`}
                                     >
-                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isPaid ? "bg-emerald-100" : "bg-amber-100"}`}>
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                            isPaid ? "bg-emerald-100"
+                                            : isCancelled ? "bg-rose-100"
+                                            : "bg-amber-100"
+                                        }`}>
                                             {isPaid
                                                 ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                : isCancelled
+                                                ? <X className="w-3.5 h-3.5 text-rose-500" />
                                                 : <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
                                             }
                                         </div>

@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, Fragment, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
-    Search, ShoppingBag, Zap, CheckCircle2,
+    Search, ShoppingBag, Zap, CheckCircle2, X,
     BookOpen, User, Calendar, CreditCard,
-    TrendingUp, ArrowRight, Filter, X,
+    TrendingUp, ArrowRight,
     ChevronRight as Next, Trash2,
+    ChevronDown, Check, Timer, BarChart2, History,
 } from "lucide-react"
 import dummyData from "@/data/billing-dummy.json"
 import {
@@ -19,7 +20,114 @@ import {
 import { SimToast, SimNotifBell } from "@/components/sim-notif"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type PipelineStatus = "baru" | "aktif" | "selesai" | "lunas"
+type PipelineStatus = "baru" | "lunas" | "gagal"
+
+// ─── Filter Range Tanggal ─────────────────────────────────────────────────────────
+type FilterKey =
+    | "today" | "yesterday"
+    | "this_week" | "this_month" | "this_year" | "last_year"
+    | "last_7_days" | "last_30_days"
+
+const FILTER_OPTIONS: { key: FilterKey; label: string; group: string }[] = [
+    { key: "today",       label: "Today",       group: "Quick" },
+    { key: "yesterday",   label: "Yesterday",   group: "Quick" },
+    { key: "this_week",   label: "This week",   group: "Period" },
+    { key: "this_month",  label: "This month",  group: "Period" },
+    { key: "this_year",   label: "This year",   group: "Period" },
+    { key: "last_year",   label: "Last year",   group: "Period" },
+    { key: "last_7_days", label: "Last 7 days", group: "Historical" },
+    { key: "last_30_days",label: "Last 30 days",group: "Historical" },
+]
+const GROUP_ICONS: Record<string, React.ReactNode> = {
+    Quick:      <Timer    className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Period:     <BarChart2 className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Historical: <History  className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+}
+
+function getDateRange(filter: FilterKey): { from: Date; to: Date } {
+    const now = new Date()
+    const sod = (d: Date) => { d.setHours(0, 0, 0, 0); return d }
+    const eod = (d: Date) => { d.setHours(23, 59, 59, 999); return d }
+    switch (filter) {
+        case "today":       return { from: sod(new Date(now)), to: eod(new Date(now)) }
+        case "yesterday": { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: sod(y), to: eod(new Date(y)) } }
+        case "this_week":  { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); return { from: sod(m), to: eod(new Date(now)) } }
+        case "this_month": return { from: sod(new Date(now.getFullYear(), now.getMonth(), 1)), to: eod(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
+        case "this_year":  return { from: sod(new Date(now.getFullYear(), 0, 1)), to: eod(new Date(now.getFullYear(), 11, 31)) }
+        case "last_year":  return { from: sod(new Date(now.getFullYear() - 1, 0, 1)), to: eod(new Date(now.getFullYear() - 1, 11, 31)) }
+        case "last_7_days":  { const f = new Date(now); f.setDate(now.getDate() - 6);  return { from: sod(f), to: eod(new Date(now)) } }
+        case "last_30_days": { const f = new Date(now); f.setDate(now.getDate() - 29); return { from: sod(f), to: eod(new Date(now)) } }
+    }
+}
+
+function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: FilterKey) => void }) {
+    const [open, setOpen] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    const displayDate = useMemo(() => {
+        const now = new Date()
+        const pad = (n: number) => String(n).padStart(2, "0")
+        const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+        switch (value) {
+            case "today":       return fmt(now)
+            case "yesterday":   { const y = new Date(now); y.setDate(y.getDate() - 1); return fmt(y) }
+            case "this_week":   { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); const s = new Date(m); s.setDate(m.getDate() + 6); return `${pad(m.getDate())} – ${pad(s.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}` }
+            case "this_month":  return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+            case "this_year":   return `Year ${now.getFullYear()}`
+            case "last_year":   return `Year ${now.getFullYear() - 1}`
+            case "last_7_days":  { const f = new Date(now); f.setDate(now.getDate() - 6); return `${fmt(f)} – ${pad(now.getDate())}` }
+            case "last_30_days": { const f = new Date(now); f.setDate(now.getDate() - 29); return `${f.toLocaleDateString("en-US", { month: "short", day: "2-digit" })} – ${fmt(now)}` }
+        }
+    }, [value])
+    useEffect(() => {
+        function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+        document.addEventListener("mousedown", h)
+        return () => document.removeEventListener("mousedown", h)
+    }, [])
+    const groups = ["Quick", "Period", "Historical"]
+    return (
+        <div className="relative" ref={ref}>
+            <button
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 transition-all shadow-sm"
+            >
+                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="flex-1 text-left font-medium text-xs">{displayDate}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+            {open && (
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                    {groups.map((group, gi) => {
+                        const items = FILTER_OPTIONS.filter(o => o.group === group)
+                        return (
+                            <div key={group}>
+                                {gi > 0 && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-3" />}
+                                <div className="px-3 py-2">
+                                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center mb-1">
+                                        {GROUP_ICONS[group]}{group}
+                                    </p>
+                                    {items.map(opt => (
+                                        <button
+                                            key={opt.key}
+                                            onClick={() => { onChange(opt.key); setOpen(false) }}
+                                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm text-left transition-colors ${
+                                                value === opt.key
+                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
+                                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                                            }`}
+                                        >
+                                            {opt.label}
+                                            {value === opt.key && <Check className="w-3 h-3 text-emerald-500" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
 
 type PipelineOrder = {
     id: string | number
@@ -32,6 +140,7 @@ type PipelineOrder = {
     sesiSelesai: number
     harga: number
     tglPesan: string
+    rawDate: Date
     payment: string
     status: PipelineStatus
     isPendingPayment?: boolean
@@ -54,11 +163,9 @@ function initials(name: string) {
 
 // ─── Mapping booking status → pipeline stage ───────────────────────────────
 function getStage(b: typeof dummyData.bookings[0]): PipelineStatus {
-    if (b.status === "completed") return "lunas"
-    if (b.status === "cancelled") return "baru"
-    if (b.completedSessions === 0) return "baru"
-    if (b.completedSessions >= b.totalSessions) return "selesai"
-    return "aktif"
+    if (b.status === "cancelled") return "gagal"
+    if (b.status === "completed" || b.status === "active") return "lunas"
+    return "baru"
 }
 
 // ─── Convert JSON bookings → PipelineOrder ──────────────────────────────────
@@ -80,18 +187,16 @@ function bookingToPipeline(b: typeof dummyData.bookings[0]): PipelineOrder {
         harga: b.totalPayment,
         tglPesan: new Date(b.bookingDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
         payment: b.paymentGateway,
+        rawDate: new Date(b.bookingDate),
         status: getStage(b),
         isPendingPayment,
     }
 }
 
 function simOrderToPipeline(o: SimOrder): PipelineOrder {
-    const sesiSelesai = o.completedSessions
-    const sesi = o.totalSessions
     let status: PipelineStatus = "baru"
-    if (o.paymentStatus === "paid" && sesiSelesai === 0) status = "baru"
-    else if (o.paymentStatus === "paid" && sesiSelesai > 0 && sesiSelesai < sesi) status = "aktif"
-    else if (o.paymentStatus === "paid" && sesiSelesai >= sesi) status = "lunas"
+    if (o.status === "cancelled") status = "gagal"
+    else if (o.paymentStatus === "paid") status = "lunas"
     return {
         id: o.id,
         member: o.member.name,
@@ -99,11 +204,12 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
         memberAvatar: initials(o.member.name),
         guru: o.trainer.name,
         paket: o.pkg.name,
-        sesi,
-        sesiSelesai,
+        sesi: o.totalSessions,
+        sesiSelesai: o.completedSessions,
         harga: o.pkg.price + o.pkg.serviceFee,
         tglPesan: new Date(o.bookingDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
         payment: o.paymentGateway || "—",
+        rawDate: new Date(o.bookingDate),
         status,
         isPendingPayment: o.paymentStatus === "pending",
         isSim: true,
@@ -175,47 +281,24 @@ const STAGES: {
         ),
     },
     {
-        key: "aktif",
-        label: "Sedang Berjalan",
-        color: "text-amber-700 dark:text-amber-400",
-        bg: "bg-amber-50 dark:bg-amber-900/10",
-        border: "border-amber-200 dark:border-amber-700",
-        countBg: "bg-amber-500",
-        dot: "bg-amber-400",
-        actionLabel: "Selesaikan",
-        actionColor: "bg-amber-500 hover:bg-amber-600 text-white",
-        nextStatus: "selesai",
-        illustration: (
-            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                <circle cx="40" cy="27" r="18" fill="#FFFBEB" stroke="#FDE68A" strokeWidth="1.5" />
-                <path d="M40 16v11l7 4" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="40" cy="27" r="2.5" fill="#F59E0B" />
-                <path d="M40 9 A18 18 0 0 1 58 27" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
-                <rect x="16" y="48" width="48" height="3.5" rx="1.75" fill="#FDE68A" />
-                <rect x="16" y="48" width="30" height="3.5" rx="1.75" fill="#F59E0B" />
-            </svg>
-        ),
-    },
-    {
-        key: "selesai",
-        label: "Sesi Selesai",
-        color: "text-teal-700 dark:text-teal-400",
-        bg: "bg-teal-50 dark:bg-teal-900/10",
-        border: "border-teal-200 dark:border-teal-800",
-        countBg: "bg-teal-500",
-        dot: "bg-teal-500",
+        key: "gagal",
+        label: "Gagal / Batal",
+        color: "text-rose-700 dark:text-rose-400",
+        bg: "bg-rose-50 dark:bg-rose-900/10",
+        border: "border-rose-200 dark:border-rose-800",
+        countBg: "bg-rose-500",
+        dot: "bg-rose-500",
         actionLabel: "",
         actionColor: "",
         nextStatus: null,
         illustration: (
             <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                <circle cx="40" cy="26" r="17" fill="#F0FDFA" stroke="#99F6E4" strokeWidth="1.5" />
-                <path d="M30 26l7 7 13-13" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="18" cy="48" r="3" fill="#99F6E4" />
-                <circle cx="28" cy="51" r="2" fill="#99F6E4" />
-                <circle cx="62" cy="48" r="3" fill="#99F6E4" />
-                <circle cx="52" cy="51" r="2" fill="#99F6E4" />
-                <path d="M13 40 Q40 56 67 40" stroke="#99F6E4" strokeWidth="1" strokeDasharray="2 2" />
+                <circle cx="40" cy="27" r="17" fill="#FFF1F2" stroke="#FECDD3" strokeWidth="1.5" />
+                <path d="M33 20l14 14M47 20L33 34" stroke="#F43F5E" strokeWidth="2.5" strokeLinecap="round" />
+                <circle cx="18" cy="48" r="3" fill="#FECDD3" />
+                <circle cx="28" cy="51" r="2" fill="#FECDD3" />
+                <circle cx="62" cy="48" r="3" fill="#FECDD3" />
+                <circle cx="52" cy="51" r="2" fill="#FECDD3" />
             </svg>
         ),
     },
@@ -454,7 +537,6 @@ function OrderCard({ order, stage, onAdvance }: {
     onAdvance: (id: string | number, next: PipelineStatus) => void
 }) {
     const router = useRouter()
-    const progress = order.sesi > 0 ? Math.round((order.sesiSelesai / order.sesi) * 100) : 0
     const colorIdx = Math.abs(order.member.charCodeAt(0) + (order.member.charCodeAt(1) || 0)) % AVATAR_COLORS.length
 
     return (
@@ -463,24 +545,21 @@ function OrderCard({ order, stage, onAdvance }: {
             onClick={() => router.push(`/billing/pesanan/${order.id}`)}
         >
             {/* Header */}
-            <div className="flex items-center gap-2.5 mb-2.5">
-                <div className={`w-8 h-8 rounded-full ${AVATAR_COLORS[colorIdx]} flex items-center justify-center flex-shrink-0`}>
-                    <span className="text-white text-[11px] font-bold">{order.memberAvatar}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-full ${AVATAR_COLORS[colorIdx]} flex items-center justify-center flex-shrink-0`}>
+                        <span className="text-white text-[11px] font-bold">{order.memberAvatar}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{order.member}</p>
-                        {order.isSim && <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 py-0.5 rounded font-bold flex-shrink-0">SIM</span>}
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500">@{order.username}</p>
-                        {order.isPendingPayment && stage.key === "baru" && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700 flex-shrink-0">
-                                ⏳ Belum Lunas
-                            </span>
-                        )}
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">@{order.username}</p>
                     </div>
                 </div>
+                {order.isPendingPayment && stage.key === "baru" && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700 flex-shrink-0 mt-0.5">
+                        ⏳ Belum Lunas
+                    </span>
+                )}
             </div>
 
             {/* Info */}
@@ -499,18 +578,6 @@ function OrderCard({ order, stage, onAdvance }: {
                 </div>
             </div>
 
-            {/* Progress sesi */}
-            {order.status === "aktif" && (
-                <div className="mb-3">
-                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                        <span>Progres sesi</span>
-                        <span className="font-semibold text-gray-600 dark:text-gray-300">{order.sesiSelesai}/{order.sesi}</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                </div>
-            )}
 
             {/* Footer */}
             <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-800">
@@ -543,9 +610,9 @@ function StageColumn({ stage, orders, onAdvance }: {
     const total = orders.reduce((s, o) => s + o.harga, 0)
 
     return (
-        <div className="flex flex-col min-w-[256px] max-w-[272px] flex-shrink-0">
-            {/* Column Header */}
-            <div className={`rounded-xl ${stage.bg} border ${stage.border} p-3 mb-3`}>
+        <div className="flex flex-col w-full h-full">
+            {/* Column Header — tetap di atas */}
+            <div className={`rounded-xl ${stage.bg} border ${stage.border} p-3 mb-3 flex-shrink-0`}>
                 <div className="h-14 mb-2.5 opacity-90">{stage.illustration}</div>
                 <div className="flex items-center justify-between">
                     <span className={`text-sm font-bold ${stage.color}`}>{stage.label}</span>
@@ -560,8 +627,8 @@ function StageColumn({ stage, orders, onAdvance }: {
                 )}
             </div>
 
-            {/* Cards */}
-            <div className="flex flex-col gap-2.5">
+            {/* Cards — scroll mandiri per kolom (Trello-style) */}
+            <div className="pipeline-col-scroll flex-1 min-h-0 flex flex-col gap-2.5 pb-2">
                 {orders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                         <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-1.5">
@@ -580,6 +647,7 @@ function StageColumn({ stage, orders, onAdvance }: {
 // ─── Main Content ──────────────────────────────────────────────────────────────
 function PesananContent() {
     const [search, setSearch] = useState("")
+    const [dateFilter, setDateFilter] = useState<FilterKey>("this_year")
     const [simOrders, setSimOrders] = useState<SimOrder[]>([])
     const [showSim, setShowSim] = useState(false)
     const [statusOverrides, setStatusOverrides] = useState<Record<string | number, PipelineStatus>>({})
@@ -621,10 +689,9 @@ function PesananContent() {
             return
         }
 
-        const msgs: Record<PipelineStatus, { msg: string; type: "new_order" | "payment_success" }> = {
-            aktif: { msg: `Pesanan #${id} diproses — Sesi dimulai`, type: "new_order" },
-            selesai: { msg: `Sesi Selesai ✅ — ${order.member}`, type: "payment_success" },
+        const msgs: Record<PipelineStatus, { msg: string; type: "new_order" | "payment_success" | "order_cancelled" }> = {
             lunas: { msg: `Pembayaran Lunas 💰 — ${order.member}`, type: "payment_success" },
+            gagal: { msg: `Pesanan Batal ❌ — ${order.member}`, type: "order_cancelled" },
             baru: { msg: "", type: "new_order" },
         }
         const { msg, type } = msgs[next]
@@ -648,27 +715,30 @@ function PesananContent() {
     }, [simOrders, statusOverrides])
 
     const filtered = useMemo(() => {
+        const { from, to } = getDateRange(dateFilter)
         const q = search.toLowerCase()
-        if (!q) return allOrders
-        return allOrders.filter(o =>
-            o.member.toLowerCase().includes(q) ||
-            o.guru.toLowerCase().includes(q) ||
-            String(o.id).includes(q) ||
-            o.paket.toLowerCase().includes(q) ||
-            o.username.includes(q)
-        )
-    }, [search, allOrders])
+        return allOrders.filter(o => {
+            // Date range filter
+            const inRange = o.rawDate >= from && o.rawDate <= to
+            if (!inRange) return false
+            // Search filter
+            if (!q) return true
+            return (
+                o.member.toLowerCase().includes(q) ||
+                o.guru.toLowerCase().includes(q) ||
+                String(o.id).includes(q) ||
+                o.paket.toLowerCase().includes(q) ||
+                o.username.includes(q)
+            )
+        })
+    }, [search, allOrders, dateFilter])
 
-    // Card lunas juga muncul di kolom "Sedang Berjalan"
-    const byStage = (key: PipelineStatus) => {
-        if (key === "aktif") return filtered.filter(o => o.status === "aktif" || o.status === "lunas")
-        return filtered.filter(o => o.status === key)
-    }
+    const byStage = (key: PipelineStatus) => filtered.filter(o => o.status === key)
 
     const stats = useMemo(() => ({
         total: allOrders.length,
         baru: allOrders.filter(o => o.status === "baru").length,
-        aktif: allOrders.filter(o => o.status === "aktif").length,
+        gagal: allOrders.filter(o => o.status === "gagal").length,
         revenue: allOrders.filter(o => o.status === "lunas").reduce((s, o) => s + o.harga, 0),
     }), [allOrders])
 
@@ -709,7 +779,7 @@ function PesananContent() {
                     {[
                         { label: "Total", value: stats.total, icon: ShoppingBag, cls: "text-gray-500", bg: "bg-gray-100 dark:bg-gray-800" },
                         { label: "Masuk", value: stats.baru, icon: ShoppingBag, cls: "text-sky-600 dark:text-sky-400", bg: "bg-sky-50 dark:bg-sky-900/20" },
-                        { label: "Aktif", value: stats.aktif, icon: Zap, cls: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
+                        { label: "Gagal", value: stats.gagal, icon: X, cls: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-900/20" },
                         { label: "Revenue Lunas", value: formatRupiah(stats.revenue), icon: TrendingUp, cls: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
                     ].map(s => {
                         const Icon = s.icon
@@ -727,7 +797,7 @@ function PesananContent() {
                     })}
                 </div>
 
-                {/* ── Search ── */}
+                {/* ── Search + Filter ── */}
                 <div className="flex items-center gap-3 mb-4 flex-wrap">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -735,24 +805,23 @@ function PesananContent() {
                             onChange={e => setSearch(e.target.value)}
                             className="w-64 pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all" />
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
-                        <Filter className="w-3.5 h-3.5" />
-                        <span>{filtered.length} pesanan</span>
-                    </div>
+                    <FilterDropdown value={dateFilter} onChange={setDateFilter} />
                 </div>
 
-                {/* ── Pipeline Board ── */}
-                <div className="overflow-x-auto pb-4">
-                    <div className="flex gap-2.5 min-w-max">
+                {/* ── Pipeline Board (Trello-style) ── */}
+                <div className="h-[calc(100vh-280px)] min-h-[300px]">
+                    <div className="flex gap-3 h-full">
                         {STAGES.map((stage, i) => (
-                            <div key={stage.key} className="flex items-start gap-2.5">
-                                <StageColumn stage={stage} orders={byStage(stage.key)} onAdvance={handleAdvance} />
+                            <Fragment key={stage.key}>
+                                <div className="flex-1 min-w-0 h-full flex flex-col">
+                                    <StageColumn stage={stage} orders={byStage(stage.key)} onAdvance={handleAdvance} />
+                                </div>
                                 {i < STAGES.length - 1 && (
                                     <div className="flex items-start pt-[88px] flex-shrink-0">
                                         <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
                                     </div>
                                 )}
-                            </div>
+                            </Fragment>
                         ))}
                     </div>
                 </div>
