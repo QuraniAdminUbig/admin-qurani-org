@@ -582,20 +582,6 @@ function OrderCard({ order, stage, onAdvance }: {
             {/* Footer */}
             <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-800">
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{formatRupiah(order.harga)}</span>
-                <div className="flex items-center gap-1.5">
-                    {stage.key === "lunas" ? (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                            ✓ Lunas
-                        </span>
-                    ) : stage.nextStatus && stage.actionLabel ? (
-                        <button
-                            onClick={e => { e.stopPropagation(); onAdvance(order.id, stage.nextStatus!) }}
-                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${stage.actionColor}`}
-                        >
-                            {stage.actionLabel}
-                        </button>
-                    ) : null}
-                </div>
             </div>
         </div>
     )
