@@ -134,6 +134,7 @@ type PipelineOrder = {
     username: string
     memberAvatar: string
     guru: string
+    guruUsername: string
     paket: string
     sesi: number
     sesiSelesai: number
@@ -180,6 +181,7 @@ function bookingToPipeline(b: typeof dummyData.bookings[0]): PipelineOrder {
         username: toUsername(b.userEmail, b.userName),
         memberAvatar: initials(b.userName),
         guru: b.trainerName,
+        guruUsername: `@${toUsername("", b.trainerName)}`, // Dummy username for static data
         paket: b.packageName,
         sesi: b.totalSessions,
         sesiSelesai: b.completedSessions,
@@ -202,6 +204,7 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
         username: toUsername(o.member.email, o.member.name),
         memberAvatar: initials(o.member.name),
         guru: o.trainer.name,
+        guruUsername: `@${toUsername(o.trainer.email, o.trainer.name)}`,
         paket: o.pkg.name,
         sesi: o.totalSessions,
         sesiSelesai: o.completedSessions,
@@ -662,7 +665,8 @@ function PesananContent() {
                                             </td>
                                             {/* Guru */}
                                             <td className="px-4 py-3">
-                                                <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{order.guru}</span>
+                                                <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{order.guru}</p>
+                                                <p className="text-[10px] text-gray-400 truncate">{order.guruUsername}</p>
                                             </td>
                                             {/* Paket */}
                                             <td className="px-4 py-3">
