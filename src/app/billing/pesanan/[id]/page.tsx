@@ -17,7 +17,6 @@ import {
     Phone,
     Mail,
     Calendar,
-    Zap,
 } from "lucide-react"
 import Link from "next/link"
 import dummyData from "@/data/billing-dummy.json"
@@ -94,9 +93,7 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                             <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
                             {statusLabel}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-bold">
-                            <Zap className="w-2.5 h-2.5" /> SIMULASI
-                        </span>
+
                     </div>
                 </div>
 

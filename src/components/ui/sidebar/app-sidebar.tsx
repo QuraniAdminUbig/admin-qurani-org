@@ -109,6 +109,11 @@ const getSidebarData = (
           url: "/billing/pesanan",
           icon: Receipt,
         },
+        {
+          title: "Promo & Kupon",
+          url: "/billing/discountcodes",
+          icon: Tag,
+        },
       ],
     },
     {
@@ -192,11 +197,6 @@ const getSidebarData = (
           title: "Payout Guru",
           url: "/billing/payout",
           icon: Banknote,
-        },
-        {
-          title: "Discounts Codes",
-          url: "/billing/discountcodes",
-          icon: Tag,
         },
       ],
     },

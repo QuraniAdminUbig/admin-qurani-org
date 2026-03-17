@@ -4,10 +4,9 @@ import { useState, useMemo } from "react"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
-    Search, ChevronLeft, ChevronRight, Tag, Gift, Percent, Banknote,
-    Users, ChevronsUpDown, Sparkles, CheckCircle2, XCircle, Copy,
-    ToggleLeft, ToggleRight, Trash2, UserCheck, Plus, Pencil,
-    PauseCircle, PlayCircle, Zap, Eye,
+    Search, ChevronLeft, ChevronRight, Tag, Users,
+    ChevronsUpDown, CheckCircle2, XCircle, Copy,
+    Trash2, Plus, Pencil, Zap,
 } from "lucide-react"
 import dummyData from "@/data/billing-dummy.json"
 import { ToastContainer, showToast } from "@/components/ui/toast-sim"
@@ -23,16 +22,40 @@ function isExpired(until: string) { return new Date(until) < new Date() }
 function isUpcoming(from: string) { return new Date(from) > new Date() }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-type DiscountCode = typeof dummyData.discountCodes[0] & { _deleted?: boolean }
+interface DiscountCode {
+    id: number
+    code: string
+    name: string
+    description: string
+    deskripsi: string
+    type: string
+    value: number
+    minOrderAmount: number
+    maxDiscountAmount: number
+    usageLimit: number
+    usageCount: number
+    validFrom: string
+    validUntil: string
+    isActive: boolean
+    isReferral: boolean
+    trainerId: number | null
+    trainerName: string | null
+    campaignId: string | null
+    createdBy: string
+    createdAt: string
+    _deleted?: boolean
+}
 type FilterStatus = "all" | "active" | "inactive" | "referral"
 type FilterType = "all" | "percentage" | "fixed"
 type SortField = "code" | "value" | "usageCount" | "validUntil" | "createdAt"
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 6
 
 interface FormState {
     code: string
+    name: string
     description: string
+    deskripsi: string
     type: "percentage" | "fixed"
     value: string
     usageLimit: string
@@ -44,7 +67,7 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-    code: "", description: "", type: "percentage",
+    code: "", name: "", description: "", deskripsi: "", type: "percentage",
     value: "", usageLimit: "100", minOrderAmount: "0",
     maxDiscountAmount: "999999", validFrom: "", validUntil: "",
     isReferral: false,
@@ -87,7 +110,9 @@ function CodeFormModal({ open, editItem, onSave, onClose }: {
         if (editItem) {
             setForm({
                 code: editItem.code,
+                name: editItem.name || editItem.description,
                 description: editItem.description,
+                deskripsi: editItem.deskripsi || "",
                 type: editItem.type as "percentage" | "fixed",
                 value: String(editItem.value),
                 usageLimit: String(editItem.usageLimit),
@@ -121,21 +146,30 @@ function CodeFormModal({ open, editItem, onSave, onClose }: {
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors text-xl font-light">×</button>
                 </div>
                 <div className="px-6 py-4 space-y-4">
-                    {/* Code */}
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Kode *</label>
-                        <input value={form.code} onChange={e => f("code", e.target.value.toUpperCase())}
-                            placeholder="HEMAT25, RAMADAN2026, dll."
-                            className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-gray-900 dark:text-white" />
+                    {/* Row 1: Kode Promo + Nama Promo */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Kode Promo *</label>
+                            <input value={form.code} onChange={e => f("code", e.target.value.toUpperCase())}
+                                placeholder="HEMAT25, RAMADAN2026..."
+                                className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-gray-900 dark:text-white" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama Promo *</label>
+                            <input value={form.name} onChange={e => f("name", e.target.value)}
+                                placeholder="Diskon Ramadan 2026"
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-gray-900 dark:text-white" />
+                        </div>
                     </div>
-                    {/* Description */}
+                    {/* Row 1b: Deskripsi (textarea) */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Deskripsi *</label>
-                        <input value={form.description} onChange={e => f("description", e.target.value)}
-                            placeholder="Diskon spesial Ramadan 2026"
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-gray-900 dark:text-white" />
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Deskripsi</label>
+                        <textarea value={form.deskripsi} onChange={e => f("deskripsi", e.target.value)}
+                            rows={2}
+                            placeholder="Isi deskripsi singkat tentang promo ini..."
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-gray-900 dark:text-white resize-none" />
                     </div>
-                    {/* Type + Value */}
+                    {/* Row 2: Tipe Diskon + Nilai */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipe Diskon</label>
@@ -154,20 +188,27 @@ function CodeFormModal({ open, editItem, onSave, onClose }: {
                                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white" />
                         </div>
                     </div>
-                    {/* Usage Limit */}
+                    {/* Row 3: Maks. Diskon (full width) */}
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Maks. Diskon (IDR)</label>
+                        <input type="number" value={form.maxDiscountAmount} onChange={e => f("maxDiscountAmount", e.target.value)}
+                            placeholder="Kosongkan jika tidak ada batas"
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white" />
+                    </div>
+                    {/* Row 4: Min. Pembelian + Batas Penggunaan */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Batas Pemakaian</label>
-                            <input type="number" value={form.usageLimit} onChange={e => f("usageLimit", e.target.value)}
-                                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Min. Order (Rp)</label>
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Min. Pembelian (Rp)</label>
                             <input type="number" value={form.minOrderAmount} onChange={e => f("minOrderAmount", e.target.value)}
                                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white" />
                         </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Batas Penggunaan</label>
+                            <input type="number" value={form.usageLimit} onChange={e => f("usageLimit", e.target.value)}
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white" />
+                        </div>
                     </div>
-                    {/* Validity */}
+                    {/* Row 5: Berlaku Dari + Berlaku Sampai */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Berlaku Dari</label>
@@ -180,20 +221,12 @@ function CodeFormModal({ open, editItem, onSave, onClose }: {
                                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white" />
                         </div>
                     </div>
-                    {/* Referral toggle */}
-                    <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => f("isReferral", !form.isReferral)}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.isReferral ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`}>
-                            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${form.isReferral ? "translate-x-4" : "translate-x-0.5"}`} />
-                        </button>
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Kode Referral</span>
-                    </div>
                 </div>
                 <div className="flex gap-2 justify-end px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                     <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Batal</button>
                     <button onClick={() => onSave(form, !!editItem)}
                         className="px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors">
-                        {editItem ? "Simpan Perubahan" : "Buat Kode"}
+                        {editItem ? "Simpan Perubahan" : "save"}
                     </button>
                 </div>
             </div>
@@ -270,7 +303,9 @@ function DiscountCodesContent() {
     const stats = useMemo(() => ({
         total: liveCodes.length,
         active: liveCodes.filter(c => c.isActive).length,
-        referral: liveCodes.filter(c => c.isReferral).length,
+        usageRate: liveCodes.length > 0
+            ? Math.round((liveCodes.reduce((s, c) => s + c.usageCount, 0) / liveCodes.reduce((s, c) => s + c.usageLimit, 0)) * 100)
+            : 0,
         totalUsage: liveCodes.reduce((s, c) => s + c.usageCount, 0),
     }), [liveCodes])
 
@@ -321,13 +356,13 @@ function DiscountCodesContent() {
 
     // ── CRUD handlers ──────────────────────────────────────────────────────────
     function handleSaveForm(form: FormState, isEdit: boolean) {
-        if (!form.code || !form.value || !form.validFrom || !form.validUntil) {
-            showToast({ type: "info", title: "Form tidak lengkap", message: "Kode, nilai, dan tanggal berlaku wajib diisi." })
+        if (!form.code || !form.name || !form.value || !form.validFrom || !form.validUntil) {
+            showToast({ type: "info", title: "Form tidak lengkap", message: "Kode Promo, Nama Promo, nilai diskon, dan tanggal berlaku wajib diisi." })
             return
         }
         if (isEdit && editItem) {
             setCodes(prev => prev.map(c => c.id === editItem.id ? {
-                ...c, code: form.code, description: form.description, type: form.type,
+                ...c, code: form.code, name: form.name, description: form.name, deskripsi: form.deskripsi, type: form.type,
                 value: Number(form.value), usageLimit: Number(form.usageLimit),
                 minOrderAmount: Number(form.minOrderAmount), maxDiscountAmount: Number(form.maxDiscountAmount),
                 validFrom: form.validFrom, validUntil: form.validUntil, isReferral: form.isReferral,
@@ -337,7 +372,7 @@ function DiscountCodesContent() {
             const existing = liveCodes.find(c => c.code === form.code)
             if (existing) { showToast({ type: "info", title: "Kode sudah ada", message: `"${form.code}" sudah digunakan.` }); return }
             const newCode: DiscountCode = {
-                id: genId(), code: form.code, description: form.description,
+                id: genId(), code: form.code, name: form.name, description: form.name, deskripsi: form.deskripsi,
                 type: form.type, value: Number(form.value), usageLimit: Number(form.usageLimit),
                 usageCount: 0, minOrderAmount: Number(form.minOrderAmount),
                 maxDiscountAmount: Number(form.maxDiscountAmount), validFrom: form.validFrom + "T00:00:00Z",
@@ -373,7 +408,10 @@ function DiscountCodesContent() {
         const until = new Date(now); until.setMonth(until.getMonth() + 3)
         const generated: DiscountCode[] = Array.from({ length: count }, (_, i) => ({
             id: genId() + i, code: `${prefix}${String(i + 1).padStart(3, "0")}`,
-            description: `Kode bulk generate — diskon ${discount}%`, type: "percentage" as const,
+            name: `${prefix} Bulk #${i + 1}`,
+            description: `${prefix} Bulk #${i + 1}`,
+            deskripsi: `Kode bulk generate — diskon ${discount}%`,
+            type: "percentage",
             value: discount, usageLimit: 50, usageCount: 0, minOrderAmount: 0, maxDiscountAmount: 999999,
             validFrom: now.toISOString(), validUntil: until.toISOString(), isReferral: false,
             isActive: true, createdBy: "Admin (Bulk)", trainerId: null, trainerName: null, campaignId: `BULK-${prefix}`,
@@ -400,36 +438,21 @@ function DiscountCodesContent() {
 
             <div className="max-w-[1600px] mx-auto space-y-4">
 
-                {/* Header */}
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Discounts Codes</h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setBulkOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
-                            <Zap className="w-3.5 h-3.5" /> Bulk Generate
-                        </button>
-                        <button onClick={() => { setEditItem(null); setFormOpen(true) }}
-                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors shadow-sm">
-                            <Plus className="w-3.5 h-3.5" /> Buat Kode Baru
-                        </button>
-                    </div>
-                </div>
+
 
                 {/* Overview Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                        { label: "Total Kode", value: stats.total, icon: Tag, color: "violet" },
-                        { label: "Aktif", value: stats.active, icon: CheckCircle2, color: "emerald" },
-                        { label: "Kode Referral", value: stats.referral, icon: Gift, color: "purple" },
-                        { label: "Total Pemakaian", value: stats.totalUsage, icon: Users, color: "blue" },
+                        { label: "Total Kode", value: stats.total, icon: Tag, color: "violet", isPercent: false },
+                        { label: "Aktif", value: stats.active, icon: CheckCircle2, color: "emerald", isPercent: false },
+                        { label: "Tingkat Penggunaan", value: stats.usageRate, icon: Zap, color: "orange", isPercent: true },
+                        { label: "Total Pemakaian", value: stats.totalUsage, icon: Users, color: "blue", isPercent: false },
                     ].map(card => {
                         const Icon = card.icon
                         const clr: Record<string, { bg: string; icon: string }> = {
                             violet: { bg: "bg-violet-100 dark:bg-violet-900/20", icon: "text-violet-600 dark:text-violet-400" },
                             emerald: { bg: "bg-emerald-100 dark:bg-emerald-900/20", icon: "text-emerald-600 dark:text-emerald-400" },
-                            purple: { bg: "bg-purple-100 dark:bg-purple-900/20", icon: "text-purple-600 dark:text-purple-400" },
+                            orange: { bg: "bg-orange-100 dark:bg-orange-900/20", icon: "text-orange-500 dark:text-orange-400" },
                             blue: { bg: "bg-blue-100 dark:bg-blue-900/20", icon: "text-blue-600 dark:text-blue-400" },
                         }
                         return (
@@ -440,48 +463,49 @@ function DiscountCodesContent() {
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{card.label}</p>
                                 </div>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">{card.value}</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                    {card.value}{card.isPercent ? "%" : ""}
+                                </p>
                             </div>
                         )
                     })}
                 </div>
 
-                {/* Filters */}
-                <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                        {(["all", "active", "inactive", "referral"] as FilterStatus[]).map(s => {
-                            const label = s === "all" ? "Semua" : s === "active" ? "Aktif" : s === "inactive" ? "Nonaktif" : "Referral"
-                            const active = statusFilter === s
-                            return (
-                                <button key={s} onClick={() => { setStatusFilter(s); setPage(1) }}
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${active ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-emerald-400"}`}>
-                                    {s === "all" && <Sparkles className="w-3.5 h-3.5" />}
-                                    {s === "referral" && <Gift className="w-3.5 h-3.5" />}
-                                    {label}
-                                </button>
-                            )
-                        })}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        {(["all", "percentage", "fixed"] as FilterType[]).map(t => {
-                            const label = t === "all" ? "Semua Tipe" : t === "percentage" ? "Persentase (%)" : "Nominal (Rp)"
-                            const active = typeFilter === t
-                            return (
-                                <button key={t} onClick={() => { setTypeFilter(t); setPage(1) }}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all ${active ? "bg-emerald-500 text-white border-emerald-500" : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-emerald-400"}`}>
-                                    {t === "percentage" && <Percent className="w-3 h-3" />}
-                                    {t === "fixed" && <Banknote className="w-3 h-3" />}
-                                    {label}
-                                </button>
-                            )
-                        })}
-                    </div>
-                    <div className="relative flex-1 max-w-md ml-auto">
+                {/* Search + Button Row */}
+                <div className="flex items-center gap-3">
+                    <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
-                            placeholder="Cari kode, deskripsi, guru..."
+                            placeholder="Cari kode atau nama promo..."
                             className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500" />
                     </div>
+                    <button onClick={() => setPage(1)}
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                        <Search className="w-4 h-4" /> Cari
+                    </button>
+                    <button onClick={() => { setEditItem(null); setFormOpen(true) }}
+                        className="ml-auto flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                        <Plus className="w-4 h-4" /> Buat Promo
+                    </button>
+                </div>
+
+                {/* Filter Tabs (MagangHub style) */}
+                <div className="flex items-center gap-6 border-b border-gray-100 dark:border-gray-800">
+                    {([
+                        { key: "all", label: "Semua", count: stats.total },
+                        { key: "active", label: "Aktif", count: stats.active },
+                        { key: "inactive", label: "Nonaktif", count: liveCodes.filter(c => !c.isActive).length },
+                    ] as { key: FilterStatus; label: string; count: number }[]).map(tab => (
+                        <button key={tab.key} onClick={() => { setStatusFilter(tab.key); setPage(1) }}
+                            className={`flex items-center gap-1.5 pb-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${statusFilter === tab.key
+                                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                                }`}>
+                            {tab.label}
+                            <span className={`text-xs font-bold ${statusFilter === tab.key ? "text-emerald-500" : "text-gray-400"
+                                }`}>{tab.count}</span>
+                        </button>
+                    ))}
                 </div>
 
                 {/* Table */}
@@ -490,31 +514,27 @@ function DiscountCodesContent() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("code")}>
-                                        Kode <SortIcon field="code" />
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("code")}>
+                                        Kode Promo <SortIcon field="code" />
                                     </th>
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Tipe</th>
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("value")}>
-                                        Nilai <SortIcon field="value" />
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3">Nama</th>
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("value")}>
+                                        Diskon <SortIcon field="value" />
                                     </th>
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("usageCount")}>
-                                        Pemakaian <SortIcon field="usageCount" />
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap">Status</th>
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("usageCount")}>
+                                        Penggunaan <SortIcon field="usageCount" />
                                     </th>
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("createdAt")}>
-                                        Tgl Dibuat <SortIcon field="createdAt" />
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("validUntil")}>
+                                        Berlaku <SortIcon field="validUntil" />
                                     </th>
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("validUntil")}>
-                                        Berlaku s/d <SortIcon field="validUntil" />
-                                    </th>
-
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Status</th>
-                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Aksi</th>
+                                    <th className="text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {paged.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="text-center py-16 text-gray-400 dark:text-gray-500">
+                                        <td colSpan={7} className="text-center py-16 text-gray-400 dark:text-gray-500">
                                             <Tag className="w-8 h-8 mx-auto mb-2 opacity-40" />
                                             <p>Tidak ada kode diskon ditemukan</p>
                                         </td>
@@ -522,83 +542,67 @@ function DiscountCodesContent() {
                                 ) : paged.map(c => {
                                     const st = getCodeStatus(c)
                                     const usagePercent = Math.min(100, Math.round((c.usageCount / c.usageLimit) * 100))
+                                    const barColor = usagePercent >= 100 ? "bg-red-500" : usagePercent >= 70 ? "bg-amber-500" : "bg-emerald-500"
                                     return (
                                         <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-                                            {/* Kode */}
+                                            {/* Kode Promo */}
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <code className="font-mono font-bold text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">{c.code}</code>
-                                                    <button onClick={() => handleCopy(c.id, c.code)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-emerald-500 transition-all" title="Salin kode">
+                                                    <code className="font-mono font-bold text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">{c.code}</code>
+                                                    <button onClick={() => handleCopy(c.id, c.code)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-emerald-500 transition-all flex-shrink-0" title="Salin kode">
                                                         <Copy className="w-3.5 h-3.5" />
                                                     </button>
                                                     {copiedId === c.id && <span className="text-[10px] text-emerald-500 font-semibold animate-pulse">Disalin!</span>}
                                                 </div>
-                                                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 max-w-[220px] truncate">{c.description}</p>
-
                                             </td>
-                                            {/* Tipe */}
-                                            <td className="px-4 py-3">
-                                                {c.isReferral ? (
-                                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"><Gift className="w-2.5 h-2.5" /> Referral</span>
-                                                ) : c.type === "percentage" ? (
-                                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"><Percent className="w-2.5 h-2.5" /> Persen</span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"><Banknote className="w-2.5 h-2.5" /> Nominal</span>
+                                            {/* Nama */}
+                                            <td className="px-4 py-3 max-w-[220px]">
+                                                <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{c.name || c.description}</p>
+                                                {(c.deskripsi || (c.name && c.description !== c.name)) && (
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{c.deskripsi || c.description}</p>
                                                 )}
                                             </td>
-                                            {/* Nilai */}
+                                            {/* Diskon */}
                                             <td className="px-4 py-3">
-                                                <p className="text-xs font-bold text-gray-900 dark:text-white">{c.type === "percentage" ? `${c.value}%` : formatRupiah(c.value)}</p>
-                                                {c.minOrderAmount > 0 && <p className="text-[10px] text-gray-400 mt-0.5">Min. {formatRupiah(c.minOrderAmount)}</p>}
+                                                {c.isReferral ? (
+                                                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">{c.value}%</span>
+                                                ) : c.type === "percentage" ? (
+                                                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{c.value}%</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">{formatRupiah(c.value)}</span>
+                                                )}
                                             </td>
-                                            {/* Pemakaian */}
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex-1 min-w-[60px]">
-                                                        <div className="flex items-center justify-between mb-0.5">
-                                                            <span className="text-xs font-bold text-gray-900 dark:text-white">{c.usageCount}</span>
-                                                            <span className="text-[10px] text-gray-400">/{c.usageLimit}</span>
-                                                        </div>
-                                                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${usagePercent}%` }} />
-                                                        </div>
-                                                    </div>
-                                                    <span className="text-[10px] text-gray-400 flex-shrink-0">{usagePercent}%</span>
-                                                </div>
-                                            </td>
-                                            {/* Tgl Dibuat */}
-                                            <td className="px-4 py-3">
-                                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{c.createdAt ? formatDate(c.createdAt) : "-"}</p>
-                                            </td>
-                                            {/* Berlaku s/d */}
-                                            <td className="px-4 py-3">
-                                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{formatDate(c.validUntil)}</p>
-                                                <p className="text-[10px] text-gray-400 mt-0.5">Dari {formatDate(c.validFrom)}</p>
-                                            </td>
-
                                             {/* Status */}
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.color}`}>
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ${st.color}`}>
                                                     {st.label === "Aktif" ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                                                     {st.label}
                                                 </span>
                                             </td>
+                                            {/* Penggunaan */}
+                                            <td className="px-4 py-3 min-w-[140px]">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">{c.usageCount}/{c.usageLimit}</span>
+                                                    <span className="text-[10px] text-gray-400">{usagePercent}%</span>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-1">
+                                                    <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${usagePercent}%` }} />
+                                                </div>
+                                            </td>
+                                            {/* Berlaku */}
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">{formatDate(c.validFrom)} → {formatDate(c.validUntil)}</p>
+                                            </td>
                                             {/* Aksi */}
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity">
                                                     <button onClick={() => { setEditItem(c); setFormOpen(true) }}
-                                                        className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-medium transition-colors" title="Edit">
-                                                        <Pencil className="w-3.5 h-3.5" />
+                                                        className="text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors" title="Edit">
+                                                        <Pencil className="w-4 h-4" />
                                                     </button>
-                                                    <span className="text-gray-200 dark:text-gray-700">|</span>
-                                                    <button onClick={() => handleToggle(c)}
-                                                        className={`flex items-center gap-1 text-xs font-medium transition-colors ${c.isActive ? "text-orange-500 hover:text-orange-600" : "text-emerald-600 hover:text-emerald-700"}`}>
-                                                        {c.isActive ? <><PauseCircle className="w-3.5 h-3.5" /> Jeda</> : <><PlayCircle className="w-3.5 h-3.5" /> Aktifkan</>}
-                                                    </button>
-                                                    <span className="text-gray-200 dark:text-gray-700">|</span>
                                                     <button onClick={() => setConfirmDelete(c)}
-                                                        className="text-red-500 hover:text-red-600 dark:text-red-400 transition-colors" title="Hapus">
-                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors" title="Hapus">
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>

@@ -28,19 +28,19 @@ type FilterKey =
     | "last_7_days" | "last_30_days"
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; group: string }[] = [
-    { key: "today",       label: "Today",       group: "Quick" },
-    { key: "yesterday",   label: "Yesterday",   group: "Quick" },
-    { key: "this_week",   label: "This week",   group: "Period" },
-    { key: "this_month",  label: "This month",  group: "Period" },
-    { key: "this_year",   label: "This year",   group: "Period" },
-    { key: "last_year",   label: "Last year",   group: "Period" },
+    { key: "today", label: "Today", group: "Quick" },
+    { key: "yesterday", label: "Yesterday", group: "Quick" },
+    { key: "this_week", label: "This week", group: "Period" },
+    { key: "this_month", label: "This month", group: "Period" },
+    { key: "this_year", label: "This year", group: "Period" },
+    { key: "last_year", label: "Last year", group: "Period" },
     { key: "last_7_days", label: "Last 7 days", group: "Historical" },
-    { key: "last_30_days",label: "Last 30 days",group: "Historical" },
+    { key: "last_30_days", label: "Last 30 days", group: "Historical" },
 ]
 const GROUP_ICONS: Record<string, React.ReactNode> = {
-    Quick:      <Timer    className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
-    Period:     <BarChart2 className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
-    Historical: <History  className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Quick: <Timer className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Period: <BarChart2 className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Historical: <History className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
 }
 
 function getDateRange(filter: FilterKey): { from: Date; to: Date } {
@@ -48,13 +48,13 @@ function getDateRange(filter: FilterKey): { from: Date; to: Date } {
     const sod = (d: Date) => { d.setHours(0, 0, 0, 0); return d }
     const eod = (d: Date) => { d.setHours(23, 59, 59, 999); return d }
     switch (filter) {
-        case "today":       return { from: sod(new Date(now)), to: eod(new Date(now)) }
+        case "today": return { from: sod(new Date(now)), to: eod(new Date(now)) }
         case "yesterday": { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: sod(y), to: eod(new Date(y)) } }
-        case "this_week":  { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); return { from: sod(m), to: eod(new Date(now)) } }
+        case "this_week": { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); return { from: sod(m), to: eod(new Date(now)) } }
         case "this_month": return { from: sod(new Date(now.getFullYear(), now.getMonth(), 1)), to: eod(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
-        case "this_year":  return { from: sod(new Date(now.getFullYear(), 0, 1)), to: eod(new Date(now.getFullYear(), 11, 31)) }
-        case "last_year":  return { from: sod(new Date(now.getFullYear() - 1, 0, 1)), to: eod(new Date(now.getFullYear() - 1, 11, 31)) }
-        case "last_7_days":  { const f = new Date(now); f.setDate(now.getDate() - 6);  return { from: sod(f), to: eod(new Date(now)) } }
+        case "this_year": return { from: sod(new Date(now.getFullYear(), 0, 1)), to: eod(new Date(now.getFullYear(), 11, 31)) }
+        case "last_year": return { from: sod(new Date(now.getFullYear() - 1, 0, 1)), to: eod(new Date(now.getFullYear() - 1, 11, 31)) }
+        case "last_7_days": { const f = new Date(now); f.setDate(now.getDate() - 6); return { from: sod(f), to: eod(new Date(now)) } }
         case "last_30_days": { const f = new Date(now); f.setDate(now.getDate() - 29); return { from: sod(f), to: eod(new Date(now)) } }
     }
 }
@@ -67,13 +67,13 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
         const pad = (n: number) => String(n).padStart(2, "0")
         const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
         switch (value) {
-            case "today":       return fmt(now)
-            case "yesterday":   { const y = new Date(now); y.setDate(y.getDate() - 1); return fmt(y) }
-            case "this_week":   { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); const s = new Date(m); s.setDate(m.getDate() + 6); return `${pad(m.getDate())} – ${pad(s.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}` }
-            case "this_month":  return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
-            case "this_year":   return `Year ${now.getFullYear()}`
-            case "last_year":   return `Year ${now.getFullYear() - 1}`
-            case "last_7_days":  { const f = new Date(now); f.setDate(now.getDate() - 6); return `${fmt(f)} – ${pad(now.getDate())}` }
+            case "today": return fmt(now)
+            case "yesterday": { const y = new Date(now); y.setDate(y.getDate() - 1); return fmt(y) }
+            case "this_week": { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); const s = new Date(m); s.setDate(m.getDate() + 6); return `${pad(m.getDate())} – ${pad(s.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}` }
+            case "this_month": return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+            case "this_year": return `Year ${now.getFullYear()}`
+            case "last_year": return `Year ${now.getFullYear() - 1}`
+            case "last_7_days": { const f = new Date(now); f.setDate(now.getDate() - 6); return `${fmt(f)} – ${pad(now.getDate())}` }
             case "last_30_days": { const f = new Date(now); f.setDate(now.getDate() - 29); return `${f.toLocaleDateString("en-US", { month: "short", day: "2-digit" })} – ${fmt(now)}` }
         }
     }, [value])
@@ -108,11 +108,10 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
                                         <button
                                             key={opt.key}
                                             onClick={() => { onChange(opt.key); setOpen(false) }}
-                                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm text-left transition-colors ${
-                                                value === opt.key
-                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
-                                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
-                                            }`}
+                                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm text-left transition-colors ${value === opt.key
+                                                ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
+                                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                                                }`}
                                         >
                                             {opt.label}
                                             {value === opt.key && <Check className="w-3 h-3 text-emerald-500" />}
@@ -222,9 +221,9 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
 const PAGE_SIZE = 10
 
 const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; badgeCls: string }> = {
-    baru:  { label: "Masuk",  dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
-    lunas: { label: "Lunas",  dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
-    gagal: { label: "Batal",  dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
+    baru: { label: "Pending", dotCls: "bg-amber-500", badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
+    lunas: { label: "Lunas", dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
+    gagal: { label: "Batal", dotCls: "bg-rose-500", badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
 }
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
@@ -460,6 +459,7 @@ function PesananContent() {
     const router = useRouter()
     const [search, setSearch] = useState("")
     const [dateFilter, setDateFilter] = useState<FilterKey>("this_year")
+    const [statusTab, setStatusTab] = useState<"all" | PipelineStatus>("all")
     const [simOrders, setSimOrders] = useState<SimOrder[]>([])
     const [showSim, setShowSim] = useState(false)
     const [statusOverrides, setStatusOverrides] = useState<Record<string | number, PipelineStatus>>({})
@@ -531,10 +531,9 @@ function PesananContent() {
         const { from, to } = getDateRange(dateFilter)
         const q = search.toLowerCase()
         return allOrders.filter(o => {
-            // Date range filter
             const inRange = o.rawDate >= from && o.rawDate <= to
             if (!inRange) return false
-            // Search filter
+            if (statusTab !== "all" && o.status !== statusTab) return false
             if (!q) return true
             return (
                 o.member.toLowerCase().includes(q) ||
@@ -544,7 +543,7 @@ function PesananContent() {
                 o.username.includes(q)
             )
         })
-    }, [search, allOrders, dateFilter])
+    }, [search, allOrders, dateFilter, statusTab])
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
     const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -567,52 +566,37 @@ function PesananContent() {
 
             <div className="max-w-[1600px] mx-auto">
 
-                {/* ── Header ── */}
-                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pesanan</h1>
-                        <p className="text-sm text-gray-400 mt-0.5"></p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {simOrders.length > 0 && (
-                            <button onClick={handleResetSim}
-                                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-gray-900 text-red-500 hover:bg-red-50 transition-colors">
-                                <Trash2 className="w-3.5 h-3.5" /> Reset Sim
-                            </button>
-                        )}
-                        <SimNotifBell />
-                        <button onClick={() => setShowSim(true)}
-                            className="flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors font-medium">
-                            <Zap className="w-3.5 h-3.5" /> Simulasi
-                        </button>
-                    </div>
-                </div>
-
-                {/* ── Stats ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                {/* ── Stats Cards ── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                     {[
-                        { label: "Total", value: stats.total, icon: ShoppingBag, cls: "text-gray-500", bg: "bg-gray-100 dark:bg-gray-800" },
-                        { label: "Masuk", value: stats.baru, icon: ShoppingBag, cls: "text-sky-600 dark:text-sky-400", bg: "bg-sky-50 dark:bg-sky-900/20" },
-                        { label: "Gagal", value: stats.gagal, icon: X, cls: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-900/20" },
-                        { label: "Revenue Lunas", value: formatRupiah(stats.revenue), icon: TrendingUp, cls: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+                        { label: "Total", value: stats.total, icon: ShoppingBag, color: "gray" },
+                        { label: "Pending", value: stats.baru, icon: ShoppingBag, color: "amber" },
+                        { label: "Gagal", value: stats.gagal, icon: X, color: "rose" },
+                        { label: "Revenue Lunas", value: formatRupiah(stats.revenue), icon: TrendingUp, color: "emerald" },
                     ].map(s => {
                         const Icon = s.icon
+                        const clr: Record<string, { bg: string; icon: string }> = {
+                            gray: { bg: "bg-gray-100 dark:bg-gray-800", icon: "text-gray-500 dark:text-gray-400" },
+                            amber: { bg: "bg-amber-100 dark:bg-amber-900/20", icon: "text-amber-600 dark:text-amber-400" },
+                            rose: { bg: "bg-rose-100 dark:bg-rose-900/20", icon: "text-rose-600 dark:text-rose-400" },
+                            emerald: { bg: "bg-emerald-100 dark:bg-emerald-900/20", icon: "text-emerald-600 dark:text-emerald-400" },
+                        }
                         return (
-                            <div key={s.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>
-                                    <Icon className={`w-4 h-4 ${s.cls}`} />
+                            <div key={s.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className={`w-9 h-9 rounded-lg ${clr[s.color].bg} flex items-center justify-center flex-shrink-0`}>
+                                        <Icon className={`w-4 h-4 ${clr[s.color].icon}`} />
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">{s.label}</p>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{s.label}</p>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{s.value}</p>
-                                </div>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white">{s.value}</p>
                             </div>
                         )
                     })}
                 </div>
 
-                {/* ── Search + Filter ── */}
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                {/* ── Search + Filter + Buttons Row ── */}
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input type="text" placeholder="Cari member, guru, atau paket..." value={search}
@@ -620,6 +604,39 @@ function PesananContent() {
                             className="w-64 pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all" />
                     </div>
                     <FilterDropdown value={dateFilter} onChange={k => { setDateFilter(k); setPage(1) }} />
+                    <div className="ml-auto flex items-center gap-2">
+                        {simOrders.length > 0 && (
+                            <button onClick={handleResetSim}
+                                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-gray-900 text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap">
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                        <SimNotifBell />
+                        <button onClick={() => setShowSim(true)}
+                            className="flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 transition-colors font-medium whitespace-nowrap">
+                            <Zap className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* ── Status Filter Tabs ── */}
+                <div className="flex items-center gap-6 border-b border-gray-100 dark:border-gray-800 mb-0">
+                    {([
+                        { key: "all", label: "Semua", count: allOrders.length },
+                        { key: "lunas", label: "Lunas", count: allOrders.filter(o => o.status === "lunas").length },
+                        { key: "baru", label: "Pending", count: allOrders.filter(o => o.status === "baru").length },
+                        { key: "gagal", label: "Batal", count: allOrders.filter(o => o.status === "gagal").length },
+                    ] as { key: "all" | PipelineStatus; label: string; count: number }[]).map(tab => (
+                        <button key={tab.key} onClick={() => { setStatusTab(tab.key); setPage(1) }}
+                            className={`flex items-center gap-1.5 pb-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${statusTab === tab.key
+                                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                                }`}>
+                            {tab.label}
+                            <span className={`text-xs font-bold ${statusTab === tab.key ? "text-emerald-500" : "text-gray-400"
+                                }`}>{tab.count}</span>
+                        </button>
+                    ))}
                 </div>
 
                 {/* ── Table List ── */}
