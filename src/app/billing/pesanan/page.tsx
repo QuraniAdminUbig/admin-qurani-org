@@ -1,15 +1,14 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback, Fragment, useRef } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
     Search, ShoppingBag, Zap, CheckCircle2, X,
-    BookOpen, User, Calendar, CreditCard,
-    TrendingUp, ArrowRight,
-    ChevronRight as Next, Trash2,
-    ChevronDown, Check, Timer, BarChart2, History,
+    TrendingUp, Eye, ChevronLeft,
+    ChevronRight, Trash2,
+    ChevronDown, Check, Timer, BarChart2, History, Calendar,
 } from "lucide-react"
 import dummyData from "@/data/billing-dummy.json"
 import {
@@ -216,93 +215,14 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
     }
 }
 
-// ─── Stage Config ──────────────────────────────────────────────────────────────
-const STAGES: {
-    key: PipelineStatus
-    label: string
-    color: string
-    bg: string
-    border: string
-    countBg: string
-    dot: string
-    illustration: React.ReactNode
-    actionLabel: string
-    actionColor: string
-    nextStatus: PipelineStatus | null
-}[] = [
-    {
-        key: "baru",
-        label: "Pesanan Masuk",
-        color: "text-sky-700 dark:text-sky-400",
-        bg: "bg-sky-50 dark:bg-sky-900/10",
-        border: "border-sky-200 dark:border-sky-800",
-        countBg: "bg-sky-500",
-        dot: "bg-sky-500",
-        actionLabel: "Lunas",
-        actionColor: "bg-emerald-500 hover:bg-emerald-600 text-white",
-        nextStatus: "lunas",
-        illustration: (
-            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                <rect x="12" y="14" width="56" height="34" rx="5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="1.5" />
-                <rect x="18" y="6" width="44" height="12" rx="4" fill="#BAE6FD" />
-                <circle cx="30" cy="12" r="2" fill="#0EA5E9" />
-                <circle cx="40" cy="12" r="2" fill="#0EA5E9" />
-                <circle cx="50" cy="12" r="2" fill="#0EA5E9" />
-                <rect x="20" y="26" width="40" height="3.5" rx="1.75" fill="#BAE6FD" />
-                <rect x="20" y="33" width="28" height="3" rx="1.5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="0.5" />
-                <rect x="20" y="39" width="18" height="3" rx="1.5" fill="#E0F2FE" stroke="#BAE6FD" strokeWidth="0.5" />
-                <circle cx="60" cy="42" r="7" fill="#0EA5E9" />
-                <path d="M57 42l2.5 2.5 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        ),
-    },
-    {
-        key: "lunas",
-        label: "Lunas",
-        color: "text-emerald-700 dark:text-emerald-400",
-        bg: "bg-emerald-50 dark:bg-emerald-900/10",
-        border: "border-emerald-200 dark:border-emerald-800",
-        countBg: "bg-emerald-600",
-        dot: "bg-emerald-500",
-        actionLabel: "",
-        actionColor: "",
-        nextStatus: null,
-        illustration: (
-            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                <rect x="14" y="16" width="52" height="30" rx="5" fill="#ECFDF5" stroke="#A7F3D0" strokeWidth="1.5" />
-                <path d="M14 24h52" stroke="#A7F3D0" strokeWidth="1" />
-                <circle cx="40" cy="33" r="8" fill="#10B981" />
-                <path d="M36 33l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M22 39h8M50 39h8" stroke="#A7F3D0" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="64" cy="12" r="5" fill="#10B981" opacity="0.15" />
-                <circle cx="64" cy="12" r="2.5" fill="#10B981" opacity="0.4" />
-                <circle cx="16" cy="12" r="4" fill="#A7F3D0" opacity="0.6" />
-            </svg>
-        ),
-    },
-    {
-        key: "gagal",
-        label: "Gagal / Batal",
-        color: "text-rose-700 dark:text-rose-400",
-        bg: "bg-rose-50 dark:bg-rose-900/10",
-        border: "border-rose-200 dark:border-rose-800",
-        countBg: "bg-rose-500",
-        dot: "bg-rose-500",
-        actionLabel: "",
-        actionColor: "",
-        nextStatus: null,
-        illustration: (
-            <svg viewBox="0 0 80 56" className="w-full h-full" fill="none">
-                <circle cx="40" cy="27" r="17" fill="#FFF1F2" stroke="#FECDD3" strokeWidth="1.5" />
-                <path d="M33 20l14 14M47 20L33 34" stroke="#F43F5E" strokeWidth="2.5" strokeLinecap="round" />
-                <circle cx="18" cy="48" r="3" fill="#FECDD3" />
-                <circle cx="28" cy="51" r="2" fill="#FECDD3" />
-                <circle cx="62" cy="48" r="3" fill="#FECDD3" />
-                <circle cx="52" cy="51" r="2" fill="#FECDD3" />
-            </svg>
-        ),
-    },
-]
+// ─── Table Config ──────────────────────────────────────────────────────────────
+const PAGE_SIZE = 10
+
+const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; badgeCls: string }> = {
+    baru:  { label: "Masuk",  dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
+    lunas: { label: "Lunas",  dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
+    gagal: { label: "Batal",  dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
+}
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
 const SIM_MEMBERS = dummyData.bookingDetails.reduce((acc, d) => {
@@ -512,7 +432,7 @@ function SimModal({ onClose, onOrderCreated }: { onClose: () => void; onOrderCre
                         </button>
                         {step === 3 ? (
                             <button onClick={handleOrder} disabled={!selPkg} className="flex items-center gap-1.5 text-sm px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white font-semibold rounded-lg transition-colors">
-                                Pesan Sekarang <Next className="w-4 h-4" />
+                                Pesan Sekarang <ChevronRight className="w-4 h-4" />
                             </button>
                         ) : step === 4 ? (
                             <button onClick={handlePay} disabled={!selGateway} className="flex items-center gap-1.5 text-sm px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white font-semibold rounded-lg transition-colors">
@@ -520,7 +440,7 @@ function SimModal({ onClose, onOrderCreated }: { onClose: () => void; onOrderCre
                             </button>
                         ) : (
                             <button onClick={() => setStep(s => s + 1)} disabled={(step === 1 && !selMember) || (step === 2 && !selTrainer)} className="flex items-center gap-1.5 text-sm px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white font-semibold rounded-lg transition-colors">
-                                Lanjut <Next className="w-4 h-4" />
+                                Lanjut <ChevronRight className="w-4 h-4" />
                             </button>
                         )}
                     </div>
@@ -530,113 +450,17 @@ function SimModal({ onClose, onOrderCreated }: { onClose: () => void; onOrderCre
     )
 }
 
-// ─── Order Card ────────────────────────────────────────────────────────────────
-function OrderCard({ order, stage, onAdvance }: {
-    order: PipelineOrder
-    stage: typeof STAGES[0]
-    onAdvance: (id: string | number, next: PipelineStatus) => void
-}) {
-    const router = useRouter()
-    const colorIdx = Math.abs(order.member.charCodeAt(0) + (order.member.charCodeAt(1) || 0)) % AVATAR_COLORS.length
 
-    return (
-        <div
-            className={`bg-white dark:bg-gray-900 rounded-xl border ${stage.border} p-3.5 hover:shadow-md transition-all cursor-pointer`}
-            onClick={() => router.push(`/billing/pesanan/${order.id}`)}
-        >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-2 mb-2.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-full ${AVATAR_COLORS[colorIdx]} flex items-center justify-center flex-shrink-0`}>
-                        <span className="text-white text-[11px] font-bold">{order.memberAvatar}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{order.member}</p>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">@{order.username}</p>
-                    </div>
-                </div>
-                {order.isPendingPayment && stage.key === "baru" && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700 flex-shrink-0 mt-0.5">
-                        ⏳ Belum Lunas
-                    </span>
-                )}
-            </div>
-
-            {/* Info */}
-            <div className="space-y-1.5 mb-3">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <User className="w-3 h-3 text-gray-300 flex-shrink-0" /><span className="truncate">{order.guru}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <BookOpen className="w-3 h-3 text-gray-300 flex-shrink-0" /><span>{order.paket}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <Calendar className="w-3 h-3 text-gray-300 flex-shrink-0" /><span>{order.tglPesan}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <CreditCard className="w-3 h-3 text-gray-300 flex-shrink-0" /><span>{order.payment}</span>
-                </div>
-            </div>
-
-
-            {/* Footer */}
-            <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-800">
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{formatRupiah(order.harga)}</span>
-            </div>
-        </div>
-    )
-}
-
-// ─── Stage Column ──────────────────────────────────────────────────────────────
-function StageColumn({ stage, orders, onAdvance }: {
-    stage: typeof STAGES[0]
-    orders: PipelineOrder[]
-    onAdvance: (id: string | number, next: PipelineStatus) => void
-}) {
-    const total = orders.reduce((s, o) => s + o.harga, 0)
-
-    return (
-        <div className="flex flex-col w-full h-full">
-            {/* Column Header — tetap di atas */}
-            <div className={`rounded-xl ${stage.bg} border ${stage.border} p-3 mb-3 flex-shrink-0`}>
-                <div className="h-14 mb-2.5 opacity-90">{stage.illustration}</div>
-                <div className="flex items-center justify-between">
-                    <span className={`text-sm font-bold ${stage.color}`}>{stage.label}</span>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${stage.countBg} text-white`}>
-                        {orders.length}
-                    </span>
-                </div>
-                {orders.length > 0 && (
-                    <p className="text-[11px] text-gray-400 mt-1">
-                        Total: <span className="font-semibold text-gray-600 dark:text-gray-300">{formatRupiah(total)}</span>
-                    </p>
-                )}
-            </div>
-
-            {/* Cards — scroll mandiri per kolom (Trello-style) */}
-            <div className="pipeline-col-scroll flex-1 min-h-0 flex flex-col gap-2.5 pb-2">
-                {orders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-1.5">
-                            <ShoppingBag className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-                        </div>
-                        <p className="text-xs text-gray-400">Tidak ada pesanan</p>
-                    </div>
-                ) : (
-                    orders.map(order => <OrderCard key={order.id} order={order} stage={stage} onAdvance={onAdvance} />)
-                )}
-            </div>
-        </div>
-    )
-}
 
 // ─── Main Content ──────────────────────────────────────────────────────────────
 function PesananContent() {
+    const router = useRouter()
     const [search, setSearch] = useState("")
     const [dateFilter, setDateFilter] = useState<FilterKey>("this_year")
     const [simOrders, setSimOrders] = useState<SimOrder[]>([])
     const [showSim, setShowSim] = useState(false)
     const [statusOverrides, setStatusOverrides] = useState<Record<string | number, PipelineStatus>>({})
+    const [page, setPage] = useState(1)
 
     const refreshSim = useCallback(() => setSimOrders(getSimOrders()), [])
 
@@ -719,7 +543,8 @@ function PesananContent() {
         })
     }, [search, allOrders, dateFilter])
 
-    const byStage = (key: PipelineStatus) => filtered.filter(o => o.status === key)
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+    const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
     const stats = useMemo(() => ({
         total: allOrders.length,
@@ -788,27 +613,117 @@ function PesananContent() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input type="text" placeholder="Cari member, guru, atau paket..." value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            onChange={e => { setSearch(e.target.value); setPage(1) }}
                             className="w-64 pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all" />
                     </div>
-                    <FilterDropdown value={dateFilter} onChange={setDateFilter} />
+                    <FilterDropdown value={dateFilter} onChange={k => { setDateFilter(k); setPage(1) }} />
                 </div>
 
-                {/* ── Pipeline Board (Trello-style) ── */}
-                <div className="h-[calc(100vh-280px)] min-h-[300px]">
-                    <div className="flex gap-3 h-full">
-                        {STAGES.map((stage, i) => (
-                            <Fragment key={stage.key}>
-                                <div className="flex-1 min-w-0 h-full flex flex-col">
-                                    <StageColumn stage={stage} orders={byStage(stage.key)} onAdvance={handleAdvance} />
-                                </div>
-                                {i < STAGES.length - 1 && (
-                                    <div className="flex items-start pt-[88px] flex-shrink-0">
-                                        <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-                                    </div>
-                                )}
-                            </Fragment>
-                        ))}
+                {/* ── Table List ── */}
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Member</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Guru</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Paket</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Tanggal</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Harga</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Payment</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Status</th>
+                                    <th className="text-left text-xs font-bold text-gray-800 dark:text-gray-200 px-4 py-3 whitespace-nowrap">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                {paged.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="text-center py-16 text-gray-400 dark:text-gray-500">
+                                            <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                                            <p>Tidak ada pesanan ditemukan</p>
+                                        </td>
+                                    </tr>
+                                ) : paged.map(order => {
+                                    const colorIdx = Math.abs(order.member.charCodeAt(0) + (order.member.charCodeAt(1) || 0)) % AVATAR_COLORS.length
+                                    const st = STATUS_CONFIG[order.status]
+                                    return (
+                                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                                            {/* Member */}
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`w-7 h-7 rounded-full ${AVATAR_COLORS[colorIdx]} flex items-center justify-center flex-shrink-0`}>
+                                                        <span className="text-white text-[10px] font-bold">{order.memberAvatar}</span>
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{order.member}</p>
+                                                        <p className="text-[10px] text-gray-400 truncate">@{order.username}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            {/* Guru */}
+                                            <td className="px-4 py-3">
+                                                <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{order.guru}</span>
+                                            </td>
+                                            {/* Paket */}
+                                            <td className="px-4 py-3">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-white">{order.paket}</p>
+                                                <p className="text-[10px] text-gray-400 mt-0.5">{order.sesi}x sesi</p>
+                                            </td>
+                                            {/* Tanggal */}
+                                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">{order.tglPesan}</td>
+                                            {/* Harga */}
+                                            <td className="px-4 py-3 text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap">{formatRupiah(order.harga)}</td>
+                                            {/* Payment */}
+                                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{order.payment}</td>
+                                            {/* Status */}
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.badgeCls}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${st.dotCls} inline-block`} />
+                                                    {st.label}
+                                                </span>
+                                                {order.isPendingPayment && order.status === "baru" && (
+                                                    <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
+                                                        ⏳ Belum Lunas
+                                                    </span>
+                                                )}
+                                            </td>
+                                            {/* Aksi */}
+                                            <td className="px-4 py-3">
+                                                <button
+                                                    onClick={() => router.push(`/billing/pesanan/${order.id}`)}
+                                                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg transition-colors opacity-60 group-hover:opacity-100"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" /> Detail
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* ── Pagination ── */}
+                    <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Menampilkan {filtered.length === 0 ? 0 : Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} dari {filtered.length} pesanan
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-white dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                                <button key={n} onClick={() => setPage(n)}
+                                    className={`min-w-[32px] h-8 rounded-lg text-xs font-medium border transition-colors ${n === page ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
+                                    {n}
+                                </button>
+                            ))}
+                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-white dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
