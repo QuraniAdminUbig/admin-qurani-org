@@ -23,38 +23,46 @@ type PipelineStatus = "baru" | "lunas" | "gagal"
 
 // ─── Filter Range Tanggal ─────────────────────────────────────────────────────────
 type FilterKey =
+    | "all"
     | "today" | "yesterday"
     | "this_week" | "this_month" | "this_year" | "last_year"
+    | "last_week" | "last_month"
     | "last_7_days" | "last_30_days"
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; group: string }[] = [
-    { key: "today", label: "Today", group: "Quick" },
-    { key: "yesterday", label: "Yesterday", group: "Quick" },
-    { key: "this_week", label: "This week", group: "Period" },
-    { key: "this_month", label: "This month", group: "Period" },
-    { key: "this_year", label: "This year", group: "Period" },
-    { key: "last_year", label: "Last year", group: "Period" },
-    { key: "last_7_days", label: "Last 7 days", group: "Historical" },
+    { key: "all",        label: "All (Semua)",  group: "Quick" },
+    { key: "today",      label: "Today",        group: "Quick" },
+    { key: "yesterday",  label: "Yesterday",    group: "Quick" },
+    { key: "this_week",  label: "This week",    group: "Period" },
+    { key: "this_month", label: "This month",   group: "Period" },
+    { key: "this_year",  label: "This year",    group: "Period" },
+    { key: "last_week",  label: "Last week",    group: "Historical" },
+    { key: "last_month", label: "Last month",   group: "Historical" },
+    { key: "last_year",  label: "Last year",    group: "Historical" },
+    { key: "last_7_days",  label: "Last 7 days",  group: "Historical" },
     { key: "last_30_days", label: "Last 30 days", group: "Historical" },
 ]
 const GROUP_ICONS: Record<string, React.ReactNode> = {
-    Quick: <Timer className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
-    Period: <BarChart2 className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
-    Historical: <History className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Quick:      <Timer    className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Period:     <BarChart2 className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
+    Historical: <History  className="w-3.5 h-3.5 inline-block mr-1 text-gray-400" />,
 }
 
-function getDateRange(filter: FilterKey): { from: Date; to: Date } {
+function getDateRange(filter: FilterKey): { from: Date; to: Date } | null {
+    if (filter === "all") return null
     const now = new Date()
     const sod = (d: Date) => { d.setHours(0, 0, 0, 0); return d }
     const eod = (d: Date) => { d.setHours(23, 59, 59, 999); return d }
     switch (filter) {
-        case "today": return { from: sod(new Date(now)), to: eod(new Date(now)) }
-        case "yesterday": { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: sod(y), to: eod(new Date(y)) } }
-        case "this_week": { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); return { from: sod(m), to: eod(new Date(now)) } }
+        case "today":      return { from: sod(new Date(now)), to: eod(new Date(now)) }
+        case "yesterday":  { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: sod(y), to: eod(new Date(y)) } }
+        case "this_week":  { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); return { from: sod(m), to: eod(new Date(now)) } }
         case "this_month": return { from: sod(new Date(now.getFullYear(), now.getMonth(), 1)), to: eod(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
-        case "this_year": return { from: sod(new Date(now.getFullYear(), 0, 1)), to: eod(new Date(now.getFullYear(), 11, 31)) }
-        case "last_year": return { from: sod(new Date(now.getFullYear() - 1, 0, 1)), to: eod(new Date(now.getFullYear() - 1, 11, 31)) }
-        case "last_7_days": { const f = new Date(now); f.setDate(now.getDate() - 6); return { from: sod(f), to: eod(new Date(now)) } }
+        case "this_year":  return { from: sod(new Date(now.getFullYear(), 0, 1)), to: eod(new Date(now.getFullYear(), 11, 31)) }
+        case "last_week":  { const d = now.getDay(); const end = new Date(now); end.setDate(now.getDate() - (d === 0 ? 7 : d)); const start = new Date(end); start.setDate(end.getDate() - 6); return { from: sod(start), to: eod(end) } }
+        case "last_month": return { from: sod(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: eod(new Date(now.getFullYear(), now.getMonth(), 0)) }
+        case "last_year":  return { from: sod(new Date(now.getFullYear() - 1, 0, 1)), to: eod(new Date(now.getFullYear() - 1, 11, 31)) }
+        case "last_7_days":  { const f = new Date(now); f.setDate(now.getDate() - 6);  return { from: sod(f), to: eod(new Date(now)) } }
         case "last_30_days": { const f = new Date(now); f.setDate(now.getDate() - 29); return { from: sod(f), to: eod(new Date(now)) } }
     }
 }
@@ -67,13 +75,16 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
         const pad = (n: number) => String(n).padStart(2, "0")
         const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
         switch (value) {
-            case "today": return fmt(now)
-            case "yesterday": { const y = new Date(now); y.setDate(y.getDate() - 1); return fmt(y) }
-            case "this_week": { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); const s = new Date(m); s.setDate(m.getDate() + 6); return `${pad(m.getDate())} – ${pad(s.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}` }
+            case "all":        return "Semua Data"
+            case "today":      return fmt(now)
+            case "yesterday":  { const y = new Date(now); y.setDate(y.getDate() - 1); return fmt(y) }
+            case "this_week":  { const d = now.getDay(); const m = new Date(now); m.setDate(now.getDate() - (d === 0 ? 6 : d - 1)); const s = new Date(m); s.setDate(m.getDate() + 6); return `${pad(m.getDate())} – ${pad(s.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}` }
             case "this_month": return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
-            case "this_year": return `Year ${now.getFullYear()}`
-            case "last_year": return `Year ${now.getFullYear() - 1}`
-            case "last_7_days": { const f = new Date(now); f.setDate(now.getDate() - 6); return `${fmt(f)} – ${pad(now.getDate())}` }
+            case "this_year":  return `Year ${now.getFullYear()}`
+            case "last_week":  { const d = now.getDay(); const end = new Date(now); end.setDate(now.getDate() - (d === 0 ? 7 : d)); const start = new Date(end); start.setDate(end.getDate() - 6); return `${fmt(start)} – ${fmt(end)}` }
+            case "last_month": { const m = new Date(now.getFullYear(), now.getMonth() - 1, 1); return m.toLocaleDateString("en-US", { month: "long", year: "numeric" }) }
+            case "last_year":  return `Year ${now.getFullYear() - 1}`
+            case "last_7_days":  { const f = new Date(now); f.setDate(now.getDate() - 6); return `${fmt(f)} – ${pad(now.getDate())}` }
             case "last_30_days": { const f = new Date(now); f.setDate(now.getDate() - 29); return `${f.toLocaleDateString("en-US", { month: "short", day: "2-digit" })} – ${fmt(now)}` }
         }
     }, [value])
@@ -94,27 +105,24 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
                 <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
             </button>
             {open && (
-                <div className="absolute left-0 top-full mt-1.5 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden py-1.5">
                     {groups.map((group, gi) => {
                         const items = FILTER_OPTIONS.filter(o => o.group === group)
                         return (
                             <div key={group}>
-                                {gi > 0 && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-3" />}
-                                <div className="px-3 py-2">
-                                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center mb-1">
-                                        {GROUP_ICONS[group]}{group}
-                                    </p>
+                                {gi > 0 && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-3 my-1" />}
+                                <div className="px-2">
                                     {items.map(opt => (
                                         <button
                                             key={opt.key}
                                             onClick={() => { onChange(opt.key); setOpen(false) }}
                                             className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm text-left transition-colors ${value === opt.key
-                                                ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
+                                                ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-semibold"
                                                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60"
                                                 }`}
                                         >
                                             {opt.label}
-                                            {value === opt.key && <Check className="w-3 h-3 text-emerald-500" />}
+                                            {value === opt.key && <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
                                         </button>
                                     ))}
                                 </div>
@@ -218,7 +226,7 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
 }
 
 // ─── Table Config ──────────────────────────────────────────────────────────────
-const PAGE_SIZE = 10
+const PAGE_SIZE = 7
 
 const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; badgeCls: string }> = {
     baru: { label: "Pending", dotCls: "bg-amber-500", badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
@@ -528,11 +536,14 @@ function PesananContent() {
     }, [simOrders, statusOverrides])
 
     const filtered = useMemo(() => {
-        const { from, to } = getDateRange(dateFilter)
+        const range = getDateRange(dateFilter)
         const q = search.toLowerCase()
         return allOrders.filter(o => {
-            const inRange = o.rawDate >= from && o.rawDate <= to
-            if (!inRange) return false
+            // If filter is "all", skip date check
+            if (range !== null) {
+                const inRange = o.rawDate >= range.from && o.rawDate <= range.to
+                if (!inRange) return false
+            }
             if (statusTab !== "all" && o.status !== statusTab) return false
             if (!q) return true
             return (

@@ -30,6 +30,11 @@ export const metadata: Metadata = {
   title: "Qurani - Islamic Social Media",
   description: "Modern Quran application - Read, listen, and learn the Holy Quran with advanced features and beautiful interface",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/icons/qurani-192.png",
+  },
 };
 
 
