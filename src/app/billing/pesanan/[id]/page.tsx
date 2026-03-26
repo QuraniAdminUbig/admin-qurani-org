@@ -17,6 +17,8 @@ import {
     Phone,
     Mail,
     Calendar,
+    ChevronDown,
+    MessageSquare,
 } from "lucide-react"
 import Link from "next/link"
 import dummyData from "@/data/billing-dummy.json"
@@ -46,6 +48,7 @@ function formatDateTime(iso: string | null) {
 // ── session status config ─────────────────────────────────────────────────────
 const SESSION_STATUS = {
     completed: { label: "Selesai", icon: CheckCircle2, cls: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
+    ongoing: { label: "Berlangsung", icon: Clock, cls: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" },
     scheduled: { label: "Terjadwal", icon: Clock, cls: "text-sky-500", bg: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
     cancelled: { label: "Batal", icon: XCircle, cls: "text-red-400", bg: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" },
 } as const
@@ -74,8 +77,8 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
     const statusCls = isCancelled
         ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
         : isPaid
-        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
     const statusDot = isCancelled ? "bg-red-500" : isPaid ? "bg-emerald-500" : "bg-amber-500"
 
     return (
@@ -87,14 +90,6 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                         className="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-emerald-600 hover:border-emerald-400 transition-all shadow-sm">
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Detail Pesanan</h1>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusCls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-                            {statusLabel}
-                        </span>
-
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -108,11 +103,16 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                             <div className="grid grid-cols-3 gap-4 text-xs">
                                 <div>
                                     <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Nama Paket</p>
-                                    <p className="font-black text-gray-950 dark:text-white text-base">{order.pkg.name}</p>
+                                    <p className="text-xs font-semibold text-gray-900 dark:text-white">{order.pkg.name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Metode Belajar</p>
-                                    <p className="font-bold text-gray-700 dark:text-gray-300">🌐 Online • {order.paymentMethod}</p>
+                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Metode Mengaji</p>
+                                    <div className="flex flex-wrap gap-1.5 items-center">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
+                                            <Wifi className="w-3 h-3" /> Online
+                                        </span>
+                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 italic border-l border-gray-200 dark:border-gray-700 pl-2">{order.paymentMethod}</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Mulai Sesi</p>
@@ -134,10 +134,10 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
                             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 mb-4">
                                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-                                    <Calendar className="w-4 h-4 text-emerald-500" /> Jadwal Sesi
+                                    <Calendar className="w-4 h-4 text-emerald-500" /> Jadwal Pertemuan
                                 </div>
                                 {isPaid && order.sessions?.length > 0 && (
-                                    <span className="text-[11px] text-gray-400 font-medium">{order.sessions.length} sesi terjadwal</span>
+                                    <span className="text-[11px] text-gray-400 font-medium">{order.sessions.length} pertemuan terjadwal</span>
                                 )}
                             </div>
                             {!isPaid || !order.sessions?.length ? (
@@ -155,7 +155,7 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                                     {isDone ? "✓" : sess.sessionNo}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Sesi {sess.sessionNo}</p>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Pertemuan {sess.sessionNo}</p>
                                                     <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
@@ -248,6 +248,9 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
 
 function BookingDetailContent({ id }: { id: number }) {
     const [simOrder, setSimOrder] = useState<SimOrder | null | undefined>(undefined)
+    // ⚠️ Must be declared BEFORE any early return (Rules of Hooks)
+    const [openFeedback, setOpenFeedback] = useState<Record<number, boolean>>({})
+    const toggleFeedback = (no: number) => setOpenFeedback(prev => ({ ...prev, [no]: !prev[no] }))
 
     useEffect(() => {
         if (id >= 9001) {
@@ -284,27 +287,20 @@ function BookingDetailContent({ id }: { id: number }) {
         : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
     const sessCompleted = detail.sessions.filter(s => s.status === "completed").length
     const pct = Math.round((sessCompleted / booking.totalSessions) * 100)
+    const isPaid = detail.payment.status === "paid"
+
+
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
             <div className="max-w-[1200px] mx-auto space-y-4">
 
-                {/* ── Back + Header ── */}
+                {/* ── Back ── */}
                 <div className="flex items-center gap-3">
                     <Link href={BACK_URL}
                         className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-emerald-600 hover:border-emerald-400 transition-all">
                         <ArrowLeft className="w-4 h-4" />
                     </Link>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Detail Pesanan</h1>
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${bStatus?.badgeCls}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${bStatus?.dotCls}`} />
-                                {bStatus?.label}
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-0.5">#{id} · {booking.userName}</p>
-                    </div>
                 </div>
 
                 {/* ── Main grid ── */}
@@ -321,7 +317,7 @@ function BookingDetailContent({ id }: { id: number }) {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <div>
                                     <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Nama Paket</p>
-                                    <p className="text-sm font-bold text-gray-950 dark:text-white">{booking.packageName}</p>
+                                    <p className="text-xs font-semibold text-gray-900 dark:text-white">{booking.packageName}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Metode Belajar</p>
@@ -352,28 +348,73 @@ function BookingDetailContent({ id }: { id: number }) {
 
                         {/* Session List */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 px-5 py-4 uppercase tracking-wider">
-                                <Calendar className="w-4 h-4 text-emerald-500" /> Jadwal Sesi
+                            <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 px-5 py-4 uppercase tracking-wider">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-emerald-500" /> Jadwal Pertemuan
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-400 normal-case tracking-normal">
+                                    {detail.sessions.length} pertemuan terjadwal
+                                </span>
                             </div>
-                            <div className="max-h-[350px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
+                            <div className="divide-y divide-gray-50 dark:divide-gray-800">
                                 {detail.sessions.map(s => {
                                     const sc = SESSION_STATUS[s.status as keyof typeof SESSION_STATUS]
                                     const Icon = sc?.icon ?? Clock
+                                    const isDone = s.status === "completed"
+                                    const fb = (s as { feedback?: { kesan: string; kritik: string; komplain: string } }).feedback
+                                    const isOpen = openFeedback[s.no]
                                     return (
-                                        <div key={s.no} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${s.status === "completed" ? "bg-emerald-100 dark:bg-emerald-900/30" : s.status === "cancelled" ? "bg-red-100 dark:bg-red-900/30" : "bg-sky-100 dark:bg-sky-900/30"}`}>
-                                                <Icon className={`w-4 h-4 ${sc?.cls}`} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-xs font-bold text-gray-950 dark:text-white">Pertemuan {s.no}</span>
-                                                    <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${sc?.bg}`}>{sc?.label}</span>
+                                        <div key={s.no}>
+                                            {/* ── Row sesi ── */}
+                                            <div
+                                                className={`flex items-center gap-4 px-5 py-3 transition-colors ${isDone && isPaid ? "cursor-pointer hover:bg-emerald-50/60 dark:hover:bg-emerald-900/10" : "hover:bg-gray-50 dark:hover:bg-gray-800/40"}`}
+                                                onClick={() => isDone && isPaid && toggleFeedback(s.no)}
+                                            >
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${s.status === "completed" ? "bg-emerald-100 dark:bg-emerald-900/30" : s.status === "cancelled" ? "bg-red-100 dark:bg-red-900/30" : "bg-sky-100 dark:bg-sky-900/30"}`}>
+                                                    <Icon className={`w-4 h-4 ${sc?.cls}`} />
+                                                </div>
+                                                {/* date di kiri bawah nama */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xs font-bold text-gray-950 dark:text-white">Pertemuan {s.no}</span>
+                                                        <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${sc?.bg}`}>{sc?.label}</span>
+
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">{s.date}</p>
+                                                </div>
+                                                <div className="text-right shrink-0 flex items-center gap-3">
+                                                    <p className="text-xs font-bold text-gray-950 dark:text-gray-300">{s.time}</p>
+                                                    {isDone && isPaid && (
+                                                        <ChevronDown className={`w-4 h-4 text-emerald-500 transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0">
-                                                <p className="text-xs font-bold text-gray-950 dark:text-gray-300">{s.date}</p>
-                                                <p className="text-[10px] text-gray-400">{s.time}</p>
-                                            </div>
+
+                                            {/* ── Feedback Accordion ── */}
+                                            {isDone && isPaid && isOpen && fb && (
+                                                <div className="px-5 pb-4 pt-1 bg-emerald-50/50 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-900/30">
+                                                    <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                                        <MessageSquare className="w-3 h-3" /> Feedback Member
+                                                    </p>
+                                                    <div className="space-y-3">
+                                                        {/* Kesan */}
+                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-100 dark:border-emerald-900/40 p-3">
+                                                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">✨ Kesan</p>
+                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.kesan}</p>
+                                                        </div>
+                                                        {/* Kritik */}
+                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-amber-100 dark:border-amber-900/40 p-3">
+                                                            <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">💬 Kritik</p>
+                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.kritik}</p>
+                                                        </div>
+                                                        {/* Komplain */}
+                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-rose-100 dark:border-rose-900/40 p-3">
+                                                            <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">⚠️ Komplain</p>
+                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.komplain === "-" ? <span className="text-gray-400 italic">Tidak ada komplain</span> : fb.komplain}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}

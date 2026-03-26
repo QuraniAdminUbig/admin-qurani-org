@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
     Search, ShoppingBag, Zap, CheckCircle2, X,
-    TrendingUp, Eye, ChevronLeft,
+    TrendingUp, MoreHorizontal, ChevronLeft,
     ChevronRight, Trash2,
     ChevronDown, Check, Timer, BarChart2, History, Calendar,
 } from "lucide-react"
@@ -229,7 +229,7 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
 const PAGE_SIZE = 7
 
 const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; badgeCls: string }> = {
-    baru: { label: "Pending", dotCls: "bg-amber-500", badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
+    baru: { label: "Menunggu Bayar", dotCls: "bg-amber-500", badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
     lunas: { label: "Lunas", dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
     gagal: { label: "Batal", dotCls: "bg-rose-500", badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
 }
@@ -577,34 +577,7 @@ function PesananContent() {
 
             <div className="max-w-[1600px] mx-auto">
 
-                {/* ── Stats Cards ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                    {[
-                        { label: "Total", value: stats.total, icon: ShoppingBag, color: "gray" },
-                        { label: "Pending", value: stats.baru, icon: ShoppingBag, color: "amber" },
-                        { label: "Gagal", value: stats.gagal, icon: X, color: "rose" },
-                        { label: "Revenue Lunas", value: formatRupiah(stats.revenue), icon: TrendingUp, color: "emerald" },
-                    ].map(s => {
-                        const Icon = s.icon
-                        const clr: Record<string, { bg: string; icon: string }> = {
-                            gray: { bg: "bg-gray-100 dark:bg-gray-800", icon: "text-gray-500 dark:text-gray-400" },
-                            amber: { bg: "bg-amber-100 dark:bg-amber-900/20", icon: "text-amber-600 dark:text-amber-400" },
-                            rose: { bg: "bg-rose-100 dark:bg-rose-900/20", icon: "text-rose-600 dark:text-rose-400" },
-                            emerald: { bg: "bg-emerald-100 dark:bg-emerald-900/20", icon: "text-emerald-600 dark:text-emerald-400" },
-                        }
-                        return (
-                            <div key={s.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className={`w-9 h-9 rounded-lg ${clr[s.color].bg} flex items-center justify-center flex-shrink-0`}>
-                                        <Icon className={`w-4 h-4 ${clr[s.color].icon}`} />
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">{s.label}</p>
-                                </div>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">{s.value}</p>
-                            </div>
-                        )
-                    })}
-                </div>
+
 
                 {/* ── Search + Filter + Buttons Row ── */}
                 <div className="flex items-center gap-3 mb-3 flex-wrap">
@@ -633,19 +606,18 @@ function PesananContent() {
                 {/* ── Status Filter Tabs ── */}
                 <div className="flex items-center gap-6 border-b border-gray-100 dark:border-gray-800 mb-0">
                     {([
-                        { key: "all", label: "Semua", count: allOrders.length },
-                        { key: "lunas", label: "Lunas", count: allOrders.filter(o => o.status === "lunas").length },
-                        { key: "baru", label: "Pending", count: allOrders.filter(o => o.status === "baru").length },
-                        { key: "gagal", label: "Batal", count: allOrders.filter(o => o.status === "gagal").length },
-                    ] as { key: "all" | PipelineStatus; label: string; count: number }[]).map(tab => (
+                        { key: "all",   label: "Semua",   count: allOrders.length,                                    activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
+                        { key: "lunas", label: "Lunas",   count: allOrders.filter(o => o.status === "lunas").length,  activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
+                        { key: "baru",  label: "Pending", count: allOrders.filter(o => o.status === "baru").length,   activeText: "text-amber-600 dark:text-amber-400",     activeBorder: "border-amber-500",   activeCount: "text-amber-500"   },
+                        { key: "gagal", label: "Batal",   count: allOrders.filter(o => o.status === "gagal").length,  activeText: "text-rose-600 dark:text-rose-400",       activeBorder: "border-rose-500",    activeCount: "text-rose-500"    },
+                    ] as { key: "all" | PipelineStatus; label: string; count: number; activeText: string; activeBorder: string; activeCount: string }[]).map(tab => (
                         <button key={tab.key} onClick={() => { setStatusTab(tab.key); setPage(1) }}
                             className={`flex items-center gap-1.5 pb-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${statusTab === tab.key
-                                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                                ? `${tab.activeBorder} ${tab.activeText}`
                                 : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                                }`}>
+                            }`}>
                             {tab.label}
-                            <span className={`text-xs font-bold ${statusTab === tab.key ? "text-emerald-500" : "text-gray-400"
-                                }`}>{tab.count}</span>
+                            <span className={`text-xs font-bold ${statusTab === tab.key ? tab.activeCount : "text-gray-400"}`}>{tab.count}</span>
                         </button>
                     ))}
                 </div>
@@ -678,7 +650,11 @@ function PesananContent() {
                                     const colorIdx = Math.abs(order.member.charCodeAt(0) + (order.member.charCodeAt(1) || 0)) % AVATAR_COLORS.length
                                     const st = STATUS_CONFIG[order.status]
                                     return (
-                                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                                    <tr
+                                        key={order.id}
+                                        onClick={() => router.push(`/billing/pesanan/${order.id}`)}
+                                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group cursor-pointer"
+                                    >
                                             {/* Member */}
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2.5">
@@ -713,19 +689,15 @@ function PesananContent() {
                                                     <span className={`w-1.5 h-1.5 rounded-full ${st.dotCls} inline-block`} />
                                                     {st.label}
                                                 </span>
-                                                {order.isPendingPayment && order.status === "baru" && (
-                                                    <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
-                                                        ⏳ Belum Lunas
-                                                    </span>
-                                                )}
+
                                             </td>
                                             {/* Aksi */}
                                             <td className="px-4 py-3">
                                                 <button
-                                                    onClick={() => router.push(`/billing/pesanan/${order.id}`)}
-                                                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg transition-colors opacity-60 group-hover:opacity-100"
+                                                    onClick={e => e.stopPropagation()}
+                                                    className="flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors opacity-60 group-hover:opacity-100"
                                                 >
-                                                    <Eye className="w-3.5 h-3.5" /> Detail
+                                                    <MoreHorizontal className="w-3.5 h-3.5" />
                                                 </button>
                                             </td>
                                         </tr>
