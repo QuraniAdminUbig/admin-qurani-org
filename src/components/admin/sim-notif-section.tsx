@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { CheckCircle2, ShoppingBag, Zap, Trash2, ExternalLink } from "lucide-react"
+import { CheckCircle2, ShoppingBag, Zap, Trash2, ExternalLink, XCircle } from "lucide-react"
 import { getSimNotifs, markSimNotifsRead, updateSimOrderPayment, cancelSimOrder, addSimNotif, getSimOrderById, type SimNotif } from "@/lib/sim-store"
 import { useRouter } from "next/navigation"
 
@@ -26,28 +26,33 @@ function SimNotifItem({ notif, onItemClick, onPayClick, onCancelClick }: {
 }) {
     const isPaid = notif.type === "payment_success"
     const isPending = notif.type === "new_order"
+    const isCancelled = notif.type === "order_cancelled"
 
     return (
         <div
             onClick={onItemClick}
             className={`group relative overflow-hidden rounded-xl border p-3 sm:p-4 transition-all duration-300 hover:shadow-lg cursor-pointer
                 ${!notif.isRead
-                    ? "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800"
+                    ? isCancelled
+                        ? "bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 border-rose-200 dark:border-rose-800"
+                        : "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800"
                     : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                 }`}
         >
             {/* Unread indicator */}
             {!notif.isRead && (
-                <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse z-10" />
+                <div className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full animate-pulse z-10 ${isCancelled ? "bg-rose-500" : "bg-emerald-500"}`} />
             )}
 
             <div className="flex items-start gap-3 mt-2">
                 {/* Icon */}
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white dark:border-slate-700 shadow-lg
-                    ${isPaid ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+                    ${isPaid ? "bg-emerald-100 dark:bg-emerald-900/30" : isCancelled ? "bg-rose-100 dark:bg-rose-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
                     {isPaid
                         ? <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        : <ShoppingBag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        : isCancelled
+                            ? <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                            : <ShoppingBag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                     }
                 </div>
 
@@ -123,7 +128,7 @@ export function SimNotifSection() {
             orderId,
         })
         window.dispatchEvent(new Event("sim-notif-update"))
-        router.push("/billing/pesanan")
+        router.push("/billing/orders")
     }
 
     function handlePayClick(orderId: number) {
@@ -141,11 +146,11 @@ export function SimNotifSection() {
         })
         // Trigger refresh di halaman pesanan
         window.dispatchEvent(new Event("sim-notif-update"))
-        router.push("/billing/pesanan")
+        router.push("/billing/orders")
     }
 
     function handleItemClick() {
-        router.push("/billing/pesanan")
+        router.push("/billing/orders")
     }
 
     return (

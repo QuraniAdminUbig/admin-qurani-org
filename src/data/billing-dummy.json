@@ -284,27 +284,7 @@
         }
     ],
     "payments": [
-        {
-            "id": 1001,
-            "userId": 2011,
-            "userName": "Ahmad Fauzi",
-            "userEmail": "ahmad.fauzi@gmail.com",
-            "trainerId": 301,
-            "trainerName": "Hasyim asy'ari, Lc",
-            "bookingId": 3001,
-            "packageName": "5x Pertemuan",
-            "amount": 387500,
-            "currency": "IDR",
-            "status": "completed",
-            "paymentMethod": "GoPay",
-            "paymentGatewayRef": "MID-2026-01-0089",
-            "isPaidOut": true,
-            "refundRequested": false,
-            "createdAt": "2026-02-01T08:30:00Z",
-            "paidAt": "2026-02-01T08:31:55Z",
-            "paidOutAt": "2026-02-05T10:00:00Z",
-            "notes": null
-        },
+
         {
             "id": 1002,
             "userId": 2034,
@@ -494,27 +474,7 @@
             "paidOutAt": "2025-12-25T09:00:00Z",
             "notes": null
         },
-        {
-            "id": 1011,
-            "userId": 2011,
-            "userName": "Ahmad Fauzi",
-            "userEmail": "ahmad.fauzi@gmail.com",
-            "trainerId": 304,
-            "trainerName": "Nanda",
-            "bookingId": 3011,
-            "packageName": "5x Pertemuan",
-            "amount": 387500,
-            "currency": "IDR",
-            "status": "completed",
-            "paymentMethod": "GoPay",
-            "paymentGatewayRef": "MID-2026-03-0301",
-            "isPaidOut": false,
-            "refundRequested": false,
-            "createdAt": "2026-03-04T07:30:00Z",
-            "paidAt": "2026-03-04T07:31:00Z",
-            "paidOutAt": null,
-            "notes": null
-        },
+
         {
             "id": 1012,
             "userId": 2034,
@@ -706,27 +666,7 @@
         }
     ],
     "bookings": [
-        {
-            "id": 3001,
-            "userId": 2011,
-            "userName": "Ahmad Fauzi",
-            "userEmail": "ahmad.fauzi@gmail.com",
-            "trainerId": 301,
-            "trainerName": "Hasyim asy'ari, Lc",
-            "packageName": "5x Pertemuan",
-            "packageKey": "5x",
-            "totalSessions": 5,
-            "completedSessions": 3,
-            "mode": "online",
-            "pricePackage": 382500,
-            "serviceFee": 5000,
-            "totalPayment": 387500,
-            "currency": "IDR",
-            "status": "active",
-            "bookingDate": "2026-02-01T00:00:00Z",
-            "paymentMethod": "Ummi",
-            "paymentGateway": "GoPay"
-        },
+
         {
             "id": 3002,
             "userId": 2034,
@@ -818,18 +758,18 @@
             "userEmail": "nur.hidayah@mail.com",
             "trainerId": 302,
             "trainerName": "Indi fitriani",
-            "packageName": "10x Pertemuan",
+            "packageName": "5x Pertemuan",
             "packageKey": "10x",
-            "totalSessions": 10,
-            "completedSessions": 2,
+            "totalSessions": 5,
+            "completedSessions": 0,
             "mode": "offline",
             "pricePackage": 700000,
             "serviceFee": 5000,
-            "totalPayment": 705000,
+            "totalPayment": 595000,
             "currency": "IDR",
             "status": "cancelled",
-            "bookingDate": "2025-12-01T00:00:00Z",
-            "paymentMethod": "Tafsir",
+            "bookingDate": "2026-03-05T00:00:00Z",
+            "paymentMethod": "Ummi",
             "paymentGateway": "GoPay"
         },
         {
@@ -918,88 +858,7 @@
         }
     ],
     "bookingDetails": [
-        {
-            "bookingId": 3001,
-            "member": {
-                "id": 2011,
-                "name": "Ahmad Fauzi",
-                "email": "ahmad.fauzi@gmail.com",
-                "phone": "+62 812-3456-7890",
-                "joinDate": "2024-06-15T00:00:00Z",
-                "location": "Jakarta Selatan"
-            },
-            "trainer": {
-                "id": 301,
-                "name": "Hasyim asy'ari, Lc",
-                "email": "hasyim.lc@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
-                "rating": 5,
-                "totalStudents": 45,
-                "specialization": "Lulusan Al-Azhar Kairo-Mesir"
-            },
-            "sessions": [
-                {
-                    "no": 1,
-                    "date": "2026-02-03",
-                    "time": "09:00 – 10:00",
-                    "status": "completed",
-                    "notes": "Perkenalan dan penilaian awal",
-                    "feedback": {
-                        "kesan": "Guru sangat sabar, materi dijelaskan dengan sangat jelas dan mudah dipahami.",
-                        "kritik": "Waktu sesi terasa singkat, sebaiknya ditambah 15 menit.",
-                        "komplain": "-"
-                    }
-                },
-                {
-                    "no": 2,
-                    "date": "2026-02-10",
-                    "time": "09:00 – 10:00",
-                    "status": "completed",
-                    "notes": "Materi huruf hijaiyah dasar",
-                    "feedback": {
-                        "kesan": "Sesi berjalan lancar, penjelasan tajwid sangat membantu saya berkembang.",
-                        "kritik": "Koneksi video sempat tidak stabil di awal sesi.",
-                        "komplain": "Audio guru putus-putus selama ±5 menit"
-                    }
-                },
-                {
-                    "no": 3,
-                    "date": "2026-02-17",
-                    "time": "09:00 – 10:00",
-                    "status": "completed",
-                    "notes": "Latihan harakat fathah/kasrah/dhommah",
-                    "feedback": {
-                        "kesan": "Materi hari ini lebih menantang namun guru membimbing dengan sabar.",
-                        "kritik": "Perlu lebih banyak latihan membaca bersama.",
-                        "komplain": "-"
-                    }
-                },
-                {
-                    "no": 4,
-                    "date": "2026-02-24",
-                    "time": "09:00 – 10:00",
-                    "status": "ongoing",
-                    "notes": "Sesi sedang berlangsung"
-                },
-                {
-                    "no": 5,
-                    "date": "2026-03-03",
-                    "time": "09:00 – 10:00",
-                    "status": "scheduled",
-                    "notes": null
-                }
-            ],
-            "payment": {
-                "invoiceNo": "INV-2026-3001",
-                "pricePackage": 382500,
-                "serviceFee": 5000,
-                "total": 387500,
-                "method": "GoPay",
-                "status": "paid",
-                "paidAt": "2026-02-01T08:31:55Z",
-                "receiptRef": "MID-2026-01-0089"
-            }
-        },
+
         {
             "bookingId": 3002,
             "member": {
@@ -1017,7 +876,13 @@
                 "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
                 "rating": 4.9,
                 "totalStudents": 39,
-                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an"
+                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an",
+                "location": "Bekasi",
+                "yearsExperience": 5,
+                "subjects": [
+                    "Tahsinul Qur'an",
+                    "Tahfidzul Qur'an"
+                ]
             },
             "sessions": [
                 {
@@ -1031,12 +896,13 @@
             "payment": {
                 "invoiceNo": "INV-2026-3002",
                 "pricePackage": 85000,
-                "serviceFee": 5000,
-                "total": 90000,
+                "serviceFee": 0,
+                "total": 95200,
                 "method": "QRIS",
                 "status": "pending",
                 "paidAt": null,
-                "receiptRef": "QRS-2026-02-0023"
+                "receiptRef": "QRS-2026-02-0023",
+                "tax": 10200
             }
         },
         {
@@ -1056,7 +922,14 @@
                 "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
                 "rating": 5,
                 "totalStudents": 39,
-                "specialization": "Baca Tulis Al-Qur'an Dasar"
+                "specialization": "Baca Tulis Al-Qur'an Dasar",
+                "location": "Depok",
+                "yearsExperience": 8,
+                "subjects": [
+                    "Tahfidz",
+                    "Makharijul Huruf",
+                    "Qiraah"
+                ]
             },
             "sessions": [
                 {
@@ -1066,9 +939,8 @@
                     "status": "completed",
                     "notes": "Tes bacaan awal",
                     "feedback": {
-                        "kesan": "Guru sangat sabar, materi dijelaskan dengan sangat jelas dan mudah dipahami.",
-                        "kritik": "Waktu sesi terasa singkat, sebaiknya ditambah 15 menit.",
-                        "komplain": "-"
+                        "rating": 5,
+                        "pesan": "Guru sangat antusias mengajar dan selalu memberikan motivasi. Penjelasan mudah dipahami dan menyenangkan."
                     }
                 },
                 {
@@ -1078,9 +950,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Sesi berjalan lancar, penjelasan tajwid sangat membantu saya berkembang.",
-                        "kritik": "Koneksi video sempat tidak stabil di awal sesi.",
-                        "komplain": "Audio guru putus-putus selama ±5 menit"
+                        "rating": 4,
+                        "pesan": "Penjelasan makharijul huruf sangat detail dan praktis. Waktu tanya jawab terasa singkat, berharap bisa lebih panjang."
                     }
                 },
                 {
@@ -1090,9 +961,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Materi hari ini lebih menantang namun guru membimbing dengan sabar.",
-                        "kritik": "Perlu lebih banyak latihan membaca bersama.",
-                        "komplain": "-"
+                        "rating": 3,
+                        "pesan": "Metode mengajar menyenangkan namun link meeting terlambat dikirim. Sesi dimulai sedikit terlambat karena kendala teknis."
                     }
                 },
                 {
@@ -1102,9 +972,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Saya mulai lebih percaya diri membaca Al-Qur'an berkat bimbingan guru.",
-                        "kritik": "Modul latihan bisa diperbanyak agar bisa latihan mandiri.",
-                        "komplain": "-"
+                        "rating": 5,
+                        "pesan": "Progres saya sangat terasa, sudah bisa membaca surat pendek dengan lancar. Terima kasih atas bimbingannya."
                     }
                 },
                 {
@@ -1114,9 +983,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Guru sangat antusias mengajar dan memberikan motivasi di setiap sesi.",
-                        "kritik": "Sebaiknya ada ringkasan materi yang dikirim setelah sesi.",
-                        "komplain": "-"
+                        "rating": 4,
+                        "pesan": "Guru memberikan feedback yang konstruktif dan membangun semangat belajar. Jadwal yang lebih fleksibel akan sangat membantu."
                     }
                 },
                 {
@@ -1126,9 +994,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Penjelasan makharijul huruf sangat detail dan praktis dipelajari.",
-                        "kritik": "Waktu tanya jawab terlalu singkat.",
-                        "komplain": "-"
+                        "rating": 5,
+                        "pesan": "Sesi hari ini sangat produktif, banyak poin tajwid yang saya perbaiki. Guru sangat profesional dan ramah."
                     }
                 },
                 {
@@ -1138,9 +1005,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Metode mengajar guru menyenangkan, tidak membosankan sama sekali.",
-                        "kritik": "Link meeting terlambat dikirim 10 menit sebelum sesi.",
-                        "komplain": "Sesi dimulai terlambat karena kendala teknis."
+                        "rating": 5,
+                        "pesan": "Guru sangat sabar dan materi dijelaskan dengan sangat jelas. Saya merasa lebih percaya diri membaca Al-Qur'an setelah sesi ini."
                     }
                 },
                 {
@@ -1150,9 +1016,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Progres saya sangat terasa, sudah bisa membaca surat pendek dengan lancar.",
-                        "kritik": "Bisa ditambahkan sesi review hafalan di setiap pertemuan.",
-                        "komplain": "-"
+                        "rating": 4,
+                        "pesan": "Sesi berjalan lancar, penjelasan tajwid sangat membantu. Koneksi sempat kurang stabil di awal namun tidak mengganggu secara keseluruhan."
                     }
                 },
                 {
@@ -1162,9 +1027,8 @@
                     "status": "completed",
                     "notes": null,
                     "feedback": {
-                        "kesan": "Guru memberikan feedback yang konstruktif dan membangun semangat belajar.",
-                        "kritik": "Perlu jadwal yang lebih fleksibel untuk penyesuaian.",
-                        "komplain": "-"
+                        "rating": 5,
+                        "pesan": "Materi hari ini lebih menantang namun guru membimbing dengan sabar dan detail. Sangat puas dengan sesi ini."
                     }
                 },
                 {
@@ -1174,21 +1038,21 @@
                     "status": "completed",
                     "notes": "Ujian akhir & evaluasi",
                     "feedback": {
-                        "kesan": "Sesi hari ini sangat produktif, banyak poin tajwid yang saya perbaiki.",
-                        "kritik": "Durasi latihan tilawah bisa diperpanjang.",
-                        "komplain": "-"
+                        "rating": 4,
+                        "pesan": "Saya mulai lebih percaya diri membaca Al-Qur'an berkat bimbingan guru. Modul latihan bisa diperbanyak agar bisa latihan mandiri."
                     }
                 }
             ],
             "payment": {
                 "invoiceNo": "INV-2026-3003",
                 "pricePackage": 700000,
-                "serviceFee": 5000,
-                "total": 705000,
+                "serviceFee": 0,
+                "total": 784000,
                 "method": "OVO",
                 "status": "paid",
                 "paidAt": "2026-01-01T09:02:10Z",
-                "receiptRef": "OVO-2026-01-0044"
+                "receiptRef": "OVO-2026-01-0044",
+                "tax": 84000
             }
         },
         {
@@ -1208,7 +1072,14 @@
                 "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
                 "rating": 5,
                 "totalStudents": 45,
-                "specialization": "Lulusan Al-Azhar Kairo-Mesir"
+                "specialization": "Lulusan Al-Azhar Kairo-Mesir",
+                "location": "Jakarta Selatan",
+                "yearsExperience": 10,
+                "subjects": [
+                    "Tahfidz",
+                    "Tajwid",
+                    "Al-Qur'an Dasar"
+                ]
             },
             "sessions": [
                 {
@@ -1222,12 +1093,13 @@
             "payment": {
                 "invoiceNo": "INV-2026-3004",
                 "pricePackage": 85000,
-                "serviceFee": 5000,
-                "total": 90000,
+                "serviceFee": 0,
+                "total": 95200,
                 "method": "GoPay",
                 "status": "paid",
                 "paidAt": "2026-01-05T11:21:33Z",
-                "receiptRef": "MID-2026-01-0101"
+                "receiptRef": "MID-2026-01-0101",
+                "tax": 10200
             }
         },
         {
@@ -1247,7 +1119,13 @@
                 "avatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
                 "rating": 4.9,
                 "totalStudents": 67,
-                "specialization": "Program Tahsin & Tahfidz"
+                "specialization": "Program Tahsin & Tahfidz",
+                "location": "Bogor",
+                "yearsExperience": 3,
+                "subjects": [
+                    "Tilawah",
+                    "Al-Qur'an Dasar"
+                ]
             },
             "sessions": [
                 {
@@ -1264,9 +1142,8 @@
                     "status": "completed",
                     "notes": "Latihan huruf hijaiyah lanjutan",
                     "feedback": {
-                        "kesan": "Saya mulai lebih percaya diri membaca Al-Qur'an berkat bimbingan guru.",
-                        "kritik": "Modul latihan bisa diperbanyak agar bisa latihan mandiri.",
-                        "komplain": "-"
+                        "rating": 5,
+                        "pesan": "Progres saya sangat terasa, sudah bisa membaca surat pendek dengan lancar. Terima kasih atas bimbingannya."
                     }
                 },
                 {
@@ -1276,9 +1153,8 @@
                     "status": "completed",
                     "notes": "Makharijul huruf dan sifatnya",
                     "feedback": {
-                        "kesan": "Guru sangat antusias mengajar dan memberikan motivasi di setiap sesi.",
-                        "kritik": "Sebaiknya ada ringkasan materi yang dikirim setelah sesi.",
-                        "komplain": "-"
+                        "rating": 4,
+                        "pesan": "Guru memberikan feedback yang konstruktif dan membangun semangat belajar. Jadwal yang lebih fleksibel akan sangat membantu."
                     }
                 },
                 {
@@ -1299,12 +1175,13 @@
             "payment": {
                 "invoiceNo": "INV-2025-3005",
                 "pricePackage": 382500,
-                "serviceFee": 5000,
-                "total": 387500,
+                "serviceFee": 0,
+                "total": 428400,
                 "method": "QRIS",
                 "status": "paid",
                 "paidAt": "2025-10-01T16:46:20Z",
-                "receiptRef": "QRS-2025-10-0031"
+                "receiptRef": "QRS-2025-10-0031",
+                "tax": 45900
             }
         },
         {
@@ -1324,104 +1201,76 @@
                 "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
                 "rating": 4.9,
                 "totalStudents": 39,
-                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an"
+                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an",
+                "location": "Bekasi",
+                "yearsExperience": 5,
+                "subjects": [
+                    "Tahsinul Qur'an",
+                    "Tahfidzul Qur'an"
+                ]
             },
             "sessions": [
                 {
                     "no": 1,
-                    "date": "2025-12-05",
-                    "time": "16:00 – 17:00",
-                    "status": "completed",
-                    "notes": null
+                    "date": "Senin, 05 Mar 2026",
+                    "time": "19:00",
+                    "status": "cancelled",
+                    "notes": null,
+                    "feedback": null
                 },
                 {
                     "no": 2,
-                    "date": "2025-12-09",
-                    "time": "16:00 – 17:00",
-                    "status": "completed",
-                    "notes": null
+                    "date": "Senin, 12 Mar 2026",
+                    "time": "19:00",
+                    "status": "cancelled",
+                    "notes": null,
+                    "feedback": null
                 },
                 {
                     "no": 3,
-                    "date": "2025-12-13",
-                    "time": "16:00 – 17:00",
-                    "status": "completed",
-                    "notes": "Pengenalan tajwid dasar",
-                    "feedback": {
-                        "kesan": "Materi hari ini lebih menantang namun guru membimbing dengan sabar.",
-                        "kritik": "Perlu lebih banyak latihan membaca bersama.",
-                        "komplain": "-"
-                    }
+                    "date": "Senin, 19 Mar 2026",
+                    "time": "19:00",
+                    "status": "cancelled",
+                    "notes": null,
+                    "feedback": null
                 },
                 {
                     "no": 4,
-                    "date": "2025-12-17",
-                    "time": "16:00 – 17:00",
-                    "status": "completed",
-                    "notes": "Hukum nun sukun & tanwin",
-                    "feedback": {
-                        "kesan": "Penjelasan makharijul huruf sangat detail dan praktis dipelajari.",
-                        "kritik": "Waktu tanya jawab terlalu singkat.",
-                        "komplain": "-"
-                    }
+                    "date": "Senin, 26 Mar 2026",
+                    "time": "19:00",
+                    "status": "cancelled",
+                    "notes": null,
+                    "feedback": null
                 },
                 {
                     "no": 5,
-                    "date": "2025-12-21",
-                    "time": "16:00 – 17:00",
-                    "status": "completed",
-                    "notes": "Hukum mim sukun",
-                    "feedback": {
-                        "kesan": "Metode mengajar guru menyenangkan, tidak membosankan sama sekali.",
-                        "kritik": "Link meeting terlambat dikirim 10 menit sebelum sesi.",
-                        "komplain": "Sesi dimulai terlambat karena kendala teknis."
-                    }
-                },
-                {
-                    "no": 6,
-                    "date": "2025-12-25",
-                    "time": "16:00 – 17:00",
-                    "status": "ongoing",
-                    "notes": "Sesi sedang berlangsung"
-                },
-                {
-                    "no": 7,
-                    "date": "2025-12-29",
-                    "time": "16:00 – 17:00",
+                    "date": "Senin, 02 Apr 2026",
+                    "time": "19:00",
                     "status": "cancelled",
-                    "notes": null
-                },
-                {
-                    "no": 8,
-                    "date": "2026-01-02",
-                    "time": "16:00 – 17:00",
-                    "status": "cancelled",
-                    "notes": null
-                },
-                {
-                    "no": 9,
-                    "date": "2026-01-06",
-                    "time": "16:00 – 17:00",
-                    "status": "cancelled",
-                    "notes": null
-                },
-                {
-                    "no": 10,
-                    "date": "2026-01-10",
-                    "time": "16:00 – 17:00",
-                    "status": "cancelled",
-                    "notes": null
+                    "notes": null,
+                    "feedback": null
                 }
             ],
             "payment": {
                 "invoiceNo": "INV-2025-3006",
-                "pricePackage": 700000,
-                "serviceFee": 5000,
-                "total": 705000,
+                "pricePackage": 595000,
+                "serviceFee": 0,
+                "total": 666400,
                 "method": "OVO",
                 "status": "paid",
                 "paidAt": "2025-12-01T08:01:15Z",
-                "receiptRef": "OVO-2025-12-0067"
+                "receiptRef": "OVO-2025-12-0067",
+                "tax": 71400
+            },
+            "bookingDate": "2026-03-05",
+            "packageName": "5x Pertemuan",
+            "totalSessions": 5,
+            "completedSessions": 0,
+            "cancellationInfo": {
+                "kategori": "Penampilan Tidak Sesuai",
+                "ulasan": "Penampilan guru mirip dengan tetangga saya sehingga saya merasa kurang nyaman untuk belajar secara efektif.",
+                "resolusi": "Ganti Guru Baru",
+                "lampiran": null
             }
         },
         {
@@ -1441,7 +1290,13 @@
                 "avatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
                 "rating": 5,
                 "totalStudents": 42,
-                "specialization": "Tahsin & Mahroj Profesional"
+                "specialization": "Tahsin & Mahroj Profesional",
+                "location": "Jakarta Timur",
+                "yearsExperience": 7,
+                "subjects": [
+                    "Tahsin",
+                    "Mahroj Profesional"
+                ]
             },
             "sessions": [
                 {
@@ -1483,12 +1338,13 @@
             "payment": {
                 "invoiceNo": "INV-2026-3007",
                 "pricePackage": 382500,
-                "serviceFee": 5000,
-                "total": 387500,
+                "serviceFee": 0,
+                "total": 428400,
                 "method": "GoPay",
                 "status": "pending",
                 "paidAt": null,
-                "receiptRef": "MID-2026-01-0145"
+                "receiptRef": "MID-2026-01-0145",
+                "tax": 45900
             }
         },
         {
@@ -1508,7 +1364,14 @@
                 "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
                 "rating": 5,
                 "totalStudents": 45,
-                "specialization": "Lulusan Al-Azhar Kairo-Mesir"
+                "specialization": "Lulusan Al-Azhar Kairo-Mesir",
+                "location": "Jakarta Selatan",
+                "yearsExperience": 10,
+                "subjects": [
+                    "Tahfidz",
+                    "Tajwid",
+                    "Al-Qur'an Dasar"
+                ]
             },
             "sessions": [
                 {
@@ -1522,12 +1385,13 @@
             "payment": {
                 "invoiceNo": "INV-2026-3008",
                 "pricePackage": 85000,
-                "serviceFee": 5000,
-                "total": 90000,
+                "serviceFee": 0,
+                "total": 95200,
                 "method": "QRIS",
                 "status": "paid",
                 "paidAt": "2026-02-15T10:02:44Z",
-                "receiptRef": "QRS-2026-02-0055"
+                "receiptRef": "QRS-2026-02-0055",
+                "tax": 10200
             }
         },
         {
@@ -1547,7 +1411,13 @@
                 "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
                 "rating": 4.9,
                 "totalStudents": 39,
-                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an"
+                "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an",
+                "location": "Bekasi",
+                "yearsExperience": 5,
+                "subjects": [
+                    "Tahsinul Qur'an",
+                    "Tahfidzul Qur'an"
+                ]
             },
             "sessions": [
                 {
@@ -1585,9 +1455,8 @@
                     "status": "completed",
                     "notes": "Latihan waqaf dan ibtida",
                     "feedback": {
-                        "kesan": "Progres saya sangat terasa, sudah bisa membaca surat pendek dengan lancar.",
-                        "kritik": "Bisa ditambahkan sesi review hafalan di setiap pertemuan.",
-                        "komplain": "-"
+                        "rating": 5,
+                        "pesan": "Guru sangat antusias mengajar dan selalu memberikan motivasi. Penjelasan mudah dipahami dan menyenangkan."
                     }
                 },
                 {
@@ -1597,9 +1466,8 @@
                     "status": "completed",
                     "notes": "Mad dan qashr",
                     "feedback": {
-                        "kesan": "Guru memberikan feedback yang konstruktif dan membangun semangat belajar.",
-                        "kritik": "Perlu jadwal yang lebih fleksibel untuk penyesuaian.",
-                        "komplain": "-"
+                        "rating": 4,
+                        "pesan": "Penjelasan makharijul huruf sangat detail dan praktis. Waktu tanya jawab terasa singkat, berharap bisa lebih panjang."
                     }
                 },
                 {
@@ -1634,12 +1502,13 @@
             "payment": {
                 "invoiceNo": "INV-2026-3009",
                 "pricePackage": 700000,
-                "serviceFee": 5000,
-                "total": 705000,
+                "serviceFee": 0,
+                "total": 784000,
                 "method": "GoPay",
                 "status": "paid",
                 "paidAt": "2026-02-20T07:15:00Z",
-                "receiptRef": "MID-2026-02-0200"
+                "receiptRef": "MID-2026-02-0200",
+                "tax": 84000
             }
         },
         {
@@ -1659,7 +1528,14 @@
                 "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
                 "rating": 5,
                 "totalStudents": 39,
-                "specialization": "Baca Tulis Al-Qur'an Dasar"
+                "specialization": "Baca Tulis Al-Qur'an Dasar",
+                "location": "Depok",
+                "yearsExperience": 8,
+                "subjects": [
+                    "Tahfidz",
+                    "Makharijul Huruf",
+                    "Qiraah"
+                ]
             },
             "sessions": [
                 {
@@ -1701,12 +1577,13 @@
             "payment": {
                 "invoiceNo": "INV-2025-3010",
                 "pricePackage": 382500,
-                "serviceFee": 5000,
-                "total": 387500,
+                "serviceFee": 0,
+                "total": 428400,
                 "method": "OVO",
                 "status": "paid",
                 "paidAt": "2025-12-20T10:30:00Z",
-                "receiptRef": "OVO-2025-12-0099"
+                "receiptRef": "OVO-2025-12-0099",
+                "tax": 45900
             }
         }
     ],

@@ -37,7 +37,7 @@ function formatRupiah(n: number) {
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 const MOCK_MEMBERS: Record<string, any> = {
     "2011": {
-        id: 2011, name: "Ahmad Fauzi", username: "ahmadfauzi",
+        id: 2011, name: "Muhamad Fauzan", username: "ahmadfauzi",
         email: "ahmad.fauzi@gmail.com", phone: "+62 812-3456-7890",
         location: "Jakarta, Indonesia", joinDate: "2024-06-15",
         totalSpend: 1175000, completedSessions: 18, activeSessions: 8,

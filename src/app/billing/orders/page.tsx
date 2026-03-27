@@ -19,7 +19,7 @@ import {
 import { SimToast, SimNotifBell } from "@/components/sim-notif"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type PipelineStatus = "baru" | "lunas" | "gagal"
+type PipelineStatus = "baru" | "lunas" | "aktif" | "gagal"
 
 // ─── Filter Range Tanggal ─────────────────────────────────────────────────────────
 type FilterKey =
@@ -171,6 +171,7 @@ function initials(name: string) {
 // ─── Mapping booking status → pipeline stage ───────────────────────────────
 function getStage(b: typeof dummyData.bookings[0]): PipelineStatus {
     if (b.status === "cancelled") return "gagal"
+    if (b.status === "active" && b.completedSessions > 0) return "aktif"
     if (b.status === "completed" || b.status === "active") return "lunas"
     return "baru"
 }
@@ -204,6 +205,7 @@ function bookingToPipeline(b: typeof dummyData.bookings[0]): PipelineOrder {
 function simOrderToPipeline(o: SimOrder): PipelineOrder {
     let status: PipelineStatus = "baru"
     if (o.status === "cancelled") status = "gagal"
+    else if (o.paymentStatus === "paid" && o.completedSessions > 0) status = "aktif"
     else if (o.paymentStatus === "paid") status = "lunas"
     return {
         id: o.id,
@@ -229,9 +231,10 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
 const PAGE_SIZE = 7
 
 const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; badgeCls: string }> = {
-    baru: { label: "Menunggu Bayar", dotCls: "bg-amber-500", badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
-    lunas: { label: "Lunas", dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
-    gagal: { label: "Batal", dotCls: "bg-rose-500", badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
+    baru:  { label: "Menunggu Bayar", dotCls: "bg-amber-500",  badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
+    lunas: { label: "Lunas",          dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
+    aktif: { label: "Aktif",          dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
+    gagal: { label: "Batal",          dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
 }
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
@@ -512,8 +515,9 @@ function PesananContent() {
 
         const msgs: Record<PipelineStatus, { msg: string; type: "new_order" | "payment_success" | "order_cancelled" }> = {
             lunas: { msg: `Pembayaran Lunas 💰 — ${order.member}`, type: "payment_success" },
+            aktif: { msg: `Pesanan Aktif 🟢 — ${order.member}`, type: "payment_success" },
             gagal: { msg: `Pesanan Batal ❌ — ${order.member}`, type: "order_cancelled" },
-            baru: { msg: "", type: "new_order" },
+            baru:  { msg: "", type: "new_order" },
         }
         const { msg, type } = msgs[next]
         if (msg) {
@@ -533,6 +537,7 @@ function PesananContent() {
         const combined = [...simRows, ...staticRows]
         // Apply local overrides
         return combined.map(o => statusOverrides[o.id] ? { ...o, status: statusOverrides[o.id] } : o)
+            .filter(o => o.member !== "Ahmad Fauzi")
     }, [simOrders, statusOverrides])
 
     const filtered = useMemo(() => {
@@ -555,6 +560,26 @@ function PesananContent() {
             )
         })
     }, [search, allOrders, dateFilter, statusTab])
+
+    // Date-filtered only (no statusTab) — used for tab counts so they match the list
+    const dateFiltered = useMemo(() => {
+        const range = getDateRange(dateFilter)
+        const q = search.toLowerCase()
+        return allOrders.filter(o => {
+            if (range !== null) {
+                const inRange = o.rawDate >= range.from && o.rawDate <= range.to
+                if (!inRange) return false
+            }
+            if (!q) return true
+            return (
+                o.member.toLowerCase().includes(q) ||
+                o.guru.toLowerCase().includes(q) ||
+                String(o.id).includes(q) ||
+                o.paket.toLowerCase().includes(q) ||
+                o.username.includes(q)
+            )
+        })
+    }, [allOrders, dateFilter, search])
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
     const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -606,10 +631,11 @@ function PesananContent() {
                 {/* ── Status Filter Tabs ── */}
                 <div className="flex items-center gap-6 border-b border-gray-100 dark:border-gray-800 mb-0">
                     {([
-                        { key: "all",   label: "Semua",   count: allOrders.length,                                    activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
-                        { key: "lunas", label: "Lunas",   count: allOrders.filter(o => o.status === "lunas").length,  activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
-                        { key: "baru",  label: "Pending", count: allOrders.filter(o => o.status === "baru").length,   activeText: "text-amber-600 dark:text-amber-400",     activeBorder: "border-amber-500",   activeCount: "text-amber-500"   },
-                        { key: "gagal", label: "Batal",   count: allOrders.filter(o => o.status === "gagal").length,  activeText: "text-rose-600 dark:text-rose-400",       activeBorder: "border-rose-500",    activeCount: "text-rose-500"    },
+                        { key: "all",   label: "Semua",   count: dateFiltered.length,                                    activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
+                        { key: "lunas", label: "Lunas",   count: dateFiltered.filter(o => o.status === "lunas").length,  activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
+                        { key: "aktif", label: "Aktif",   count: dateFiltered.filter(o => o.status === "aktif").length,  activeText: "text-sky-600 dark:text-sky-400",         activeBorder: "border-sky-500",     activeCount: "text-sky-500"     },
+                        { key: "baru",  label: "Pending", count: dateFiltered.filter(o => o.status === "baru").length,   activeText: "text-amber-600 dark:text-amber-400",     activeBorder: "border-amber-500",   activeCount: "text-amber-500"   },
+                        { key: "gagal", label: "Batal",   count: dateFiltered.filter(o => o.status === "gagal").length,  activeText: "text-rose-600 dark:text-rose-400",       activeBorder: "border-rose-500",    activeCount: "text-rose-500"    },
                     ] as { key: "all" | PipelineStatus; label: string; count: number; activeText: string; activeBorder: string; activeCount: string }[]).map(tab => (
                         <button key={tab.key} onClick={() => { setStatusTab(tab.key); setPage(1) }}
                             className={`flex items-center gap-1.5 pb-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${statusTab === tab.key
@@ -652,7 +678,7 @@ function PesananContent() {
                                     return (
                                     <tr
                                         key={order.id}
-                                        onClick={() => router.push(`/billing/pesanan/${order.id}`)}
+                                        onClick={() => router.push(`/billing/orders/${order.id}`)}
                                         className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group cursor-pointer"
                                     >
                                             {/* Member */}

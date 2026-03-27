@@ -1,31 +1,6 @@
 {
     "kyc_organisasi": [
-        {
-            "id": 1,
-            "nama": "Pesantren Al-Quran Nurul Iman",
-            "singkatan": "PQNI",
-            "avatar": "NI",
-            "avatarBg": "bg-purple-500",
-            "gradientFrom": "#7C3AED",
-            "gradientTo": "#EC4899",
-            "tipe": [
-                "YAYASAN",
-                "PENDIDIKAN"
-            ],
-            "kategori": "Tahfiz",
-            "user": "Ahmad Fauzi",
-            "userUsername": "ahmadfauzi",
-            "tglPengajuan": "10 Feb 2026",
-            "status": "menunggu",
-            "namaResmi": "Pesantren Al-Quran Nurul Iman",
-            "email": "info@pqni.ac.id",
-            "telepon": "081234567890",
-            "alamat": "Jl. Pesantren No. 1, Bandung, Jawa Barat",
-            "website": "https://pqni.ac.id",
-            "deskripsi": "Pesantren modern yang memfokuskan pada pendidikan Al-Quran dengan metode tahfiz terstruktur dan berbasis teknologi.",
-            "lat": "-6.9175",
-            "lng": "107.6191"
-        },
+
         {
             "id": 2,
             "nama": "Lembaga Tilawati Nusantara",

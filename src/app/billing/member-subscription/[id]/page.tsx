@@ -104,7 +104,7 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                         {/* Info Paket */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm space-y-4">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Paket
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
                             </div>
                             <div className="grid grid-cols-3 gap-4 text-xs">
                                 <div>
@@ -345,7 +345,7 @@ function BookingDetailContent({ id }: { id: number }) {
                         {/* Booking Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Paket
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <div>

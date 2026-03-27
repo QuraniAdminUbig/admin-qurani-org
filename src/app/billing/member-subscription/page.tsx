@@ -673,7 +673,7 @@ function MemberSubscriptionContent() {
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
                                                     <Link
-                                                        href={`/billing/pesanan/${booking.id}`}
+                                                        href={`/billing/orders/${booking.id}`}
                                                         className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5 font-medium">
                                                         <Eye className="w-3.5 h-3.5" /> Detail
                                                     </Link>

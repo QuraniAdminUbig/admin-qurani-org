@@ -19,6 +19,7 @@ import {
     Calendar,
     ChevronDown,
     MessageSquare,
+    GraduationCap,
 } from "lucide-react"
 import Link from "next/link"
 import dummyData from "@/data/billing-dummy.json"
@@ -67,19 +68,22 @@ const PACKAGE_CFG: Record<string, { cls: string }> = {
 }
 
 // ── Back URL ──────────────────────────────────────────────────────────────────
-const BACK_URL = "/billing/pesanan"
+const BACK_URL = "/billing/orders"
 
 // ── Sim Order Detail View ─────────────────────────────────────────────────────
 function SimOrderDetail({ order }: { order: SimOrder }) {
     const isPaid = order.paymentStatus === "paid"
     const isCancelled = order.status === "cancelled"
-    const statusLabel = isCancelled ? "Batal" : isPaid ? "Lunas" : "Menunggu Bayar"
+    const isActive = isPaid && order.completedSessions > 0
+    const statusLabel = isCancelled ? "Batal" : isActive ? "Aktif" : isPaid ? "Lunas" : "Menunggu Bayar"
     const statusCls = isCancelled
         ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-        : isPaid
-            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-    const statusDot = isCancelled ? "bg-red-500" : isPaid ? "bg-emerald-500" : "bg-amber-500"
+        : isActive
+            ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
+            : isPaid
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+    const statusDot = isCancelled ? "bg-red-500" : isActive ? "bg-sky-500" : isPaid ? "bg-emerald-500" : "bg-amber-500"
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
@@ -98,7 +102,7 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                         {/* Info Paket */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm space-y-4">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Paket
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
                             </div>
                             <div className="grid grid-cols-3 gap-4 text-xs">
                                 <div>
@@ -140,8 +144,10 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                     <span className="text-[11px] text-gray-400 font-medium">{order.sessions.length} pertemuan terjadwal</span>
                                 )}
                             </div>
-                            {!isPaid || !order.sessions?.length ? (
-                                <p className="text-sm text-gray-400 text-center py-6">Jadwal sesi akan ditentukan setelah pembayaran dikonfirmasi</p>
+                            {!order.sessions?.length ? (
+                                <p className="text-sm text-gray-400 text-center py-6">
+                                    {isCancelled ? "Tidak ada jadwal" : "Jadwal sesi akan ditentukan setelah pembayaran dikonfirmasi"}
+                                </p>
                             ) : (
                                 <div className="space-y-2">
                                     {order.sessions.map(sess => {
@@ -150,9 +156,12 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                         const isSched = sess.status === "scheduled"
                                         const isDone = sess.status === "completed"
                                         return (
-                                            <div key={sess.sessionNo} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/20">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${isDone ? "bg-emerald-500 text-white" : isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
-                                                    {isDone ? "✓" : sess.sessionNo}
+                                            <div key={sess.sessionNo} className={`flex items-center gap-4 px-4 py-3 rounded-xl border bg-gray-50/60 dark:bg-gray-800/20 ${isCancelled ? "border-rose-100 dark:border-rose-900/30" : "border-gray-100 dark:border-gray-800"}`}>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${isCancelled
+                                                        ? "bg-rose-100 dark:bg-rose-900/30 text-rose-500"
+                                                        : isDone ? "bg-emerald-500 text-white" : isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+                                                    }`}>
+                                                    {sess.sessionNo}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">Pertemuan {sess.sessionNo}</p>
@@ -160,8 +169,11 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
                                                     <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{sess.startTime} – {sess.endTime}</p>
-                                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : isSched ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" : "bg-gray-100 text-gray-500"}`}>
-                                                        {isDone ? "Selesai" : isSched ? "Terjadwal" : "Batal"}
+                                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${isCancelled
+                                                            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                                                            : isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : isSched ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" : "bg-gray-100 text-gray-500"
+                                                        }`}>
+                                                        {isCancelled ? "Dibatalkan" : isDone ? "Selesai" : isSched ? "Terjadwal" : "Batal"}
                                                     </span>
                                                 </div>
                                             </div>
@@ -170,6 +182,41 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                 </div>
                             )}
                         </div>
+
+                        {/* ── Detail Pembatalan (hanya jika cancelled) ── */}
+                        {isCancelled && (
+                            <div className="bg-white dark:bg-gray-900 rounded-xl border border-rose-200 dark:border-rose-800/50 p-5 shadow-sm">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider border-b border-rose-100 dark:border-rose-900/30 pb-3 mb-4">
+                                    <XCircle className="w-4 h-4" /> Detail Pembatalan
+                                </div>
+                                <div className="space-y-3 text-xs">
+                                    {/* Kategori */}
+                                    <div className="flex justify-between items-start gap-4">
+                                        <span className="text-gray-400 font-semibold uppercase tracking-wider whitespace-nowrap">Kategori</span>
+                                        <span className="font-semibold text-gray-800 dark:text-gray-200 text-right">Metode Mengajar Tidak Cocok</span>
+                                    </div>
+                                    {/* Pesan */}
+                                    <div className="space-y-1">
+                                        <p className="text-gray-400 font-semibold uppercase tracking-wider">Pesan / Ulasan</p>
+                                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed bg-rose-50/60 dark:bg-rose-900/10 rounded-lg px-3 py-2 border border-rose-100 dark:border-rose-900/30 italic">
+                                            &ldquo;Materi yang diajarkan tidak sesuai dengan ekspektasi. Guru kurang komunikatif dalam menjelaskan tajwid untuk pemula.&rdquo;
+                                        </p>
+                                    </div>
+                                    {/* Resolusi */}
+                                    <div className="flex justify-between items-center gap-4">
+                                        <span className="text-gray-400 font-semibold uppercase tracking-wider whitespace-nowrap">Resolusi Diminta</span>
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
+                                            🔄 Ganti Guru Baru
+                                        </span>
+                                    </div>
+                                    {/* Lampiran */}
+                                    <div className="flex justify-between items-center gap-4">
+                                        <span className="text-gray-400 font-semibold uppercase tracking-wider">Lampiran</span>
+                                        <span className="text-gray-400 italic">Tidak ada lampiran</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Pembayaran */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
@@ -180,13 +227,21 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                 <div><p className="text-gray-400 uppercase tracking-wider mb-1">#Invoice</p><p className="font-bold text-gray-900 dark:text-white">{order.invoiceNo}</p></div>
                                 <div><p className="text-gray-400 uppercase tracking-wider mb-1">Metode</p><p className="font-bold text-gray-900 dark:text-white">{order.paymentGateway || "—"}</p></div>
                                 <div><p className="text-gray-400 uppercase tracking-wider mb-1">Status</p>
-                                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isPaid ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                                        {isPaid ? "✅ Lunas" : "⏳ Pending"}
+                                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isCancelled
+                                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                            : isActive
+                                                ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
+                                                : isPaid
+                                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                        }`}>
+                                        {isCancelled ? "❌ Batal" : isActive ? "🟢 Aktif" : isPaid ? "✅ Lunas" : "⏳ Pending"}
                                     </span>
                                 </div>
                                 <div><p className="text-gray-400 uppercase tracking-wider mb-1">Harga Paket</p><p className="font-bold text-gray-900 dark:text-white">{formatRupiah(order.pkg.price)}</p></div>
-                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Biaya Layanan</p><p className="font-bold text-gray-900 dark:text-white">{formatRupiah(order.pkg.serviceFee)}</p></div>
-                                <div><p className="text-gray-400 uppercase tracking-wider mb-1 font-black">Total Bayar</p><p className="font-black text-emerald-600 text-base">{formatRupiah(order.pkg.price + order.pkg.serviceFee)}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Pajak (12%)</p><p className="font-bold text-gray-900 dark:text-white">{formatRupiah(Math.round(order.pkg.price * 0.12))}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Biaya Layanan</p><p className={`font-bold ${order.pkg.serviceFee === 0 ? "text-emerald-600" : "text-gray-900 dark:text-white"}`}>{order.pkg.serviceFee === 0 ? "Gratis" : formatRupiah(order.pkg.serviceFee)}</p></div>
+                                <div className="col-span-2 md:col-span-3 pt-2 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center"><p className="text-xs font-black text-gray-950 dark:text-white uppercase">Total Bayar</p><p className="font-black text-emerald-600 text-base">{formatRupiah(order.pkg.price + Math.round(order.pkg.price * 0.12) + order.pkg.serviceFee)}</p></div>
                             </div>
                         </div>
                     </div>
@@ -195,9 +250,7 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                     <div className="space-y-4">
                         {/* Member */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
-                                <User className="w-4 h-4 text-emerald-500" /> Informasi Member
-                            </div>
+
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-100 flex-shrink-0">
                                     <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(order.member.name)}&background=10b981&color=fff`} alt={order.member.name} className="w-full h-full object-cover" />
@@ -215,9 +268,7 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
 
                         {/* Guru */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Guru
-                            </div>
+
                             <div className="flex items-center gap-3">
                                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-emerald-100 flex-shrink-0">
                                     <img src={order.trainer.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(order.trainer.name)}&background=10b981&color=fff`} alt={order.trainer.name} className="w-full h-full object-cover" />
@@ -234,9 +285,30 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                     </div>
                                     <span className="text-[10px] font-bold text-gray-400">{order.trainer.totalStudents} Murid</span>
                                 </div>
+                                {(order.trainer as any).location && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <span>{(order.trainer as any).location}</span>
+                                    </div>
+                                )}
+                                {(order.trainer as any).yearsExperience && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <span>{(order.trainer as any).yearsExperience} Tahun Pengalaman</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-2 text-gray-700 dark:text-gray-400 font-bold">
                                     <BookOpen className="w-3.5 h-3.5 text-emerald-500" />{order.trainer.specialization}
                                 </div>
+                                {(order.trainer as any).subjects?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 pt-0.5">
+                                        {(order.trainer as any).subjects.map((s: string) => (
+                                            <span key={s} className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -281,10 +353,19 @@ function BookingDetailContent({ id }: { id: number }) {
     }
 
     const bStatus = BOOKING_STATUS[booking.status as keyof typeof BOOKING_STATUS]
-    const paidStr = detail.payment.status === "paid" ? "Lunas" : "Belum Dibayar"
-    const paidCls = detail.payment.status === "paid"
-        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+    const isBookingCancelled = booking.status === "cancelled"
+    const isBookingActive = !isBookingCancelled && booking.status === "active" && booking.completedSessions > 0
+    const paidStr = isBookingCancelled ? "Dibatalkan"
+        : detail.payment.status === "paid"
+            ? (isBookingActive ? "Aktif" : "Lunas")
+            : "Belum Dibayar"
+    const paidCls = isBookingCancelled
+        ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+        : detail.payment.status === "paid"
+            ? (isBookingActive
+                ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
+                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400")
+            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
     const sessCompleted = detail.sessions.filter(s => s.status === "completed").length
     const pct = Math.round((sessCompleted / booking.totalSessions) * 100)
     const isPaid = detail.payment.status === "paid"
@@ -312,7 +393,7 @@ function BookingDetailContent({ id }: { id: number }) {
                         {/* Booking Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Paket
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <div>
@@ -361,7 +442,7 @@ function BookingDetailContent({ id }: { id: number }) {
                                     const sc = SESSION_STATUS[s.status as keyof typeof SESSION_STATUS]
                                     const Icon = sc?.icon ?? Clock
                                     const isDone = s.status === "completed"
-                                    const fb = (s as { feedback?: { kesan: string; kritik: string; komplain: string } }).feedback
+                                    const fb = (s as unknown as { feedback?: { rating: number; pesan: string } }).feedback
                                     const isOpen = openFeedback[s.no]
                                     return (
                                         <div key={s.no}>
@@ -377,8 +458,12 @@ function BookingDetailContent({ id }: { id: number }) {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="text-xs font-bold text-gray-950 dark:text-white">Pertemuan {s.no}</span>
-                                                        <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${sc?.bg}`}>{sc?.label}</span>
-
+                                                        <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${booking.status === "cancelled"
+                                                                ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400"
+                                                                : sc?.bg
+                                                            }`}>
+                                                            {booking.status === "cancelled" ? "Dibatalkan" : sc?.label}
+                                                        </span>
                                                     </div>
                                                     <p className="text-[10px] text-gray-400 mt-0.5">{s.date}</p>
                                                 </div>
@@ -392,26 +477,23 @@ function BookingDetailContent({ id }: { id: number }) {
 
                                             {/* ── Feedback Accordion ── */}
                                             {isDone && isPaid && isOpen && fb && (
-                                                <div className="px-5 pb-4 pt-1 bg-emerald-50/50 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-900/30">
+                                                <div className="px-5 pb-4 pt-3 bg-emerald-50/50 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-900/30">
                                                     <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                                                         <MessageSquare className="w-3 h-3" /> Feedback Member
                                                     </p>
-                                                    <div className="space-y-3">
-                                                        {/* Kesan */}
-                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-100 dark:border-emerald-900/40 p-3">
-                                                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">✨ Kesan</p>
-                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.kesan}</p>
+                                                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-100 dark:border-emerald-900/40 p-3 space-y-2">
+                                                        {/* Bintang rating */}
+                                                        <div className="flex items-center gap-0.5">
+                                                            {[1, 2, 3, 4, 5].map(star => (
+                                                                <Star
+                                                                    key={star}
+                                                                    className={`w-4 h-4 ${star <= fb.rating ? "text-amber-400 fill-amber-400" : "text-gray-200 dark:text-gray-700"}`}
+                                                                />
+                                                            ))}
+                                                            <span className="ml-1.5 text-[10px] font-bold text-amber-500">{fb.rating}/5</span>
                                                         </div>
-                                                        {/* Kritik */}
-                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-amber-100 dark:border-amber-900/40 p-3">
-                                                            <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">💬 Kritik</p>
-                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.kritik}</p>
-                                                        </div>
-                                                        {/* Komplain */}
-                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-rose-100 dark:border-rose-900/40 p-3">
-                                                            <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">⚠️ Komplain</p>
-                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.komplain === "-" ? <span className="text-gray-400 italic">Tidak ada komplain</span> : fb.komplain}</p>
-                                                        </div>
+                                                        {/* Pesan */}
+                                                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{fb.pesan}</p>
                                                     </div>
                                                 </div>
                                             )}
@@ -420,6 +502,37 @@ function BookingDetailContent({ id }: { id: number }) {
                                 })}
                             </div>
                         </div>
+
+                        {/* ── Cancellation Card (below jadwal, for cancelled bookings) ── */}
+                        {isBookingCancelled && (detail as any).cancellationInfo && (
+                            <div className="bg-white dark:bg-gray-900 rounded-xl border border-rose-200 dark:border-rose-800/50 p-5 shadow-sm">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider border-b border-rose-100 dark:border-rose-900/30 pb-3 mb-4">
+                                    <XCircle className="w-4 h-4" /> Detail Pembatalan
+                                </div>
+                                <div className="space-y-3 text-xs">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <span className="text-gray-400 font-semibold uppercase tracking-wider whitespace-nowrap">Kategori</span>
+                                        <span className="font-semibold text-gray-800 dark:text-gray-200 text-right">{(detail as any).cancellationInfo.kategori}</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-gray-400 font-semibold uppercase tracking-wider">Pesan / Ulasan</p>
+                                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed bg-rose-50/60 dark:bg-rose-900/10 rounded-lg px-3 py-2 border border-rose-100 dark:border-rose-900/30 italic">
+                                            &ldquo;{(detail as any).cancellationInfo.ulasan}&rdquo;
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-between items-center gap-4">
+                                        <span className="text-gray-400 font-semibold uppercase tracking-wider whitespace-nowrap">Resolusi Diminta</span>
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
+                                            🔄 {(detail as any).cancellationInfo.resolusi}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center gap-4">
+                                        <span className="text-gray-400 font-semibold uppercase tracking-wider">Lampiran</span>
+                                        <span className="text-gray-400 italic">{(detail as any).cancellationInfo.lampiran ?? "Tidak ada lampiran"}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Payment Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
@@ -455,8 +568,14 @@ function BookingDetailContent({ id }: { id: number }) {
                                         <span className="font-bold text-gray-950 dark:text-white">{formatRupiah(detail.payment.pricePackage)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
+                                        <span className="text-gray-400 font-bold uppercase">Pajak (12%)</span>
+                                        <span className="font-bold text-gray-950 dark:text-white">{formatRupiah((detail.payment as { tax?: number }).tax ?? Math.round(detail.payment.pricePackage * 0.12))}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
                                         <span className="text-gray-400 font-bold uppercase">Biaya Layanan</span>
-                                        <span className="font-bold text-gray-950 dark:text-white">{formatRupiah(detail.payment.serviceFee)}</span>
+                                        <span className={`font-bold ${detail.payment.serviceFee === 0 ? "text-emerald-600" : "text-gray-950 dark:text-white"}`}>
+                                            {detail.payment.serviceFee === 0 ? "Gratis" : formatRupiah(detail.payment.serviceFee)}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between text-base font-black text-gray-950 dark:text-white pt-2 border-t border-gray-100 dark:border-gray-800">
                                         <span className="uppercase">Total Bayar</span>
@@ -471,9 +590,7 @@ function BookingDetailContent({ id }: { id: number }) {
                     <div className="space-y-4">
                         {/* Member Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
-                                <User className="w-4 h-4 text-emerald-500" /> Informasi Member
-                            </div>
+
                             <div className="flex items-center gap-3">
                                 <div className="w-14 h-14 rounded-full border-2 border-emerald-100 p-0.5 flex-shrink-0">
                                     <div className="w-full h-full rounded-full overflow-hidden">
@@ -498,9 +615,7 @@ function BookingDetailContent({ id }: { id: number }) {
 
                         {/* Guru Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Guru
-                            </div>
+
                             <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-100 shadow-sm flex-shrink-0">
                                     <img
@@ -521,10 +636,31 @@ function BookingDetailContent({ id }: { id: number }) {
                                     </div>
                                     <span className="text-[10px] font-bold text-gray-400 tracking-tight">{detail.trainer.totalStudents} Murid</span>
                                 </div>
+                                {(detail.trainer as any).location && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <span>{(detail.trainer as any).location}</span>
+                                    </div>
+                                )}
+                                {(detail.trainer as any).yearsExperience && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <span>{(detail.trainer as any).yearsExperience} Tahun Pengalaman</span>
+                                    </div>
+                                )}
                                 <div className="flex items-start gap-2.5 text-gray-700 dark:text-gray-400 font-bold">
                                     <BookOpen className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
                                     <span>{detail.trainer.specialization}</span>
                                 </div>
+                                {(detail.trainer as any).subjects?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 pt-0.5">
+                                        {(detail.trainer as any).subjects.map((s: string) => (
+                                            <span key={s} className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

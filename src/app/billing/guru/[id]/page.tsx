@@ -91,7 +91,7 @@ const GURU_STATIC: Record<number, {
             { type: "image", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80", caption: "Kelas Intensif Ramadhan" },
         ],
         reviews: [
-            { name: "Ahmad Fauzi", avatar: "https://i.pravatar.cc/40?img=11", rating: 5, date: "2 minggu yang lalu", comment: "Sangat puas dengan cara mengajar beliau. Penjelasannya sangat detail terutama pada bagian makhrajul huruf. Sabar sekali membimbing saya yang masih terbata-bata.", tags: ["Sangat Sabar", "Penjelasan Detail"] },
+
             { name: "Dewi Rahayu", avatar: "https://i.pravatar.cc/40?img=47", rating: 5, date: "1 bulan yang lalu", comment: "Metode yang digunakan sangat efektif. Saya merasa ada kemajuan pesat dalam bacaan Al-Qur'an saya hanya dalam 3 sesi. Sangat direkomendasikan!", tags: ["Metode Efektif", "Progress Cepat"] },
             { name: "Halimah Tussa'diyah", avatar: "https://i.pravatar.cc/40?img=25", rating: 5, date: "2 bulan yang lalu", comment: "Ustadz Hasyim sangat berpengalaman dan penuh kesabaran. Beliau mampu menjelaskan konsep yang sulit dengan cara yang mudah dipahami.", tags: ["Berpengalaman", "Mudah Dipahami"] },
         ],

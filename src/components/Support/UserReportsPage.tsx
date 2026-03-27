@@ -79,7 +79,7 @@ const initialTicketsData: Record<string, TicketDetail> = {
     subject: "Tidak bisa login ke aplikasi",
     status: "closed",
     priority: "medium",
-    contact: { name: "Ahmad Fauzi", email: "ahmad@example.com" },
+    contact: { name: "Muhamad Fauzan", email: "ahmad@example.com" },
     department: "Teknis",
     service: "Aplikasi Mobile",
     project: "My Qurani",
@@ -90,7 +90,7 @@ const initialTicketsData: Record<string, TicketDetail> = {
     messages: [
       { 
         id: "1", 
-        sender: "Ahmad Fauzi", 
+        sender: "Muhamad Fauzan", 
         role: "user", 
         content: "Saya tidak bisa login ke aplikasi sejak kemarin. Sudah coba reset password tapi tetap tidak bisa.", 
         posted_at: "2025-12-04 03:42:05", 
@@ -99,7 +99,7 @@ const initialTicketsData: Record<string, TicketDetail> = {
         ] 
       },
       { id: "2", sender: "Admin Support", role: "staff", content: "Terima kasih telah menghubungi kami. Bisa tolong informasikan email yang digunakan untuk login?", posted_at: "2025-12-04 03:44:12", attachments: [] },
-      { id: "3", sender: "Ahmad Fauzi", role: "user", content: "Email saya ahmad@example.com, saya juga sudah mencoba di perangkat lain.", posted_at: "2025-12-04 03:45:00", attachments: [] },
+      { id: "3", sender: "Muhamad Fauzan", role: "user", content: "Email saya ahmad@example.com, saya juga sudah mencoba di perangkat lain.", posted_at: "2025-12-04 03:45:00", attachments: [] },
       { 
         id: "4", 
         sender: "Admin Support", 

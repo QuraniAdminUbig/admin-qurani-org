@@ -25,6 +25,7 @@ import {
   Banknote,
   Tag,
   Receipt,
+  Wallet,
 } from "lucide-react"
 import { RxDashboard, } from "react-icons/rx"
 import { MdAnnouncement } from "react-icons/md"
@@ -106,13 +107,18 @@ const getSidebarData = (
         },
         {
           title: "Pesanan",
-          url: "/billing/pesanan",
+          url: "/billing/orders",
           icon: Receipt,
         },
         {
           title: "Promo & Kupon",
           url: "/billing/discountcodes",
           icon: Tag,
+        },
+        {
+          title: "Wallet",
+          url: "/billing/wallet",
+          icon: Wallet,
         },
       ],
     },
