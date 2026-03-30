@@ -217,7 +217,7 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
         paket: o.pkg.name,
         sesi: o.totalSessions,
         sesiSelesai: o.completedSessions,
-        harga: o.pkg.price + o.pkg.serviceFee,
+        harga: o.pkg.price, // Service fee is free in Qurani
         tglPesan: new Date(o.bookingDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
         payment: o.paymentGateway || "—",
         rawDate: new Date(o.bookingDate),
@@ -270,7 +270,7 @@ function SimModal({ onClose, onOrderCreated }: { onClose: () => void; onOrderCre
             id,
             member: { id: selMember.id, name: selMember.name, email: selMember.email, phone: selMember.phone || "", location: selMember.location || "", joinDate: selMember.joinDate || "" },
             trainer: { id: selTrainer.id, name: selTrainer.name, email: selTrainer.email || "", avatar: selTrainer.avatar || "", rating: selTrainer.rating, totalStudents: selTrainer.totalStudents, specialization: selTrainer.specialization },
-            pkg: { key: `${selPkg.sessions}x` as "1x" | "5x" | "10x", name: selPkg.name, sessions: selPkg.sessions, price: selPkg.basePrice, serviceFee: selPkg.serviceFee },
+            pkg: { key: `${selPkg.sessions}x` as "1x" | "5x" | "10x", name: selPkg.name, sessions: selPkg.sessions, price: selPkg.basePrice, serviceFee: 0 },
             mode: "online",
             paymentGateway: "",
             paymentMethod: "Ummi",
