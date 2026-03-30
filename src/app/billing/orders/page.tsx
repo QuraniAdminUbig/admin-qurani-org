@@ -300,7 +300,7 @@ function SimModal({ onClose, onOrderCreated }: { onClose: () => void; onOrderCre
         updateSimOrderPayment(pendingOrderId, selGateway)
         addSimNotif({
             type: "payment_success",
-            message: "Pembayaran Berhasil ✅",
+            message: "Pembayaran Berhasil",
             subMessage: `${selMember?.name} • ${selGateway} • ${formatRupiah((selPkg?.basePrice || 0) + (selPkg?.serviceFee || 0))}`,
             isRead: false,
             orderId: pendingOrderId,
@@ -505,7 +505,7 @@ function PesananContent() {
             })
             addSimNotif({
                 type: "payment_success",
-                message: `Pembayaran Lunas 💰 — ${order.member}`,
+                message: `Pembayaran Lunas — ${order.member}`,
                 subMessage: `${order.paket} • ${order.guru} • ${formatRupiah(order.harga)}`,
                 isRead: false,
                 orderId: numId,
@@ -514,9 +514,9 @@ function PesananContent() {
         }
 
         const msgs: Record<PipelineStatus, { msg: string; type: "new_order" | "payment_success" | "order_cancelled" }> = {
-            lunas: { msg: `Pembayaran Lunas 💰 — ${order.member}`, type: "payment_success" },
-            aktif: { msg: `Pesanan Aktif 🟢 — ${order.member}`, type: "payment_success" },
-            gagal: { msg: `Pesanan Batal ❌ — ${order.member}`, type: "order_cancelled" },
+            lunas: { msg: `Pembayaran Lunas — ${order.member}`, type: "payment_success" },
+            aktif: { msg: `Pesanan Aktif — ${order.member}`, type: "payment_success" },
+            gagal: { msg: `Pesanan Dibatalkan — ${order.member}`, type: "order_cancelled" },
             baru:  { msg: "", type: "new_order" },
         }
         const { msg, type } = msgs[next]

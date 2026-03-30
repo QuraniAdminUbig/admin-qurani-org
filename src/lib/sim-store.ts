@@ -57,7 +57,7 @@ export interface SimOrder {
 
 export interface SimNotif {
     id: string
-    type: "new_order" | "payment_success" | "order_cancelled"
+    type: "new_order" | "payment_success" | "order_cancelled" | "static_cancelled" | "guru_approved"
     message: string
     subMessage: string
     isRead: boolean
