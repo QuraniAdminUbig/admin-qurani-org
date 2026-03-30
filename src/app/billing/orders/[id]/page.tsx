@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
+import React, { use, useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { I18nProvider } from "@/components/providers/i18n-provider"
 import {
@@ -67,6 +67,82 @@ const PACKAGE_CFG: Record<string, { cls: string }> = {
     "10x": { cls: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
 }
 
+// ─── Zulfa Hanum (#3010) Dummy Data ──────────────────────────────────────────
+const ZULFA_BOOKING = {
+    id: 3010,
+    userName: "Zulfa Hanum",
+    userEmail: "zulfa@email.com",
+    trainerName: "Hasyim asy'ari, Lc",
+    packageName: "3x Pertemuan",
+    totalSessions: 3,
+    completedSessions: 3,
+    totalPayment: 250000,
+    bookingDate: "2026-01-10T08:00:00.000Z",
+    paymentGateway: "GoPay",
+    paymentMethod: "Ummi",
+    status: "completed",
+    mode: "online",
+}
+
+const ZULFA_DETAIL = {
+    bookingId: 3010,
+    member: {
+        id: 110,
+        name: "Zulfa Hanum",
+        email: "zulfa@email.com",
+        phone: "0812-3456-7890",
+        location: "Jakarta Selatan",
+        joinDate: "2025-10-15T00:00:00.000Z",
+    },
+    trainer: {
+        id: 301,
+        name: "Hasyim asy'ari, Lc",
+        email: "hasyim@email.com",
+        avatar: "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+        rating: 5.0,
+        totalStudents: 245,
+        specialization: "Tahsin, Tajwid & Talaqqi",
+        location: "Kairo, Egypt (Al-Azhar)",
+        yearsExperience: 12,
+        subjects: ["Ummi", "Tajwid", "Talaqqi"],
+    },
+    payment: {
+        invoiceNo: "INV-ZLF-3010",
+        receiptRef: "GPY-77889900",
+        method: "GoPay",
+        status: "paid",
+        paidAt: "2026-01-10T08:05:22.000Z",
+        pricePackage: 220000,
+        serviceFee: 0,
+        tax: 30000,
+        total: 250000,
+    },
+    graduationNote: "Lulus dengan baik tanpa catatan",
+    sessions: [
+        {
+            no: 1,
+            date: "Senin, 10 Jan 2026",
+            time: "08:00 – 09:00",
+            status: "completed",
+            feedback: { rating: 5, pesan: "Pengucapan huruf makhraj saya mulai membaik, terima kasih Ustadz." },
+        },
+        {
+            no: 2,
+            date: "Senin, 17 Jan 2026",
+            time: "08:00 – 09:00",
+            status: "completed",
+            feedback: { rating: 5, pesan: "Penjelasan hukum tajwid Nun mati sangat mudah dipahami." },
+        },
+        {
+            no: 3,
+            date: "Senin, 24 Jan 2026",
+            time: "08:00 – 09:00",
+            status: "completed",
+            feedback: { rating: 5, pesan: "Alhamdulillah selesai 3 sesi, sangat puas dengan bimbingannya." },
+        },
+    ],
+}
+
 // ── Back URL ──────────────────────────────────────────────────────────────────
 const BACK_URL = "/billing/orders"
 
@@ -85,6 +161,8 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                 : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
     const statusDot = isCancelled ? "bg-red-500" : isActive ? "bg-sky-500" : isPaid ? "bg-emerald-500" : "bg-amber-500"
     const pctVal = Math.round((order.completedSessions / order.totalSessions) * 100)
+    const [openFeedback, setOpenFeedback] = useState<Record<number, boolean>>({})
+    const toggleFeedback = (no: number) => setOpenFeedback(prev => ({ ...prev, [no]: !prev[no] }))
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
@@ -139,38 +217,82 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    {order.sessions.map(sess => {
+                                    {order.sessions.map((sess) => {
                                         const sessDate = new Date(sess.date)
                                         const dateStr = sessDate.toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })
                                         const isSched = sess.status === "scheduled"
                                         const isDone = sess.status === "completed"
                                         return (
-                                            <div key={sess.sessionNo} className={`flex items-center gap-4 px-4 py-3 rounded-xl border bg-gray-50/60 dark:bg-gray-800/20 ${isCancelled ? "border-rose-100 dark:border-rose-900/30" : "border-gray-100 dark:border-gray-800"}`}>
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${isCancelled
-                                                        ? "bg-rose-100 dark:bg-rose-900/30 text-rose-500"
-                                                        : isDone ? "bg-emerald-500 text-white" : isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
-                                                    }`}>
-                                                    {sess.sessionNo}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Pertemuan {sess.sessionNo}</p>
-                                                    <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
-                                                </div>
-                                                <div className="text-right flex-shrink-0">
-                                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{sess.startTime} – {sess.endTime}</p>
-                                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${isCancelled
-                                                            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                                                            : isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : isSched ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" : "bg-gray-100 text-gray-500"
+                                            <React.Fragment key={sess.sessionNo}>
+                                                <div className={`flex items-center gap-4 px-4 py-3 rounded-xl border bg-gray-50/60 dark:bg-gray-800/20 ${isCancelled ? "border-rose-100 dark:border-rose-900/30" : "border-gray-100 dark:border-gray-800"}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${isCancelled
+                                                            ? "bg-rose-100 dark:bg-rose-900/30 text-rose-500"
+                                                            : isDone ? "bg-emerald-500 text-white" : isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
                                                         }`}>
-                                                        {isCancelled ? "Dibatalkan" : isDone ? "Selesai" : isSched ? "Terjadwal" : "Batal"}
-                                                    </span>
+                                                        {sess.sessionNo}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">Pertemuan {sess.sessionNo}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
+                                                    </div>
+                                                    <div className="text-right flex-shrink-0 flex items-center gap-3">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{sess.startTime} – {sess.endTime}</p>
+                                                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${isCancelled
+                                                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                                                                    : isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : isSched ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" : "bg-gray-100 text-gray-500"
+                                                                }`}>
+                                                                {isCancelled ? "Dibatalkan" : isDone ? "Selesai" : isSched ? "Terjadwal" : "Batal"}
+                                                            </span>
+                                                        </div>
+                                                        {isDone && (sess as any).feedback && (
+                                                            <ChevronDown
+                                                                onClick={(e) => { e.stopPropagation(); toggleFeedback(sess.sessionNo) }}
+                                                                className={`w-4 h-4 text-emerald-500 transition-transform duration-200 cursor-pointer ${openFeedback[sess.sessionNo] ? "rotate-180" : ""}`}
+                                                            />
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
+
+                                                {isDone && openFeedback[sess.sessionNo] && (sess as any).feedback && (
+                                                    <div className="px-5 pb-4 pt-3 bg-emerald-50/50 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-900/30">
+                                                        <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                                            <MessageSquare className="w-3 h-3" /> Feedback Member
+                                                        </p>
+                                                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-100 dark:border-emerald-900/40 p-3 space-y-2">
+                                                            <div className="flex items-center gap-0.5">
+                                                                {[1, 2, 3, 4, 5].map(star => (
+                                                                    <Star
+                                                                        key={star}
+                                                                        className={`w-4 h-4 ${star <= (sess as any).feedback.rating ? "text-amber-400 fill-amber-400" : "text-gray-200 dark:text-gray-700"}`}
+                                                                    />
+                                                                ))}
+                                                                <span className="ml-1.5 text-[10px] font-bold text-amber-500">{(sess as any).feedback.rating}/5</span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{(sess as any).feedback.pesan}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </React.Fragment>
                                         )
                                     })}
                                 </div>
                             )}
                         </div>
+
+                        {/* ── Catatan Kelulusan (hanya jika selesai) ── */}
+                        {order.status === "completed" && (order as any).graduationNote && (
+                            <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-200 dark:border-emerald-800/50 p-5 shadow-sm">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider border-b border-emerald-100 dark:border-emerald-900/30 pb-3 mb-4">
+                                    <GraduationCap className="w-5 h-5" /> Catatan Kelulusan
+                                </div>
+                                <div className="bg-emerald-50/60 dark:bg-emerald-900/10 rounded-lg px-4 py-3 border border-emerald-100 dark:border-emerald-900/30">
+                                    <p className="text-sm text-emerald-900 dark:text-emerald-100 font-bold leading-relaxed italic text-center">
+                                        &ldquo;{(order as any).graduationNote}&rdquo;
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* ── Detail Pembatalan (hanya jika cancelled) ── */}
                         {isCancelled && (
@@ -349,8 +471,8 @@ function BookingDetailContent({ id }: { id: number }) {
     if (simOrder === undefined) return null
     if (simOrder !== null) return <SimOrderDetail order={simOrder} />
 
-    const booking = dummyData.bookings.find(b => b.id === id)
-    const detail = dummyData.bookingDetails.find(d => d.bookingId === id)
+    const booking = id === 3010 ? ZULFA_BOOKING : dummyData.bookings.find(b => b.id === id)
+    const detail = id === 3010 ? ZULFA_DETAIL : dummyData.bookingDetails.find(d => d.bookingId === id)
 
     if (!booking || !detail) {
         return (
@@ -495,6 +617,20 @@ function BookingDetailContent({ id }: { id: number }) {
                                 })}
                             </div>
                         </div>
+
+                        {/* ── Catatan Kelulusan (hanya jika completed) ── */}
+                        {booking.status === "completed" && (detail as any).graduationNote && (
+                            <div className="bg-white dark:bg-gray-900 rounded-xl border border-emerald-200 dark:border-emerald-800/50 p-5 shadow-sm">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider border-b border-emerald-100 dark:border-emerald-900/30 pb-3 mb-4">
+                                    <GraduationCap className="w-5 h-5" /> Catatan Kelulusan
+                                </div>
+                                <div className="bg-emerald-50/60 dark:bg-emerald-900/10 rounded-lg px-4 py-3 border border-emerald-100 dark:border-emerald-900/30">
+                                    <p className="text-sm text-emerald-900 dark:text-emerald-100 font-bold leading-relaxed italic text-center">
+                                        &ldquo;{(detail as any).graduationNote}&rdquo;
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {isBookingCancelled && (detail as any).cancellationInfo && (
                             <div className="bg-white dark:bg-gray-900 rounded-xl border border-rose-200 dark:border-rose-800/50 p-5 shadow-sm">

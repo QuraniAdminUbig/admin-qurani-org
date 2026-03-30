@@ -19,7 +19,7 @@ import {
 import { SimToast, SimNotifBell } from "@/components/sim-notif"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type PipelineStatus = "baru" | "lunas" | "aktif" | "gagal"
+type PipelineStatus = "baru" | "lunas" | "aktif" | "gagal" | "selesai"
 
 // ─── Filter Range Tanggal ─────────────────────────────────────────────────────────
 type FilterKey =
@@ -235,6 +235,7 @@ const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; bad
     lunas: { label: "Lunas",          dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
     aktif: { label: "Aktif",          dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
     gagal: { label: "Batal",          dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
+    selesai: { label: "Selesai",       dotCls: "bg-blue-500",    badgeCls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
 }
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
@@ -465,6 +466,25 @@ function SimModal({ onClose, onOrderCreated }: { onClose: () => void; onOrderCre
 
 
 
+// ─── Static dummy: Pesanan Selesai — Zulfa Hanum (#3010) ──────────────────────
+const ZULFA_COMPLETED_ORDER: PipelineOrder = {
+    id: 3010,
+    member: "Zulfa Hanum",
+    username: "zulfahanum",
+    memberAvatar: "ZH",
+    guru: "Hasyim asy'ari, Lc",
+    guruUsername: "@hasyim",
+    paket: "3x Pertemuan",
+    sesi: 3,
+    sesiSelesai: 3,
+    harga: 250000,
+    tglPesan: "10 Jan 2026",
+    payment: "GoPay",
+    rawDate: new Date("2026-01-10"),
+    status: "selesai",
+    isSim: true,
+}
+
 // ─── Main Content ──────────────────────────────────────────────────────────────
 function PesananContent() {
     const router = useRouter()
@@ -517,6 +537,7 @@ function PesananContent() {
             lunas: { msg: `Pembayaran Lunas — ${order.member}`, type: "payment_success" },
             aktif: { msg: `Pesanan Aktif — ${order.member}`, type: "payment_success" },
             gagal: { msg: `Pesanan Dibatalkan — ${order.member}`, type: "order_cancelled" },
+            selesai: { msg: `Pesanan Selesai — ${order.member}`, type: "payment_success" },
             baru:  { msg: "", type: "new_order" },
         }
         const { msg, type } = msgs[next]
@@ -534,7 +555,7 @@ function PesananContent() {
     const allOrders = useMemo<PipelineOrder[]>(() => {
         const simRows = simOrders.map(simOrderToPipeline)
         const staticRows = dummyData.bookings.map(bookingToPipeline)
-        const combined = [...simRows, ...staticRows]
+        const combined = [ZULFA_COMPLETED_ORDER, ...simRows, ...staticRows]
         // Apply local overrides
         return combined.map(o => statusOverrides[o.id] ? { ...o, status: statusOverrides[o.id] } : o)
             .filter(o => o.member !== "Ahmad Fauzi")
@@ -636,6 +657,7 @@ function PesananContent() {
                         { key: "aktif", label: "Aktif",   count: dateFiltered.filter(o => o.status === "aktif").length,  activeText: "text-sky-600 dark:text-sky-400",         activeBorder: "border-sky-500",     activeCount: "text-sky-500"     },
                         { key: "baru",  label: "Pending", count: dateFiltered.filter(o => o.status === "baru").length,   activeText: "text-amber-600 dark:text-amber-400",     activeBorder: "border-amber-500",   activeCount: "text-amber-500"   },
                         { key: "gagal", label: "Batal",   count: dateFiltered.filter(o => o.status === "gagal").length,  activeText: "text-rose-600 dark:text-rose-400",       activeBorder: "border-rose-500",    activeCount: "text-rose-500"    },
+                        { key: "selesai", label: "Selesai", count: dateFiltered.filter(o => o.status === "selesai").length, activeText: "text-blue-600 dark:text-blue-400", activeBorder: "border-blue-500", activeCount: "text-blue-500" },
                     ] as { key: "all" | PipelineStatus; label: string; count: number; activeText: string; activeBorder: string; activeCount: string }[]).map(tab => (
                         <button key={tab.key} onClick={() => { setStatusTab(tab.key); setPage(1) }}
                             className={`flex items-center gap-1.5 pb-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${statusTab === tab.key
