@@ -17,9 +17,6 @@ import {
     Phone,
     Mail,
     Calendar,
-    Hash,
-    Receipt,
-    ExternalLink,
     Zap,
 } from "lucide-react"
 import Link from "next/link"
@@ -98,37 +95,29 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-10">
                     {/* Left */}
                     <div className="lg:col-span-2 space-y-4">
-                        {/* Info Paket */}
-                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm space-y-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
+                        {/* ── Progress Belajar Card ── */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 shadow-sm space-y-3">
+                            <div className="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 pb-2.5">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                                        <BookOpen className="w-4 h-4 text-emerald-500" />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Progress Belajar</span>
+                                </div>
+                                <span className="text-[11px] font-bold text-emerald-600">
+                                    {order.completedSessions} / {order.totalSessions} Selesai
+                                </span>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 text-xs">
-                                <div>
-                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Nama Paket</p>
-                                    <p className="font-black text-gray-950 dark:text-white text-base">{order.pkg.name}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Metode Belajar</p>
-                                    <p className="font-bold text-gray-700 dark:text-gray-300">{order.mode === "online" ? "🌐 Online" : "Offline"} • {order.paymentMethod}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Mulai Sesi</p>
-                                    <p className="font-bold text-gray-700 dark:text-gray-300">{new Date(order.bookingDate).toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
-                                </div>
-                            </div>
-                            {/* Progress */}
                             <div>
-                                <div className="flex justify-between text-xs font-bold text-gray-600 dark:text-gray-400 mb-1.5">
-                                    <span>Progress Sesi</span>
-                                    <span>{order.completedSessions}/{order.totalSessions} Selesai</span>
+                                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${Math.round(order.completedSessions / order.totalSessions * 100)}%` }} />
                                 </div>
-                                <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.round(order.completedSessions / order.totalSessions * 100)}%` }} />
-                                </div>
+                                <p className="text-[11px] text-gray-400 font-medium mt-1.5">
+                                    {Math.round(order.completedSessions / order.totalSessions * 100)}% perjalanan belajar selesai
+                                </p>
                             </div>
                         </div>
 
@@ -159,21 +148,18 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                         return (
                                             <div key={sess.sessionNo}
                                                 className="flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/20">
-                                                {/* Session number bubble */}
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0
                                                     ${isDone ? "bg-emerald-500 text-white" :
                                                         isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" :
                                                             "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
                                                     {isDone ? "✓" : sess.sessionNo}
                                                 </div>
-                                                {/* Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                                         Sesi {sess.sessionNo}
                                                     </p>
                                                     <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
                                                 </div>
-                                                {/* Waktu */}
                                                 <div className="text-right flex-shrink-0">
                                                     <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
                                                         {sess.startTime} – {sess.endTime}
@@ -205,9 +191,9 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                         {isPaid ? "✅ Lunas" : "⏳ Pending"}
                                     </span>
                                 </div>
-                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Harga Paket</p><p className="font-bold text-gray-900 dark:text-white">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(order.pkg.price)}</p></div>
-                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Biaya Layanan</p><p className="font-bold text-gray-900 dark:text-white">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(order.pkg.serviceFee)}</p></div>
-                                <div><p className="text-gray-400 uppercase tracking-wider mb-1 font-black">Total Bayar</p><p className="font-black text-emerald-600 text-base">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(order.pkg.price + order.pkg.serviceFee)}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Harga Paket</p><p className="font-bold text-gray-900 dark:text-white">{formatRupiah(order.pkg.price)}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1">Biaya Layanan</p><p className="font-bold text-gray-900 dark:text-white">{formatRupiah(order.pkg.serviceFee)}</p></div>
+                                <div><p className="text-gray-400 uppercase tracking-wider mb-1 font-black">Total Bayar</p><p className="font-black text-emerald-600 text-base">{formatRupiah(order.pkg.price + order.pkg.serviceFee)}</p></div>
                             </div>
                         </div>
                     </div>
@@ -261,6 +247,27 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* ── Informasi Pesanan Card (Moved) ── */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
+                            </div>
+                            <div className="space-y-3 text-xs">
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Nama Paket</p>
+                                    <p className="font-bold text-gray-900 dark:text-white">{order.pkg.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Metode Belajar</p>
+                                    <p className="font-bold text-gray-700 dark:text-gray-300">{order.mode === "online" ? "🌐 Online" : "Offline"} • {order.paymentMethod}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Mulai Sesi</p>
+                                    <p className="font-bold text-gray-700 dark:text-gray-300">{new Date(order.bookingDate).toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -269,7 +276,6 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
 }
 
 function BookingDetailContent({ id }: { id: number }) {
-    // Cek localStorage dulu jika ID >= 9001 (simulasi)
     const [simOrder, setSimOrder] = useState<SimOrder | null | undefined>(undefined)
 
     useEffect(() => {
@@ -280,13 +286,9 @@ function BookingDetailContent({ id }: { id: number }) {
         }
     }, [id])
 
-    // Masih loading
     if (simOrder === undefined) return null
-
-    // Tampilkan sim order jika ada
     if (simOrder !== null) return <SimOrderDetail order={simOrder} />
 
-    // Fallback: baca dari JSON
     const booking = dummyData.bookings.find(b => b.id === id)
     const detail = dummyData.bookingDetails.find(d => d.bookingId === id)
 
@@ -305,7 +307,6 @@ function BookingDetailContent({ id }: { id: number }) {
     }
 
     const bStatus = BOOKING_STATUS[booking.status as keyof typeof BOOKING_STATUS]
-    const pkgCfg = PACKAGE_CFG[booking.packageKey] ?? { cls: "bg-gray-100 text-gray-600" }
     const paidStr = detail.payment.status === "paid" ? "Lunas" : "Belum Dibayar"
     const paidCls = detail.payment.status === "paid"
         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
@@ -339,61 +340,38 @@ function BookingDetailContent({ id }: { id: number }) {
                 {/* ── Main grid ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-10">
 
-                    {/* ── LEFT column (Main Info & Schedule) ── */}
+                    {/* ── LEFT column ── */}
                     <div className="lg:col-span-2 space-y-4">
 
-                        {/* Booking Info */}
-                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
-                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Nama Paket</p>
-                                    <p className="text-sm font-bold text-gray-950 dark:text-white">{booking.packageName}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Metode Belajar</p>
-                                    <div className="flex flex-wrap gap-1.5 items-center">
-                                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${booking.mode === "online"
-                                            ? "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
-                                            : "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                                            }`}>
-                                            {booking.mode === "online" ? <Wifi className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
-                                            {booking.mode === "online" ? "Online" : "Offline"}
-                                        </span>
-                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 italic border-l border-gray-200 dark:border-gray-700 pl-2">
-                                            {booking.paymentMethod}
-                                        </span>
+                        {/* ── Progress Belajar Card ── */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 shadow-sm space-y-3">
+                            <div className="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 pb-2.5">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                                        <BookOpen className="w-4 h-4 text-emerald-500" />
                                     </div>
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Progress Belajar</span>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Mulai Sesi</p>
-                                    <p className="text-sm font-bold text-gray-950 dark:text-gray-200">{formatDate(booking.bookingDate)}</p>
-                                </div>
+                                <span className="text-[11px] font-bold text-emerald-600">
+                                    {sessCompleted} / {booking.totalSessions} Selesai
+                                </span>
                             </div>
-
-                            {/* Progress bar */}
-                            <div className="pt-2">
-                                <div className="flex justify-between items-center mb-1.5">
-                                    <p className="text-[11px] font-bold text-gray-950 dark:text-gray-300">Progress Sesi</p>
-                                    <p className="text-[11px] font-bold text-emerald-600">{sessCompleted} / {booking.totalSessions} Selesai</p>
-                                </div>
+                            <div>
                                 <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full bg-emerald-500 transition-all duration-700"
-                                        style={{ width: `${pct}%` }}
-                                    />
+                                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
                                 </div>
+                                <p className="text-[11px] text-gray-400 font-medium mt-1.5">
+                                    {pct}% perjalanan belajar selesai
+                                </p>
                             </div>
                         </div>
 
-                        {/* Session List with Scrollbar */}
+                        {/* Session List */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 px-5 py-4 uppercase tracking-wider">
                                 <Calendar className="w-4 h-4 text-emerald-500" /> Jadwal Sesi
                             </div>
-                            <div className="max-h-[350px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800 custom-scrollbar">
+                            <div className="max-h-[350px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
                                 {detail.sessions.map(s => {
                                     const sc = SESSION_STATUS[s.status as keyof typeof SESSION_STATUS]
                                     const Icon = sc?.icon ?? Clock
@@ -414,7 +392,6 @@ function BookingDetailContent({ id }: { id: number }) {
                                                         {sc?.label}
                                                     </span>
                                                 </div>
-
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-xs font-bold text-gray-950 dark:text-gray-300">{s.date}</p>
@@ -426,7 +403,7 @@ function BookingDetailContent({ id }: { id: number }) {
                             </div>
                         </div>
 
-                        {/* Payment Info - MOVED HERE */}
+                        {/* Payment Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
                                 <CreditCard className="w-4 h-4 text-emerald-500" /> Informasi Pembayaran
@@ -434,12 +411,8 @@ function BookingDetailContent({ id }: { id: number }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center text-xs">
-                                        <span className="flex items-center gap-1.5 text-gray-400 font-bold uppercase tracking-tighter"># Invoice</span>
+                                        <span className="text-gray-400 font-bold uppercase tracking-tighter"># Invoice</span>
                                         <span className="font-mono font-bold text-gray-950 dark:text-gray-300">{detail.payment.invoiceNo}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="flex items-center gap-1.5 text-gray-400 font-bold uppercase tracking-tighter">Ref. Gateway</span>
-                                        <span className="font-mono text-gray-600 dark:text-gray-400 text-right truncate max-w-[150px]">{detail.payment.receiptRef}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
                                         <span className="text-gray-400 font-bold uppercase tracking-tighter">Payment</span>
@@ -465,7 +438,7 @@ function BookingDetailContent({ id }: { id: number }) {
                                     </div>
                                     <div className="flex justify-between text-base font-black text-gray-950 dark:text-white pt-2 border-t border-gray-100 dark:border-gray-800">
                                         <span className="uppercase">Total Bayar</span>
-                                        <span className="text-emerald-600 active-shadow">{formatRupiah(detail.payment.total)}</span>
+                                        <span className="text-emerald-600">{formatRupiah(detail.payment.total)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -473,15 +446,13 @@ function BookingDetailContent({ id }: { id: number }) {
 
                     </div>
 
-                    {/* ── RIGHT column (Member & Guru) ── */}
+                    {/* ── RIGHT column ── */}
                     <div className="space-y-4">
-
                         {/* Member Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-3 uppercase tracking-wider">
                                 <User className="w-4 h-4 text-emerald-500" /> Informasi Member
                             </div>
-                            {/* Foto + Nama — bisa diklik */}
                             <a
                                 href={`/myqurani/profiles/${detail.member.id}`}
                                 target="_blank"
@@ -489,7 +460,7 @@ function BookingDetailContent({ id }: { id: number }) {
                                 className="flex items-center gap-3 group cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl p-2 -mx-2 transition-colors"
                             >
                                 <div className="w-14 h-14 rounded-full border-2 border-emerald-100 p-0.5 flex-shrink-0">
-                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden">
+                                    <div className="w-full h-full rounded-full overflow-hidden">
                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(detail.member.name)}&background=10b981&color=fff`} alt={detail.member.name} className="w-full h-full object-cover" />
                                     </div>
                                 </div>
@@ -507,10 +478,6 @@ function BookingDetailContent({ id }: { id: number }) {
                                 <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-400">
                                     <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {detail.member.location}
                                 </div>
-                                <div className="flex items-center gap-2.5 text-gray-700 dark:text-gray-400">
-                                    <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                                    Bergabung {new Date(detail.member.joinDate).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
-                                </div>
                             </div>
                         </div>
 
@@ -520,7 +487,6 @@ function BookingDetailContent({ id }: { id: number }) {
                                 <BookOpen className="w-4 h-4 text-emerald-500" /> Guru
                             </div>
                             <div className="flex items-center gap-4">
-                                {/* Foto bundar */}
                                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-100 shadow-sm flex-shrink-0">
                                     <img
                                         src={(detail.trainer as any).avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(detail.trainer.name)}&background=10b981&color=fff`}
@@ -529,16 +495,13 @@ function BookingDetailContent({ id }: { id: number }) {
                                     />
                                 </div>
                                 <div>
-                                    {/* Nama */}
                                     <p className="font-black text-gray-950 dark:text-white text-base leading-tight">{detail.trainer.name}</p>
-                                    {/* Username di bawah nama */}
                                     <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
                                         @{detail.trainer.email.split("@")[0]}
                                     </p>
                                 </div>
                             </div>
                             <div className="space-y-2.5 text-xs">
-                                {/* Bintang & Murid (posisi bekas email) */}
                                 <div className="flex items-center gap-2">
                                     <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded text-amber-600 font-bold text-[10px]">
                                         <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -546,10 +509,36 @@ function BookingDetailContent({ id }: { id: number }) {
                                     </div>
                                     <span className="text-[10px] font-bold text-gray-400 tracking-tight">{detail.trainer.totalStudents} Murid</span>
                                 </div>
-                                {/* Spesialisasi */}
                                 <div className="flex items-start gap-2.5 text-gray-700 dark:text-gray-400 font-bold">
                                     <BookOpen className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
                                     <span>{detail.trainer.specialization}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── Informasi Pesanan Card (Moved) ── */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 pb-3">
+                                <BookOpen className="w-4 h-4 text-emerald-500" /> Informasi Pesanan
+                            </div>
+                            <div className="space-y-3 text-xs">
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Nama Paket</p>
+                                    <p className="font-bold text-gray-900 dark:text-white">{booking.packageName}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Metode Belajar</p>
+                                    <div className="flex flex-wrap gap-1.5 items-center">
+                                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 ${booking.mode === "online" ? "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" : "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
+                                            {booking.mode === "online" ? <Wifi className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                                            {booking.mode === "online" ? "Online" : "Offline"}
+                                        </span>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300 italic border-l border-gray-200 dark:border-gray-700 pl-2">{booking.paymentMethod}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Mulai Sesi</p>
+                                    <p className="font-bold text-gray-950 dark:text-gray-200">{formatDate(booking.bookingDate)}</p>
                                 </div>
                             </div>
                         </div>
@@ -561,7 +550,6 @@ function BookingDetailContent({ id }: { id: number }) {
     )
 }
 
-// Next.js dynamic route page
 export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const numId = Number(id)
