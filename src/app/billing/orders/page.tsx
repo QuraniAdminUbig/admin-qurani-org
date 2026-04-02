@@ -236,7 +236,7 @@ const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; bad
     aktif:        { label: "Aktif",           dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
     gagal:        { label: "Batal",           dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
     selesai:      { label: "Selesai",         dotCls: "bg-blue-500",    badgeCls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
-    menunggu_guru:{ label: "Menunggu Guru",   dotCls: "bg-indigo-500",  badgeCls: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" },
+    menunggu_guru:{ label: "Menunggu Guru",   dotCls: "bg-amber-500",   badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
 }
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
