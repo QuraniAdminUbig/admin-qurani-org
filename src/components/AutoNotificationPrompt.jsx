@@ -6,11 +6,11 @@ import { Bell, X, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-export default function AutoNotificationPrompt({ 
-  userId, 
-  onClose, 
-  onEnable, 
-  onDismiss, 
+export default function AutoNotificationPrompt({
+  userId,
+  onClose,
+  onEnable,
+  onDismiss,
   onRemindLater,
   context = 'dashboard'
 }) {
@@ -33,7 +33,7 @@ export default function AutoNotificationPrompt({
 
     // Cek permission status
     const permission = Notification.permission;
-    
+
     // Jangan tampilkan jika sudah granted atau denied
     if (permission !== 'default') {
       return;
@@ -42,7 +42,7 @@ export default function AutoNotificationPrompt({
     // Cek apakah user sudah dismiss popup ini sebelumnya
     const dismissed = localStorage.getItem('notificationPromptDismissed');
     const lastDismissed = localStorage.getItem('notificationPromptLastDismissed');
-    
+
     // Jika pernah dismiss, cek apakah sudah lebih dari 7 hari
     if (dismissed && lastDismissed) {
       const daysSinceDismissed = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
@@ -65,24 +65,24 @@ export default function AutoNotificationPrompt({
     // Delay sedikit agar tidak mengganggu loading awal
     setTimeout(() => {
       setIsVisible(true);
-    }, 3000); // Tampilkan setelah 3 detik
+    }, 3000); // Tampilkan setelah 3 detik  
   };
 
   const handleEnable = async () => {
     setIsLoading(true);
-    
+
     try {
       const result = await registerPush(userId);
-      
+
       if (result && result.success) {
         setIsEnabled(true);
-        
+
         // Show success notification (mobile compatible)
         if (Notification.permission === 'granted') {
           try {
             if ('serviceWorker' in navigator) {
               navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification('🎉 Notifikasi Qurani Aktif!', {
+                registration.showNotification('Notifikasi Qurani Aktif!', {
                   body: 'Anda akan mendapatkan reminder setoran dan update progress',
                   icon: '/icons/qurani-192.png',
                   badge: '/icons/qurani-192.png',
@@ -91,19 +91,19 @@ export default function AutoNotificationPrompt({
               });
             } else {
               // Fallback untuk desktop
-              new Notification('🎉 Notifikasi Qurani Aktif!', {
+              new Notification('Notifikasi Qurani Aktif!', {
                 body: 'Anda akan mendapatkan reminder setoran dan update progress',
                 icon: '/icons/qurani-192.png'
               });
             }
-            } catch (error) {
-              // Silent error - notification still works
-            }
+          } catch (error) {
+            // Silent error - notification still works
+          }
         }
-        
+
         // Callback success
         if (onEnable) onEnable();
-        
+
         // Auto close setelah 3 detik
         setTimeout(() => {
           handleClose();
@@ -112,7 +112,7 @@ export default function AutoNotificationPrompt({
     } catch (error) {
       // ✅ Improved error handling with detailed logging
       console.error('AutoNotificationPrompt handleEnable error:', error);
-      
+
       // Show error message to user (if there's no custom error handling)
       if (!onEnable) {
         const errorMessage = `Gagal mengaktifkan notifikasi: ${error.message}`;
@@ -196,7 +196,7 @@ export default function AutoNotificationPrompt({
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     Dapatkan Notifikasi Langsung ke Perangkat Anda
                   </h3>
-                  
+
                   <div className="space-y-3 mb-4">
                     <div className="flex items-center text-sm text-gray-600">
                       <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
@@ -235,7 +235,7 @@ export default function AutoNotificationPrompt({
                     )}
                     {isLoading ? 'Mengaktifkan...' : 'Ya, Aktifkan Notifikasi'}
                   </Button>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       onClick={handleRemindLater}

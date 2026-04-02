@@ -56,9 +56,11 @@ const SESSION_STATUS = {
 
 // ── booking status ────────────────────────────────────────────────────────────
 const BOOKING_STATUS = {
-    active: { label: "Aktif", dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-    completed: { label: "Selesai", dotCls: "bg-blue-500", badgeCls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-    cancelled: { label: "Batal", dotCls: "bg-red-500", badgeCls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+    active:        { label: "Aktif",            dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+    completed:     { label: "Selesai",          dotCls: "bg-blue-500",    badgeCls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+    cancelled:     { label: "Batal",            dotCls: "bg-red-500",     badgeCls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+    menunggu_guru: { label: "Menunggu Guru",    dotCls: "bg-amber-500",   badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
+    pending:       { label: "Menunggu Bayar",   dotCls: "bg-amber-500",   badgeCls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
 } as const
 
 const PACKAGE_CFG: Record<string, { cls: string }> = {
@@ -140,6 +142,120 @@ const ZULFA_DETAIL = {
             status: "completed",
             feedback: { rating: 5, pesan: "Alhamdulillah selesai 3 sesi, sangat puas dengan bimbingannya." },
         },
+    ],
+}
+
+// ── Fauzia Nurrohma (#3098) — Menunggu Guru Dummy Data ──────────────────────────────────────────
+const FAUZIA_BOOKING = {
+    id: 3098,
+    userName: "Fauzia Nurrohma",
+    userEmail: "fauzia.nurrohma@email.com",
+    trainerName: "Indi Fitriani",
+    packageName: "1x Pertemuan",
+    totalSessions: 1,
+    completedSessions: 0,
+    totalPayment: 80000,
+    bookingDate: "2026-04-02T10:30:00.000Z",
+    paymentGateway: "GoPay",
+    paymentMethod: "Tilawati",
+    status: "menunggu_guru",
+    mode: "online",
+}
+
+const FAUZIA_DETAIL = {
+    bookingId: 3098,
+    member: {
+        id: 211,
+        name: "Fauzia Nurrohma",
+        email: "fauzia.nurrohma@email.com",
+        phone: "0813-2233-4455",
+        location: "Tangerang, Banten",
+        joinDate: "2026-03-20T00:00:00.000Z",
+    },
+    trainer: {
+        id: 302,
+        name: "Indi Fitriani",
+        email: "indi.f@qurani.id",
+        avatar: "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+        rating: 4.9,
+        totalStudents: 39,
+        specialization: "Tahsinul Qur'an & Tahfidzul Qur'an",
+        location: "Bekasi",
+        yearsExperience: 5,
+        subjects: ["Tahsinul Qur'an", "Tahfidzul Qur'an"],
+    },
+    payment: {
+        invoiceNo: "INV-FZN-3098",
+        receiptRef: "GOPAY-20260402-FZN",
+        method: "GoPay",
+        status: "paid",
+        paidAt: "2026-04-02T10:35:00.000Z",
+        pricePackage: 80000,
+        serviceFee: 0,
+        tax: 0,
+        total: 80000,
+    },
+    sessions: [
+        { no: 1, date: "Rabu, 09 Apr 2026", time: "10:00 – 11:00", status: "scheduled" },
+    ],
+}
+
+// ── Rahma Aulia (#3099) Pending Dummy Data ───────────────────────────────────────────────
+const RAHMA_BOOKING = {
+    id: 3099,
+    userName: "Rahma Aulia",
+    userEmail: "rahma.aulia@email.com",
+    trainerName: "Indi Fitriani",
+    packageName: "5x Pertemuan",
+    totalSessions: 5,
+    completedSessions: 0,
+    totalPayment: 375000,
+    bookingDate: "2026-04-01T09:00:00.000Z",
+    paymentGateway: "—",
+    paymentMethod: "Tilawati",
+    status: "pending",
+    mode: "online",
+}
+
+const RAHMA_DETAIL = {
+    bookingId: 3099,
+    member: {
+        id: 210,
+        name: "Rahma Aulia",
+        email: "rahma.aulia@email.com",
+        phone: "0821-5566-7788",
+        location: "Depok, Jawa Barat",
+        joinDate: "2026-03-15T00:00:00.000Z",
+    },
+    trainer: {
+        id: 302,
+        name: "Indi Fitriani",
+        email: "indi.f@qurani.id",
+        avatar: "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+        rating: 4.9,
+        totalStudents: 39,
+        specialization: "Tahsinul Qur'an & Tahfidzul Qur'an",
+        location: "Bekasi",
+        yearsExperience: 5,
+        subjects: ["Tahsinul Qur'an", "Tahfidzul Qur'an"],
+    },
+    payment: {
+        invoiceNo: "INV-RHM-3099",
+        receiptRef: "—",
+        method: "—",
+        status: "pending",
+        paidAt: null,
+        pricePackage: 375000,
+        serviceFee: 0,
+        tax: 0,
+        total: 375000,
+    },
+    sessions: [
+        { no: 1, date: "Kamis, 10 Apr 2026", time: "09:00 – 10:00", status: "scheduled" },
+        { no: 2, date: "Kamis, 17 Apr 2026", time: "09:00 – 10:00", status: "scheduled" },
+        { no: 3, date: "Kamis, 24 Apr 2026", time: "09:00 – 10:00", status: "scheduled" },
+        { no: 4, date: "Kamis, 01 Mei 2026", time: "09:00 – 10:00", status: "scheduled" },
+        { no: 5, date: "Kamis, 08 Mei 2026", time: "09:00 – 10:00", status: "scheduled" },
     ],
 }
 
@@ -227,24 +343,24 @@ function SimOrderDetail({ order }: { order: SimOrder }) {
                                                 <div className={`flex items-center gap-4 px-4 py-3 rounded-xl border bg-gray-50/60 dark:bg-gray-800/20 ${isCancelled ? "border-rose-100 dark:border-rose-900/30" : "border-gray-100 dark:border-gray-800"}`}>
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${isCancelled
                                                             ? "bg-rose-100 dark:bg-rose-900/30 text-rose-500"
-                                                            : isDone ? "bg-emerald-500 text-white" : isSched ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+                                                            : isDone ? "bg-emerald-500 text-white" : isSched ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600" : "bg-gray-100 dark:bg-gray-800 text-gray-400"
                                                         }`}>
                                                         {sess.sessionNo}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">Pertemuan {sess.sessionNo}</p>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${isCancelled
+                                                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                                                                    : isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : isSched ? (!isPaid ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400") : "bg-gray-100 text-gray-500"
+                                                                }`}>
+                                                                {isCancelled ? "Dibatalkan" : isDone ? "Selesai" : isSched ? (!isPaid ? "Pending" : "Terjadwal") : "Batal"}
+                                                            </span>
+                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Pertemuan {sess.sessionNo}</p>
+                                                        </div>
                                                         <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
                                                     </div>
                                                     <div className="text-right flex-shrink-0 flex items-center gap-3">
-                                                        <div>
-                                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{sess.startTime} – {sess.endTime}</p>
-                                                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${isCancelled
-                                                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                                                                    : isDone ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : isSched ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" : "bg-gray-100 text-gray-500"
-                                                                }`}>
-                                                                {isCancelled ? "Dibatalkan" : isDone ? "Selesai" : isSched ? "Terjadwal" : "Batal"}
-                                                            </span>
-                                                        </div>
+                                                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{sess.startTime} – {sess.endTime}</p>
                                                         {isDone && (sess as any).feedback && (
                                                             <ChevronDown
                                                                 onClick={(e) => { e.stopPropagation(); toggleFeedback(sess.sessionNo) }}
@@ -471,8 +587,8 @@ function BookingDetailContent({ id }: { id: number }) {
     if (simOrder === undefined) return null
     if (simOrder !== null) return <SimOrderDetail order={simOrder} />
 
-    const booking = id === 3010 ? ZULFA_BOOKING : dummyData.bookings.find(b => b.id === id)
-    const detail = id === 3010 ? ZULFA_DETAIL : dummyData.bookingDetails.find(d => d.bookingId === id)
+    const booking = id === 3010 ? ZULFA_BOOKING : id === 3098 ? FAUZIA_BOOKING : id === 3099 ? RAHMA_BOOKING : dummyData.bookings.find(b => b.id === id)
+    const detail  = id === 3010 ? ZULFA_DETAIL  : id === 3098 ? FAUZIA_DETAIL  : id === 3099 ? RAHMA_DETAIL  : dummyData.bookingDetails.find(d => d.bookingId === id)
 
     if (!booking || !detail) {
         return (
@@ -576,11 +692,16 @@ function BookingDetailContent({ id }: { id: number }) {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="text-xs font-bold text-gray-950 dark:text-white">Pertemuan {s.no}</span>
-                                                        <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${booking.status === "cancelled"
+                                                        <span className={`text-[9px] rounded-full px-2 py-0.5 font-bold uppercase ${
+                                                            booking.status === "cancelled"
                                                                 ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400"
-                                                                : sc?.bg
-                                                            }`}>
-                                                            {booking.status === "cancelled" ? "Dibatalkan" : sc?.label}
+                                                                : s.status === "completed"
+                                                                    ? sc?.bg
+                                                                    : (booking.status === "pending" || booking.status === "menunggu_guru")
+                                                                        ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                                                                        : sc?.bg
+                                                        }`}>
+                                                            {booking.status === "cancelled" ? "Dibatalkan" : s.status === "completed" ? "Selesai" : (booking.status === "pending" || booking.status === "menunggu_guru") ? "Pending" : sc?.label}
                                                         </span>
                                                     </div>
                                                     <p className="text-[10px] text-gray-400 mt-0.5">{s.date}</p>

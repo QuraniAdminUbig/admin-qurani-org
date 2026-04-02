@@ -147,7 +147,7 @@ export const notificationTemplates = {
     },
     pushPayload: {
       title: "⏰ Reminder Setoran Hafalan",
-      body: `Assalamu'alaikum ${userName}, jangan lupa setoran hafalan hari ini ya! 🤲`,
+      body: `Assalamu'alaikum ${userName}, jangan lupa setoran hafalan hari ini ya!`,
       icon: "/icons/qurani-192.png",
       url: "/setoran",
       data: { type: "memorization_reminder" },

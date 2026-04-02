@@ -167,7 +167,7 @@ function MasterDataDashboardContent() {
                                                 cy="48"
                                                 r="42"
                                                 stroke="currentColor"
-                                                strokeWidth="6"
+
                                                 fill="none"
                                                 className="text-gray-200 dark:text-gray-700"
                                             />

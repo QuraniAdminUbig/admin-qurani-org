@@ -206,7 +206,7 @@ if (isDev) {
 console.error('Realtime error:', {
   code: err?.code,
   message: err?.message,
-  // Jangan log full payload/sensitive data
+  // jangan log full payload/sensitive data
 });
 ```
 
@@ -221,7 +221,7 @@ try {
   // ...
 } catch (error) {
   console.error('Error fetching friends data:', error)
-  // ❌ No fallback, no user notification
+  // No fallback, no user notification
 }
 ```
 

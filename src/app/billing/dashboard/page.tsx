@@ -79,16 +79,16 @@ type FilterKey =
     | "last_7_days" | "last_30_days"
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; group: string }[] = [
-    { key: "all",        label: "All (Semua)",  group: "Quick" },
-    { key: "today",      label: "Today",        group: "Quick" },
-    { key: "yesterday",  label: "Yesterday",    group: "Quick" },
-    { key: "this_week",  label: "This week",    group: "Period" },
-    { key: "this_month", label: "This month",   group: "Period" },
-    { key: "this_year",  label: "This year",    group: "Period" },
-    { key: "last_week",  label: "Last week",    group: "Historical" },
-    { key: "last_month", label: "Last month",   group: "Historical" },
-    { key: "last_year",  label: "Last year",    group: "Historical" },
-    { key: "last_7_days",  label: "Last 7 days",  group: "Historical" },
+    { key: "all", label: "All (Semua)", group: "Quick" },
+    { key: "today", label: "Today", group: "Quick" },
+    { key: "yesterday", label: "Yesterday", group: "Quick" },
+    { key: "this_week", label: "This week", group: "Period" },
+    { key: "this_month", label: "This month", group: "Period" },
+    { key: "this_year", label: "This year", group: "Period" },
+    { key: "last_week", label: "Last week", group: "Historical" },
+    { key: "last_month", label: "Last month", group: "Historical" },
+    { key: "last_year", label: "Last year", group: "Historical" },
+    { key: "last_7_days", label: "Last 7 days", group: "Historical" },
     { key: "last_30_days", label: "Last 30 days", group: "Historical" },
 ]
 
@@ -97,32 +97,32 @@ function getFilterLabel(filter: FilterKey): string {
     const now = new Date()
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
     switch (filter) {
-        case "all":       return "Semua Data"
-        case "today":     return `Data: ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
+        case "all": return "Semua Data"
+        case "today": return `Data: ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
         case "yesterday": { const y = new Date(now.getTime() - 86400000); return `Data: ${y.getDate()} ${months[y.getMonth()]} ${y.getFullYear()}` }
-        case "this_week":  return `Data: Minggu ini`
+        case "this_week": return `Data: Minggu ini`
         case "this_month": return `Data: ${months[now.getMonth()]} ${now.getFullYear()}`
-        case "this_year":  return `Data: Tahun ${now.getFullYear()}`
-        case "last_week":  return `Data: Minggu lalu`
+        case "this_year": return `Data: Tahun ${now.getFullYear()}`
+        case "last_week": return `Data: Minggu lalu`
         case "last_month": { const m = new Date(now.getFullYear(), now.getMonth() - 1, 1); return `Data: ${months[m.getMonth()]} ${m.getFullYear()}` }
-        case "last_year":  return `Data: Tahun ${now.getFullYear() - 1}`
-        case "last_7_days":  return `Data: 7 hari terakhir`
+        case "last_year": return `Data: Tahun ${now.getFullYear() - 1}`
+        case "last_7_days": return `Data: 7 hari terakhir`
         case "last_30_days": return `Data: 30 hari terakhir`
     }
 }
 
 // ── Slice dummy data differently per filter so data always changes ─────────────
 const FILTER_SLICES: Record<FilterKey, { paymentIdx: number[]; bookingIdx: number[] }> = {
-    all:          { paymentIdx: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19], bookingIdx: [0,1,2,3,4,5,6,7,8,9] },
-    today:        { paymentIdx: [10, 11], bookingIdx: [0] },
-    yesterday:    { paymentIdx: [12, 13], bookingIdx: [1] },
-    this_week:    { paymentIdx: [10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2] },
-    this_month:   { paymentIdx: [10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
-    this_year:    { paymentIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
-    last_week:    { paymentIdx: [6, 7, 8, 9], bookingIdx: [3, 4] },
-    last_month:   { paymentIdx: [2, 3, 4, 5, 6, 7, 8, 9], bookingIdx: [4, 5, 6, 7] },
-    last_year:    { paymentIdx: [4, 5, 9, 16, 17, 18, 19], bookingIdx: [4, 5] },
-    last_7_days:  { paymentIdx: [10, 11, 12, 13, 14], bookingIdx: [0, 1, 2] },
+    all: { paymentIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    today: { paymentIdx: [10, 11], bookingIdx: [0] },
+    yesterday: { paymentIdx: [12, 13], bookingIdx: [1] },
+    this_week: { paymentIdx: [10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2] },
+    this_month: { paymentIdx: [10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    this_year: { paymentIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    last_week: { paymentIdx: [6, 7, 8, 9], bookingIdx: [3, 4] },
+    last_month: { paymentIdx: [2, 3, 4, 5, 6, 7, 8, 9], bookingIdx: [4, 5, 6, 7] },
+    last_year: { paymentIdx: [4, 5, 9, 16, 17, 18, 19], bookingIdx: [4, 5] },
+    last_7_days: { paymentIdx: [10, 11, 12, 13, 14], bookingIdx: [0, 1, 2] },
     last_30_days: { paymentIdx: [0, 1, 7, 8, 9, 10, 11, 12, 13, 14, 15], bookingIdx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
 }
 
@@ -166,8 +166,8 @@ function buildChartData(filter: FilterKey, payments: Payment[]) {
     // Year / last_year / all → by month
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
     const yearRev = filter === "last_year"
-        ? [0,1,2,3,4,5,6,7,8,9,10,11].map(i => completed2[i % Math.max(completed2.length, 1)]?.amount * (0.6 + i * 0.05) || 0)
-        : [0,1,2,3,4,5,6,7,8,9,10,11].map(i => completed2[i % Math.max(completed2.length, 1)]?.amount * (0.8 + i * 0.03) || 0)
+        ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => completed2[i % Math.max(completed2.length, 1)]?.amount * (0.6 + i * 0.05) || 0)
+        : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => completed2[i % Math.max(completed2.length, 1)]?.amount * (0.8 + i * 0.03) || 0)
     return months.map((label, i) => ({ label, revenue: Math.round(yearRev[i] || 0) }))
 }
 
@@ -194,8 +194,8 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
             d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
 
         switch (value) {
-            case "all":       return "Semua Data"
-            case "today":     return fmtShort(now)
+            case "all": return "Semua Data"
+            case "today": return fmtShort(now)
             case "yesterday": { const y = new Date(now); y.setDate(y.getDate() - 1); return fmtShort(y) }
             case "this_week": {
                 const day = now.getDay()
@@ -203,11 +203,11 @@ function FilterDropdown({ value, onChange }: { value: FilterKey; onChange: (k: F
                 const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
                 return `${pad(mon.getDate())} – ${pad(sun.getDate())} ${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
             }
-            case "this_month":  return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
-            case "this_year":   return `Year ${now.getFullYear()}`
-            case "last_week":  { const d = now.getDay(); const end = new Date(now); end.setDate(now.getDate() - (d === 0 ? 7 : d)); const start = new Date(end); start.setDate(end.getDate() - 6); return `${fmtShort(start)} – ${fmtShort(end)}` }
+            case "this_month": return now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+            case "this_year": return `Year ${now.getFullYear()}`
+            case "last_week": { const d = now.getDay(); const end = new Date(now); end.setDate(now.getDate() - (d === 0 ? 7 : d)); const start = new Date(end); start.setDate(end.getDate() - 6); return `${fmtShort(start)} – ${fmtShort(end)}` }
             case "last_month": { const m = new Date(now.getFullYear(), now.getMonth() - 1, 1); return m.toLocaleDateString("en-US", { month: "long", year: "numeric" }) }
-            case "last_year":  return `Year ${now.getFullYear() - 1}`
+            case "last_year": return `Year ${now.getFullYear() - 1}`
             case "last_7_days": { const from = new Date(now); from.setDate(now.getDate() - 6); return `${fmtShort(from)} – ${pad(now.getDate())}` }
             case "last_30_days": { const from = new Date(now); from.setDate(now.getDate() - 29); return `${from.toLocaleDateString("en-US", { month: "short", day: "2-digit" })} – ${fmtShort(now)}` }
         }
@@ -658,7 +658,7 @@ function BillingDashboardContent() {
                                                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">ID</th>
                                                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">User</th>
                                                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Trainer</th>
-                                                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
+                                                    <th className="text-left text-xs font-m edium text-gray-500 dark:text-gray-400 px-4 py-3">Payment</th>
                                                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Jumlah</th>
                                                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Status</th>
                                                     <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-3">Tanggal</th>

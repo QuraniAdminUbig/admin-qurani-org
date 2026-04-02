@@ -9,10 +9,10 @@ import { analyzeNotificationsStructure, getCurrentAdminUsers } from "@/utils/dat
 export async function GET() {
   try {
     const supabase = await createClient();
-    
+
     // Check if user is authenticated and is admin
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -77,14 +77,14 @@ function generateRecommendations(analysis: {
   } | null;
 }, adminCount: number) {
   const recommendations = [];
-  
+
   if (!analysis.ticketNotificationPattern) {
     recommendations.push("No ticket notifications found in recent data");
     return recommendations;
   }
-  
+
   const { nullUserIdPercentage, totalTicketNotifications, uniqueTicketIds } = analysis.ticketNotificationPattern;
-  
+
   if (nullUserIdPercentage > 80) {
     recommendations.push("🚨 MAJOR ISSUE: Most ticket notifications have user_id = null");
     recommendations.push("💡 SOLUTION: Remove user_id filtering for ticket notifications");
@@ -95,13 +95,13 @@ function generateRecommendations(analysis: {
   } else {
     recommendations.push("✅ Good: Most ticket notifications have valid user_id");
   }
-  
+
   const avgNotificationsPerTicket = totalTicketNotifications / uniqueTicketIds;
   if (avgNotificationsPerTicket > adminCount + 1) {
-    recommendations.push("🚨 DUPLICATION: Too many notifications per ticket");
-    recommendations.push("💡 SOLUTION: Implement better duplicate prevention");
+    recommendations.push(" DUPLICATION: Too many notifications per ticket");
+    recommendations.push(" SOLUTION: Implement better duplicate prevention");
   }
-  
+
   if (uniqueTicketIds < totalTicketNotifications / 2) {
     recommendations.push("📊 INFO: Many tickets have multiple notifications");
     if (nullUserIdPercentage > 50) {
@@ -110,6 +110,6 @@ function generateRecommendations(analysis: {
       recommendations.push("💡 SUGGESTED APPROACH: One notification per admin per ticket");
     }
   }
-  
+
   return recommendations;
 }

@@ -19,7 +19,7 @@ import {
 import { SimToast, SimNotifBell } from "@/components/sim-notif"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type PipelineStatus = "baru" | "lunas" | "aktif" | "gagal" | "selesai"
+type PipelineStatus = "baru" | "lunas" | "aktif" | "gagal" | "selesai" | "menunggu_guru"
 
 // ─── Filter Range Tanggal ─────────────────────────────────────────────────────────
 type FilterKey =
@@ -231,11 +231,12 @@ function simOrderToPipeline(o: SimOrder): PipelineOrder {
 const PAGE_SIZE = 7
 
 const STATUS_CONFIG: Record<PipelineStatus, { label: string; dotCls: string; badgeCls: string }> = {
-    baru:  { label: "Menunggu Bayar", dotCls: "bg-amber-500",  badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
-    lunas: { label: "Lunas",          dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
-    aktif: { label: "Aktif",          dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
-    gagal: { label: "Batal",          dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
-    selesai: { label: "Selesai",       dotCls: "bg-blue-500",    badgeCls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
+    baru:         { label: "Menunggu Bayar",  dotCls: "bg-amber-500",   badgeCls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" },
+    lunas:        { label: "Lunas",           dotCls: "bg-emerald-500", badgeCls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" },
+    aktif:        { label: "Aktif",           dotCls: "bg-sky-500",     badgeCls: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" },
+    gagal:        { label: "Batal",           dotCls: "bg-rose-500",    badgeCls: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400" },
+    selesai:      { label: "Selesai",         dotCls: "bg-blue-500",    badgeCls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
+    menunggu_guru:{ label: "Menunggu Guru",   dotCls: "bg-indigo-500",  badgeCls: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" },
 }
 
 // ─── Simulasi Modal ────────────────────────────────────────────────────────────
@@ -485,6 +486,46 @@ const ZULFA_COMPLETED_ORDER: PipelineOrder = {
     isSim: true,
 }
 
+// ─── Static dummy: Pesanan Menunggu Guru — Fauzia Nurrohma (#3098) ─────────────────
+const FAUZIA_WAITING_GURU_ORDER: PipelineOrder = {
+    id: 3098,
+    member: "Fauzia Nurrohma",
+    username: "fauzianurrohma",
+    memberAvatar: "FN",
+    guru: "Indi Fitriani",
+    guruUsername: "@indi.f",
+    paket: "1x Pertemuan",
+    sesi: 1,
+    sesiSelesai: 0,
+    harga: 80000,
+    tglPesan: "02 Apr 2026",
+    payment: "GoPay",
+    rawDate: new Date("2026-04-02"),
+    status: "menunggu_guru",
+    isPendingPayment: false,
+    isSim: true,
+}
+
+// ─── Static dummy: Pesanan Pending — Rahma Aulia (#3099) ──────────────────────
+const RAHMA_PENDING_ORDER: PipelineOrder = {
+    id: 3099,
+    member: "Rahma Aulia",
+    username: "rahmaaulia",
+    memberAvatar: "RA",
+    guru: "Indi Fitriani",
+    guruUsername: "@indi.f",
+    paket: "5x Pertemuan",
+    sesi: 5,
+    sesiSelesai: 0,
+    harga: 375000,
+    tglPesan: "01 Apr 2026",
+    payment: "—",
+    rawDate: new Date("2026-04-01"),
+    status: "baru",
+    isPendingPayment: true,
+    isSim: true,
+}
+
 // ─── Main Content ──────────────────────────────────────────────────────────────
 function PesananContent() {
     const router = useRouter()
@@ -534,11 +575,12 @@ function PesananContent() {
         }
 
         const msgs: Record<PipelineStatus, { msg: string; type: "new_order" | "payment_success" | "order_cancelled" }> = {
-            lunas: { msg: `Pembayaran Lunas — ${order.member}`, type: "payment_success" },
-            aktif: { msg: `Pesanan Aktif — ${order.member}`, type: "payment_success" },
-            gagal: { msg: `Pesanan Dibatalkan — ${order.member}`, type: "order_cancelled" },
-            selesai: { msg: `Pesanan Selesai — ${order.member}`, type: "payment_success" },
-            baru:  { msg: "", type: "new_order" },
+            lunas:         { msg: `Pembayaran Lunas — ${order.member}`,            type: "payment_success" },
+            aktif:         { msg: `Pesanan Aktif — ${order.member}`,               type: "payment_success" },
+            gagal:         { msg: `Pesanan Dibatalkan — ${order.member}`,          type: "order_cancelled" },
+            selesai:       { msg: `Pesanan Selesai — ${order.member}`,             type: "payment_success" },
+            menunggu_guru: { msg: `Menunggu Persetujuan Guru — ${order.member}`,   type: "new_order"       },
+            baru:          { msg: "", type: "new_order" },
         }
         const { msg, type } = msgs[next]
         if (msg) {
@@ -555,7 +597,7 @@ function PesananContent() {
     const allOrders = useMemo<PipelineOrder[]>(() => {
         const simRows = simOrders.map(simOrderToPipeline)
         const staticRows = dummyData.bookings.map(bookingToPipeline)
-        const combined = [ZULFA_COMPLETED_ORDER, ...simRows, ...staticRows]
+        const combined = [FAUZIA_WAITING_GURU_ORDER, RAHMA_PENDING_ORDER, ZULFA_COMPLETED_ORDER, ...simRows, ...staticRows]
         // Apply local overrides
         return combined.map(o => statusOverrides[o.id] ? { ...o, status: statusOverrides[o.id] } : o)
             .filter(o => o.member !== "Ahmad Fauzi")
@@ -570,7 +612,14 @@ function PesananContent() {
                 const inRange = o.rawDate >= range.from && o.rawDate <= range.to
                 if (!inRange) return false
             }
-            if (statusTab !== "all" && o.status !== statusTab) return false
+            // Tab "Pending" (baru) mencakup juga menunggu_guru
+            if (statusTab !== "all") {
+                if (statusTab === "baru") {
+                    if (o.status !== "baru" && o.status !== "menunggu_guru") return false
+                } else {
+                    if (o.status !== statusTab) return false
+                }
+            }
             if (!q) return true
             return (
                 o.member.toLowerCase().includes(q) ||
@@ -652,12 +701,12 @@ function PesananContent() {
                 {/* ── Status Filter Tabs ── */}
                 <div className="flex items-center gap-6 border-b border-gray-100 dark:border-gray-800 mb-0">
                     {([
-                        { key: "all",   label: "Semua",   count: dateFiltered.length,                                    activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
-                        { key: "lunas", label: "Lunas",   count: dateFiltered.filter(o => o.status === "lunas").length,  activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
-                        { key: "aktif", label: "Aktif",   count: dateFiltered.filter(o => o.status === "aktif").length,  activeText: "text-sky-600 dark:text-sky-400",         activeBorder: "border-sky-500",     activeCount: "text-sky-500"     },
-                        { key: "baru",  label: "Pending", count: dateFiltered.filter(o => o.status === "baru").length,   activeText: "text-amber-600 dark:text-amber-400",     activeBorder: "border-amber-500",   activeCount: "text-amber-500"   },
-                        { key: "gagal", label: "Batal",   count: dateFiltered.filter(o => o.status === "gagal").length,  activeText: "text-rose-600 dark:text-rose-400",       activeBorder: "border-rose-500",    activeCount: "text-rose-500"    },
-                        { key: "selesai", label: "Selesai", count: dateFiltered.filter(o => o.status === "selesai").length, activeText: "text-blue-600 dark:text-blue-400", activeBorder: "border-blue-500", activeCount: "text-blue-500" },
+                        { key: "all",     label: "Semua",   count: dateFiltered.length,                                                                                          activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
+                        { key: "lunas",   label: "Lunas",   count: dateFiltered.filter(o => o.status === "lunas").length,                                                         activeText: "text-emerald-600 dark:text-emerald-400", activeBorder: "border-emerald-500", activeCount: "text-emerald-500" },
+                        { key: "aktif",   label: "Aktif",   count: dateFiltered.filter(o => o.status === "aktif").length,                                                         activeText: "text-sky-600 dark:text-sky-400",         activeBorder: "border-sky-500",     activeCount: "text-sky-500"     },
+                        { key: "baru",    label: "Pending", count: dateFiltered.filter(o => o.status === "baru" || o.status === "menunggu_guru").length,                           activeText: "text-amber-600 dark:text-amber-400",     activeBorder: "border-amber-500",   activeCount: "text-amber-500"   },
+                        { key: "gagal",   label: "Batal",   count: dateFiltered.filter(o => o.status === "gagal").length,                                                         activeText: "text-rose-600 dark:text-rose-400",       activeBorder: "border-rose-500",    activeCount: "text-rose-500"    },
+                        { key: "selesai", label: "Selesai", count: dateFiltered.filter(o => o.status === "selesai").length,                                                        activeText: "text-blue-600 dark:text-blue-400",       activeBorder: "border-blue-500",    activeCount: "text-blue-500"    },
                     ] as { key: "all" | PipelineStatus; label: string; count: number; activeText: string; activeBorder: string; activeCount: string }[]).map(tab => (
                         <button key={tab.key} onClick={() => { setStatusTab(tab.key); setPage(1) }}
                             className={`flex items-center gap-1.5 pb-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${statusTab === tab.key
