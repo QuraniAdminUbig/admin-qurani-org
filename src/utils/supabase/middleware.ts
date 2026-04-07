@@ -52,7 +52,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/administrator") ||
     pathname.startsWith("/master-data") ||
     pathname.startsWith("/notification") ||
-    pathname.startsWith("/settings");
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/billing/keluhan");
   const isBlockedPage = pathname.startsWith("/blocked");
 
 

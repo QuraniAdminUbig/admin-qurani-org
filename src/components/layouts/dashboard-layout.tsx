@@ -25,7 +25,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [hasVisitedNotifications, setHasVisitedNotifications] = useState(false)
 
   // Cek apakah user sedang di halaman notifikasi
-  const isOnNotificationsPage = pathname === '/notifikasi'
+  const isOnNotificationsPage = pathname === '/notification'
 
   // Memoize keys untuk menghindari pembuatan string berulang
   const visitKey = useMemo(() => userId ? `notifications_visited_${userId}` : '', [userId])
