@@ -26,6 +26,7 @@ import {
   Tag,
   Receipt,
   Wallet,
+  MessageSquare,
 } from "lucide-react"
 import { RxDashboard, } from "react-icons/rx"
 import { MdAnnouncement } from "react-icons/md"
@@ -119,6 +120,11 @@ const getSidebarData = (
           title: "Wallet",
           url: "/billing/wallet",
           icon: Wallet,
+        },
+        {
+          title: "Keluhan",
+          url: "/billing/keluhan",
+          icon: MessageSquare,
         },
       ],
     },
