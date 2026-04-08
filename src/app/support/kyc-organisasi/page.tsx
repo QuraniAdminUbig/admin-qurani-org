@@ -61,6 +61,39 @@ const STATUS_BADGE: Record<string, string> = {
     ditolak: "bg-red-100 text-red-600 border border-red-200",
 }
 
+// ─── Toast Component ───────────────────────────────────────────────────────
+type ToastData = { id: number; message: string; type: "success" | "error" }
+
+function Toast({ toasts, onRemove }: { toasts: ToastData[]; onRemove: (id: number) => void }) {
+    return (
+        <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
+            {toasts.map(t => (
+                <div
+                    key={t.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium pointer-events-auto
+                        animate-in slide-in-from-right-5 duration-300
+                        ${t.type === "success"
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300"
+                            : "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300"
+                        }`}
+                >
+                    {t.type === "success"
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        : <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    }
+                    <span>{t.message}</span>
+                    <button
+                        onClick={() => onRemove(t.id)}
+                        className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            ))}
+        </div>
+    )
+}
+
 // ─── Per-Page Custom Dropdown ─────────────────────────────────────────────────
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
@@ -195,7 +228,47 @@ function DocCard({
 }
 
 // ─── KYC Detail Modal ─────────────────────────────────────────────────────────
-function KycDetailModal({ org, onClose }: { org: KycOrg; onClose: () => void }) {
+function KycDetailModal({
+    org,
+    onClose,
+    onUpdateStatus,
+}: {
+    org: KycOrg
+    onClose: () => void
+    onUpdateStatus: (id: number, status: "disetujui" | "ditolak", rejectionReason?: string) => void
+}) {
+    const [showRejectModal, setShowRejectModal] = useState(false)
+    const [selectedReasons, setSelectedReasons] = useState<string[]>([])
+    const [additionalNote, setAdditionalNote] = useState("")
+
+    const REJECTION_REASONS = [
+        "Data Penanggung Jawab Tidak Lengkap",
+        "Surat Kuasa Tidak Ditandatangani",
+        "Kualitas Dokumen Buruk (Blur)",
+        "Indikasi Data Palsu",
+        "NIB Tidak Valid / Kadaluwarsa",
+        "NPWP Tidak Sesuai",
+        "SK Kemenkumham Tidak Ditemukan",
+        "Alamat Tidak Sesuai Akta",
+        "NPSN Tidak Terdaftar di Dapodik",
+        "Akreditasi Tidak Valid",
+        "Izin Operasional Kadaluwarsa",
+        "Bukan Institusi Pendidikan Resmi",
+    ]
+
+    const toggleReason = (reason: string) => {
+        setSelectedReasons(prev =>
+            prev.includes(reason) ? prev.filter(r => r !== reason) : [...prev, reason]
+        )
+    }
+
+    const handleConfirmReject = () => {
+        const fullReason = [...selectedReasons, ...(additionalNote.trim() ? [additionalNote] : [])].join(". ")
+        onUpdateStatus(org.id, "ditolak", fullReason)
+        setShowRejectModal(false)
+        onClose()
+    }
+
     const [docTab, setDocTab] = useState<"umum" | "industri" | "pendidikan">("umum")
 
     const hasPendidikan = org.tipe.includes("PENDIDIKAN") || org.tipe.includes("MADRASAH")
@@ -387,14 +460,86 @@ function KycDetailModal({ org, onClose }: { org: KycOrg; onClose: () => void }) 
                         ID: #{org.id.toString().padStart(3, "0")}
                     </span>
                     <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-5 py-2 border-2 border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-semibold rounded-xl transition-colors">
-                            <XCircle className="w-4 h-4" /> Tolak
-                        </button>
-                        <button className="flex items-center gap-2 px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors">
-                            <CheckCircle2 className="w-4 h-4" /> Setujui
-                        </button>
+                        {org.status !== "ditolak" && (
+                            <button
+                                onClick={() => { setSelectedReasons([]); setAdditionalNote(""); setShowRejectModal(true) }}
+                                className="flex items-center gap-2 px-5 py-2 border-2 border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-semibold rounded-xl transition-colors"
+                            >
+                                <XCircle className="w-4 h-4" /> Tolak
+                            </button>
+                        )}
+                        {org.status !== "disetujui" && (
+                            <button
+                                onClick={() => { onUpdateStatus(org.id, "disetujui"); onClose() }}
+                                className="flex items-center gap-2 px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors"
+                            >
+                                <CheckCircle2 className="w-4 h-4" /> Setujui
+                            </button>
+                        )}
                     </div>
                 </div>
+
+                {/* ── Reject Reason Modal ── */}
+                {showRejectModal && (
+                    <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
+                        {/* Backdrop - NO BLUR */}
+                        <div className="absolute inset-0 bg-black/40" onClick={() => setShowRejectModal(false)} />
+                        
+                        <div className="relative bg-white dark:bg-gray-900 rounded-[28px] shadow-2xl p-8 w-[600px] max-w-full animate-in fade-in zoom-in duration-200">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Tolak Organisasi?</h3>
+                            <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6 font-medium leading-relaxed">
+                                Organisasi akan menerima notifikasi penolakan dan harus memperbaiki data.
+                            </p>
+
+                            <div className="space-y-3 mb-6">
+                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none pl-1">Pilih Alasan (Maks. 3)</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {REJECTION_REASONS.map((reason) => (
+                                        <button
+                                            key={reason}
+                                            onClick={() => toggleReason(reason)}
+                                            disabled={selectedReasons.length >= 3 && !selectedReasons.includes(reason)}
+                                            className={`px-3.5 py-2 rounded-full border text-[11px] font-bold transition-all ${
+                                                selectedReasons.includes(reason)
+                                                    ? "bg-[#FF7070] border-[#FF7070] text-white shadow-md shadow-red-500/10"
+                                                    : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            }`}
+                                        >
+                                            {reason}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 mb-8">
+                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest pl-1 leading-none">Pesan Tambahan</span>
+                                <textarea
+                                    rows={3}
+                                    value={additionalNote}
+                                    onChange={setAdditionalNote ? e => setAdditionalNote(e.target.value) : undefined}
+                                    placeholder="Contoh: Dokumen NIB buram, mohon upload ulang..."
+                                    className="w-full px-4 py-3.5 text-[13px] border border-gray-100 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 transition-all resize-none placeholder:text-gray-400"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 justify-end items-center">
+                                <button
+                                    onClick={() => setShowRejectModal(false)}
+                                    className="px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors border border-gray-100 dark:border-gray-800"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    disabled={selectedReasons.length === 0 && !additionalNote.trim()}
+                                    onClick={handleConfirmReject}
+                                    className="px-8 py-2.5 bg-[#FF7070] hover:bg-[#FF5C5C] disabled:opacity-40 text-white text-sm font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
+                                >
+                                    Konfirmasi Penolakan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
@@ -560,9 +705,38 @@ function KycOrganisasiContent() {
     const [selectedOrg, setSelectedOrg] = useState<KycOrg | null>(null)
     const [showFilter, setShowFilter] = useState(false)
     const [appliedFilter, setAppliedFilter] = useState<FilterState>(EMPTY_FILTER)
+    const [orgs, setOrgs] = useState<KycOrg[]>(DATA)
+
+    // Toast state
+    const [toasts, setToasts] = useState<ToastData[]>([])
+    const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id))
+    const showToast = (message: string, type: "success" | "error") => {
+        const id = Date.now()
+        setToasts(prev => [...prev, { id, message, type }])
+        setTimeout(() => removeToast(id), 3500)
+    }
+
+    const handleUpdateStatus = (id: number, status: "disetujui" | "ditolak", rejectionReason?: string) => {
+        const org = orgs.find(o => o.id === id)
+        setOrgs(prev => prev.map(o =>
+            o.id === id
+                ? {
+                    ...o,
+                    status,
+                    ...(rejectionReason ? { rejectionReason } : {}),
+                }
+                : o
+        ))
+        setSelectedOrg(null)
+        if (status === "disetujui") {
+            showToast(`✓ KYC ${org?.nama ?? "Organisasi"} berhasil disetujui`, "success")
+        } else {
+            showToast(`✗ KYC ${org?.nama ?? "Organisasi"} telah ditolak`, "error")
+        }
+    }
 
     const filteredData = useMemo(() => {
-        let data = DATA
+        let data = orgs
         if (activeTab !== "semua") data = data.filter(d => d.status === activeTab)
         if (search.trim()) data = data.filter(d =>
             d.nama.toLowerCase().includes(search.toLowerCase()) ||
@@ -592,10 +766,10 @@ function KycOrganisasiContent() {
     const paginatedData = filteredData.slice((page - 1) * perPage, page * perPage)
 
     const tabCounts = {
-        menunggu: DATA.filter(d => d.status === "menunggu").length,
-        disetujui: DATA.filter(d => d.status === "disetujui").length,
-        ditolak: DATA.filter(d => d.status === "ditolak").length,
-        semua: DATA.length,
+        menunggu: orgs.filter(d => d.status === "menunggu").length,
+        disetujui: orgs.filter(d => d.status === "disetujui").length,
+        ditolak: orgs.filter(d => d.status === "ditolak").length,
+        semua: orgs.length,
     }
 
     const tabs: { key: typeof activeTab; label: string }[] = [
@@ -607,9 +781,11 @@ function KycOrganisasiContent() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-5">
+            {/* Toast Notifications */}
+            <Toast toasts={toasts} onRemove={removeToast} />
             {/* Detail Modal */}
             {selectedOrg && (
-                <KycDetailModal org={selectedOrg} onClose={() => setSelectedOrg(null)} />
+                <KycDetailModal org={selectedOrg} onClose={() => setSelectedOrg(null)} onUpdateStatus={handleUpdateStatus} />
             )}
 
             {/* Filter Modal */}

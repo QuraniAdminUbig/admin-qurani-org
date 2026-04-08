@@ -361,7 +361,30 @@ function KycMemberDetailModal({
     onUpdateStatus: (id: number, status: "disetujui" | "ditolak", rejectionReason?: string) => void
 }) {
     const [showRejectModal, setShowRejectModal] = useState(false)
-    const [rejectReason, setRejectReason] = useState("")
+    const [selectedReasons, setSelectedReasons] = useState<string[]>([])
+    const [additionalNote, setAdditionalNote] = useState("")
+
+    const REJECTION_REASONS = [
+        "Foto identitas buram atau tidak terbaca.",
+        "Foto selfie tidak sesuai dengan kartu identitas.",
+        "Dokumen identitas sudah kadaluwarsa.",
+        "Nama di profil tidak sesuai dengan dokumen identitas.",
+        "Dokumen yang diunggah bukan KTP/Kartu Pelajar yang valid.",
+        "Nomor identitas tidak terdaftar atau format salah.",
+    ]
+
+    const toggleReason = (reason: string) => {
+        setSelectedReasons(prev =>
+            prev.includes(reason) ? prev.filter(r => r !== reason) : [...prev, reason]
+        )
+    }
+
+    const handleConfirmReject = () => {
+        const fullReason = [...selectedReasons, ...(additionalNote.trim() ? [additionalNote] : [])].join(". ")
+        onUpdateStatus(member.id, "ditolak", fullReason)
+        setShowRejectModal(false)
+        onClose()
+    }
     const statusBadge = STATUS_BADGE[member.status]
     const statusLabel = STATUS_CONFIG[member.status].label.toUpperCase()
 
@@ -553,7 +576,7 @@ function KycMemberDetailModal({
                         </button>
                         {member.status !== "ditolak" && (
                             <button
-                                onClick={() => { setRejectReason(""); setShowRejectModal(true) }}
+                                onClick={() => { setSelectedReasons([]); setAdditionalNote(""); setShowRejectModal(true) }}
                                 className="flex items-center gap-2 px-5 py-2 border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-semibold rounded-xl transition-colors"
                             >
                                 <XCircle className="w-4 h-4" /> Tolak
@@ -573,30 +596,80 @@ function KycMemberDetailModal({
 
             {/* ── Reject Reason Modal ── */}
             {showRejectModal && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 w-[420px] mx-4">
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Tolak Pengajuan</h3>
-                        <p className="text-sm text-gray-500 mb-4">Berikan alasan penolakan untuk <span className="font-semibold text-gray-700 dark:text-gray-300">{member.nama}</span></p>
-                        <textarea
-                            rows={4}
-                            value={rejectReason}
-                            onChange={e => setRejectReason(e.target.value)}
-                            placeholder="Contoh: Foto identitas buram atau tidak terbaca."
-                            className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
-                        />
-                        <div className="flex gap-2 mt-4 justify-end">
+                <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
+                    {/* Backdrop - NO BLUR */}
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowRejectModal(false)} />
+                    
+                    <div className="relative bg-white dark:bg-gray-900 rounded-[28px] shadow-2xl p-8 w-[540px] max-w-full animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-500">
+                                <XCircle className="w-5 h-5" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Tolak Verifikasi?</h3>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 pl-1">Pilih 1-3 alasan penolakan untuk memberitahu user.</p>
+
+                        <div className="space-y-4 mb-6">
+                            <div className="flex items-center justify-between px-1">
+                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">Alasan Penolakan</span>
+                                <span className="text-[10px] font-bold bg-gray-50 dark:bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">{selectedReasons.length}/3</span>
+                            </div>
+                            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                                {REJECTION_REASONS.map((reason) => (
+                                    <label
+                                        key={reason}
+                                        className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all cursor-pointer group ${
+                                            selectedReasons.includes(reason)
+                                                ? "bg-red-50/50 dark:bg-red-900/5 border-red-200 dark:border-red-900/50"
+                                                : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-gray-200"
+                                        }`}
+                                    >
+                                        <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                            selectedReasons.includes(reason)
+                                                ? "bg-red-500 border-red-500"
+                                                : "border-gray-300 dark:border-gray-600 group-hover:border-red-300"
+                                        }`}>
+                                            {selectedReasons.includes(reason) && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={selectedReasons.includes(reason)}
+                                            onChange={() => toggleReason(reason)}
+                                            disabled={selectedReasons.length >= 3 && !selectedReasons.includes(reason)}
+                                        />
+                                        <span className={`text-[13px] font-medium transition-colors ${
+                                            selectedReasons.includes(reason) ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-300"
+                                        }`}>{reason}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 mb-8">
+                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest pl-1 leading-none">Catatan tambahan (opsional)</span>
+                            <textarea
+                                rows={3}
+                                value={additionalNote}
+                                onChange={e => setAdditionalNote(e.target.value)}
+                                placeholder="Catatan tambahan (opsional)..."
+                                className="w-full px-4 py-3.5 text-[13px] border border-gray-100 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 resize-none transition-all placeholder:text-gray-400"
+                            />
+                        </div>
+
+                        <div className="flex gap-3 justify-end items-center mt-2">
                             <button
                                 onClick={() => setShowRejectModal(false)}
-                                className="px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+                                className="px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors border border-gray-100 dark:border-gray-800"
                             >
                                 Batal
                             </button>
                             <button
-                                disabled={!rejectReason.trim()}
-                                onClick={() => { onUpdateStatus(member.id, "ditolak", rejectReason); setShowRejectModal(false); onClose() }}
-                                className="px-5 py-2 text-sm font-semibold bg-red-500 hover:bg-red-600 disabled:opacity-40 text-white rounded-xl transition-colors"
+                                disabled={selectedReasons.length === 0 && !additionalNote.trim()}
+                                onClick={handleConfirmReject}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-[#FF7070] hover:bg-[#FF5C5C] disabled:opacity-40 text-white text-sm font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
                             >
-                                Konfirmasi Tolak
+                                <XCircle className="w-4 h-4" /> Tolak
                             </button>
                         </div>
                     </div>
