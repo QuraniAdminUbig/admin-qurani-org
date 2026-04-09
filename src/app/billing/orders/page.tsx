@@ -529,7 +529,19 @@ const RAHMA_PENDING_ORDER: PipelineOrder = {
 // ─── Main Content ──────────────────────────────────────────────────────────────
 function PesananContent() {
     const router = useRouter()
+    const [searchInput, setSearchInput] = useState("")
     const [search, setSearch] = useState("")
+
+    const handleSearch = () => {
+        setSearch(searchInput)
+        setPage(1)
+    }
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch()
+        }
+    }
     const [dateFilter, setDateFilter] = useState<FilterKey>("this_year")
     const [statusTab, setStatusTab] = useState<"all" | PipelineStatus>("all")
     const [simOrders, setSimOrders] = useState<SimOrder[]>([])
@@ -674,26 +686,44 @@ function PesananContent() {
 
 
 
-                {/* ── Search + Filter + Buttons Row ── */}
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder="Cari member, guru, atau paket..." value={search}
-                            onChange={e => { setSearch(e.target.value); setPage(1) }}
-                            className="w-64 pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all" />
+                {/* ── Action Toolbar ── */}
+                <div className="flex items-center gap-4 mb-6">
+                    {/* Search & Filter Container */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-3 shadow-sm flex items-center gap-3 flex-1 max-w-[calc(100%-180px)]">
+                        <div className="relative group flex-1 max-w-2xl">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Cari member, guru, paket..."
+                                value={searchInput}
+                                onChange={e => setSearchInput(e.target.value)}
+                                onKeyDown={handleKeyPress}
+                                className="w-full pl-11 pr-24 py-2.5 text-sm bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg flex items-center gap-2 text-xs font-bold transition-all cursor-pointer border border-gray-200 dark:border-gray-600 shadow-sm"
+                            >
+                                <Search className="w-3.5 h-3.5" />
+                                Cari
+                            </button>
+                        </div>
+                        <div className="h-8 w-px bg-gray-100 dark:bg-gray-800 mx-1" />
+                        <FilterDropdown value={dateFilter} onChange={k => { setDateFilter(k); setPage(1) }} />
                     </div>
-                    <FilterDropdown value={dateFilter} onChange={k => { setDateFilter(k); setPage(1) }} />
-                    <div className="ml-auto flex items-center gap-2">
+
+                    {/* Simulation Tools Container */}
+                    <div className="flex items-center gap-2.5 ml-auto">
                         {simOrders.length > 0 && (
                             <button onClick={handleResetSim}
-                                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-gray-900 text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap">
-                                <Trash2 className="w-3.5 h-3.5" />
+                                className="flex items-center justify-center w-[46px] h-[46px] rounded-xl border border-red-100 bg-white dark:bg-gray-900 text-red-500 hover:bg-red-50 transition-all cursor-pointer shadow-sm group">
+                                <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
                             </button>
                         )}
                         <SimNotifBell />
                         <button onClick={() => setShowSim(true)}
-                            className="flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 transition-colors font-medium whitespace-nowrap">
-                            <Zap className="w-3.5 h-3.5" />
+                            className="flex items-center justify-center w-[48px] h-[48px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 dark:shadow-none transition-all cursor-pointer group">
+                            <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         </button>
                     </div>
                 </div>
