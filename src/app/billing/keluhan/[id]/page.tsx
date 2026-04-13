@@ -298,7 +298,6 @@ function KeluhanDetailContent() {
 
     const item = DUMMY_KELUHAN.find(k => k.id === id)
 
-    const [adminNote, setAdminNote] = useState("")
     const [toasts, setToasts] = useState<ToastData[]>([])
 
     const removeToast = useCallback((toastId: number) => {
@@ -332,13 +331,6 @@ function KeluhanDetailContent() {
     const statusCfg = STATUS_CONFIG[item.status]
     const Icon = cfg.icon
 
-    const handleSelesaikan = () => {
-        showToast(`✓ Keluhan "${item.subject}" telah diselesaikan`, "success")
-    }
-
-    const handleTolak = () => {
-        showToast(`✗ Keluhan "${item.subject}" ditolak`, "error")
-    }
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-5">
@@ -439,33 +431,6 @@ function KeluhanDetailContent() {
                             </div>
                         </SectionCard>
 
-                        {/* Keputusan admin */}
-                        <SectionCard title="Keputusan admin">
-                            <div className="py-2">
-                                <textarea
-                                    rows={3}
-                                    value={adminNote}
-                                    onChange={e => setAdminNote(e.target.value)}
-                                    placeholder="Tulis alasan keputusan untuk arsip internal..."
-                                    className="w-full px-4 py-3 text-sm border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 resize-none transition-all"
-                                />
-                                <div className="flex gap-3 mt-4">
-                                    <button
-                                        onClick={handleTolak}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 rounded-xl text-sm font-bold transition-all cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                                    >
-                                        Selesai tanpa tindakan
-                                    </button>
-                                    <button
-                                        onClick={handleSelesaikan}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
-                                    >
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        Selesaikan masalah
-                                    </button>
-                                </div>
-                            </div>
-                        </SectionCard>
                     </div>
 
                     {/* ──────── RIGHT COLUMN (2/5) ──────── */}
