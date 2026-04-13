@@ -27,6 +27,7 @@ interface KeluhanItem {
     status: "menunggu" | "selesai"
     trainer: string
     trainerAvatar: string
+    lampiranImg?: string
     // only for pembatalan
     pembatalan?: {
         kategori: string
@@ -57,6 +58,7 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
         status: "menunggu",
         trainer: "Indi Fitriani",
         trainerAvatar: "https://c.superprof.com/i/m/22913978/600/20241221202313/22913978.webp",
+        lampiranImg: "/img/attachment_1.png",
     },
     {
         id: 3,
@@ -81,8 +83,9 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
             kategori: "Kondisi Keluarga",
             ulasan: "Kondisi keluarga saya sedang tidak memungkinkan untuk mengikuti sesi belajar secara rutin dalam waktu dekat ini.",
             resolusi: "Refund Penuh",
-            lampiran: "Tidak ada lampiran",
+            lampiran: "Bukti transfer refund",
         },
+        lampiranImg: "/img/attachment_2.png",
     },
     {
         id: 5,
@@ -100,6 +103,7 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
         status: "menunggu",
         trainer: "Indi Fitriani",
         trainerAvatar: "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+        lampiranImg: "/img/attachment_2.png",
     },
     {
         id: 6,
@@ -124,8 +128,9 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
             kategori: "Ketidaksesuaian Jadwal",
             ulasan: "Penampilan guru mirip dengan tetangga saya sehingga saya merasa kurang nyaman untuk belajar secara efektif.",
             resolusi: "Ganti Guru Baru",
-            lampiran: "Tidak ada lampiran",
+            lampiran: "Saran jadwal alternatif",
         },
+        lampiranImg: "/img/attachment_2.png",
     },
 ]
 
@@ -143,11 +148,11 @@ const TYPE_CONFIG = {
     pembatalan: {
         label: "Pembatalan",
         icon: XCircle,
-        dotCls: "bg-gray-500",
-        badgeCls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-        borderCls: "border-gray-200 dark:border-gray-700",
-        iconBg: "bg-gray-50 dark:bg-gray-800",
-        iconCls: "text-gray-500",
+        dotCls: "bg-red-500",
+        badgeCls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+        borderCls: "border-red-200 dark:border-red-800/50",
+        iconBg: "bg-red-50 dark:bg-red-900/20",
+        iconCls: "text-red-500",
     },
 }
 

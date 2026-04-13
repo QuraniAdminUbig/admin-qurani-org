@@ -39,6 +39,7 @@ interface KeluhanItem {
     harga: number
     sesiTerpakai: number
     totalSesi: number
+    lampiranImg?: string
     // only for pembatalan
     pembatalan?: {
         kategori: string
@@ -79,6 +80,7 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
         harga: 420000,
         sesiTerpakai: 2,
         totalSesi: 5,
+        lampiranImg: "/img/attachment_1.png",
     },
     {
         id: 3,
@@ -113,8 +115,9 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
             kategori: "Kondisi Keluarga",
             ulasan: "Kondisi keluarga saya sedang tidak memungkinkan untuk mengikuti sesi belajar secara rutin dalam waktu dekat ini.",
             resolusi: "Refund Penuh",
-            lampiran: "Tidak ada lampiran",
+            lampiran: "Bukti transfer refund",
         },
+        lampiranImg: "/img/attachment_2.png",
     },
     {
         id: 5,
@@ -149,8 +152,9 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
             kategori: "Penampilan tidak sesuai",
             ulasan: "Penampilan guru mirip dengan tetangga saya sehingga saya merasa kurang nyaman untuk belajar secara efektif.",
             resolusi: "Ganti guru baru",
-            lampiran: "Tidak ada lampiran",
+            lampiran: "Foto profil guru mirip tetangga",
         },
+        lampiranImg: "/img/attachment_1.png",
     },
     {
         id: 6,
@@ -185,8 +189,9 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
             kategori: "Ketidaksesuaian Jadwal",
             ulasan: "Jadwal yang ditawarkan guru tidak sesuai dengan ketersediaan waktu saya, sehingga saya mengajukan pembatalan.",
             resolusi: "Ganti Guru Baru",
-            lampiran: "Tidak ada lampiran",
+            lampiran: "Saran jadwal alternatif",
         },
+        lampiranImg: "/img/attachment_2.png",
     },
 ]
 
@@ -200,7 +205,7 @@ const TYPE_CONFIG = {
     pembatalan: {
         label: "Pembatalan",
         icon: XCircle,
-        badgeCls: "bg-orange-500 text-white",
+        badgeCls: "bg-red-600 text-white",
     },
 }
 
@@ -426,8 +431,25 @@ function KeluhanDetailContent() {
 
                             {/* Lampiran */}
                             <div className="mt-4 pb-1">
-                                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Lampiran</p>
-                                <p className="text-sm text-gray-400 dark:text-gray-500 italic">{item.pembatalan?.lampiran ?? "Tidak ada lampiran"}</p>
+                                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Lampiran</p>
+                                
+                                {item.lampiranImg ? (
+                                    <div className="space-y-3">
+                                        <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm bg-gray-50 dark:bg-gray-800/50">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img 
+                                                src={item.lampiranImg} 
+                                                alt="Lampiran" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        {item.pembatalan?.lampiran && (
+                                            <p className="text-xs text-gray-400 dark:text-gray-500 italic">Keterangan: {item.pembatalan.lampiran}</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 italic">{item.pembatalan?.lampiran ?? "Tidak ada lampiran"}</p>
+                                )}
                             </div>
                         </SectionCard>
 
