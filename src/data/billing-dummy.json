@@ -1,10 +1,10 @@
-{
+﻿{
     "trainerPackages": [
         {
             "id": "tp-3011",
             "trainerId": 301,
             "trainerName": "Hasyim asy'ari, Lc",
-            "trainerAvatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=57",
             "name": "1x Pertemuan",
             "sessions": 1,
             "basePrice": 120000,
@@ -20,7 +20,7 @@
             "id": "tp-3012",
             "trainerId": 301,
             "trainerName": "Hasyim asy'ari, Lc",
-            "trainerAvatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=57",
             "name": "5x Pertemuan",
             "sessions": 5,
             "basePrice": 550000,
@@ -36,7 +36,7 @@
             "id": "tp-3013",
             "trainerId": 301,
             "trainerName": "Hasyim asy'ari, Lc",
-            "trainerAvatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=57",
             "name": "10x Pertemuan",
             "sessions": 10,
             "basePrice": 1000000,
@@ -52,7 +52,7 @@
             "id": "tp-3021",
             "trainerId": 302,
             "trainerName": "Indi Fitriani",
-            "trainerAvatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=47",
             "name": "1x Pertemuan",
             "sessions": 1,
             "basePrice": 80000,
@@ -100,7 +100,7 @@
             "id": "tp-3031",
             "trainerId": 303,
             "trainerName": "Ustadz Iwan",
-            "trainerAvatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=52",
             "name": "1x Pertemuan",
             "sessions": 1,
             "basePrice": 90000,
@@ -116,7 +116,7 @@
             "id": "tp-3032",
             "trainerId": 303,
             "trainerName": "Ustadz Iwan",
-            "trainerAvatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=52",
             "name": "5x Pertemuan",
             "sessions": 5,
             "basePrice": 420000,
@@ -132,7 +132,7 @@
             "id": "tp-3033",
             "trainerId": 303,
             "trainerName": "Ustadz Iwan",
-            "trainerAvatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=52",
             "name": "10x Pertemuan",
             "sessions": 10,
             "basePrice": 800000,
@@ -148,7 +148,7 @@
             "id": "tp-3041",
             "trainerId": 304,
             "trainerName": "Nanda",
-            "trainerAvatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=45",
             "name": "1x Pertemuan",
             "sessions": 1,
             "basePrice": 75000,
@@ -156,7 +156,7 @@
             "totalPrice": 80000,
             "status": "active",
             "category": "Satuan",
-            "description": "Sesi pertama bersama Nanda â€” ramah & sabar untuk pemula.",
+            "description": "Sesi pertama bersama Nanda Ã¢â‚¬â€ ramah & sabar untuk pemula.",
             "totalOrders": 14,
             "totalRevenue": 1120000
         },
@@ -164,7 +164,7 @@
             "id": "tp-3042",
             "trainerId": 304,
             "trainerName": "Nanda",
-            "trainerAvatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=45",
             "name": "4x Pertemuan",
             "sessions": 4,
             "basePrice": 280000,
@@ -180,7 +180,7 @@
             "id": "tp-3051",
             "trainerId": 305,
             "trainerName": "Zain",
-            "trainerAvatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=33",
             "name": "1x Pertemuan",
             "sessions": 1,
             "basePrice": 85000,
@@ -196,7 +196,7 @@
             "id": "tp-3052",
             "trainerId": 305,
             "trainerName": "Zain",
-            "trainerAvatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=33",
             "name": "5x Pertemuan",
             "sessions": 5,
             "basePrice": 400000,
@@ -212,7 +212,7 @@
             "id": "tp-3053",
             "trainerId": 305,
             "trainerName": "Zain",
-            "trainerAvatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+            "trainerAvatar": "https://i.pravatar.cc/150?img=33",
             "name": "10x Pertemuan",
             "sessions": 10,
             "basePrice": 750000,
@@ -873,7 +873,7 @@
                 "id": 302,
                 "name": "Indi fitriani",
                 "email": "indi.f@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+                "avatar": "https://i.pravatar.cc/150?img=47",
                 "rating": 4.9,
                 "totalStudents": 39,
                 "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an",
@@ -888,7 +888,7 @@
                 {
                     "no": 1,
                     "date": "2026-02-17",
-                    "time": "14:00 – 15:00",
+                    "time": "14:00 â€“ 15:00",
                     "status": "scheduled",
                     "notes": "Sesi perkenalan tatap muka"
                 }
@@ -919,7 +919,7 @@
                 "id": 303,
                 "name": "Ustadz Iwan",
                 "email": "iwan.ngaji@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+                "avatar": "https://i.pravatar.cc/150?img=52",
                 "rating": 5,
                 "totalStudents": 39,
                 "specialization": "Baca Tulis Al-Qur'an Dasar",
@@ -935,7 +935,7 @@
                 {
                     "no": 1,
                     "date": "2026-01-05",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": "Tes bacaan awal",
                     "feedback": {
@@ -946,7 +946,7 @@
                 {
                     "no": 2,
                     "date": "2026-01-08",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -957,7 +957,7 @@
                 {
                     "no": 3,
                     "date": "2026-01-12",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -968,7 +968,7 @@
                 {
                     "no": 4,
                     "date": "2026-01-15",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -979,7 +979,7 @@
                 {
                     "no": 5,
                     "date": "2026-01-19",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -990,7 +990,7 @@
                 {
                     "no": 6,
                     "date": "2026-01-22",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -1001,7 +1001,7 @@
                 {
                     "no": 7,
                     "date": "2026-01-26",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -1012,7 +1012,7 @@
                 {
                     "no": 8,
                     "date": "2026-01-29",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -1023,7 +1023,7 @@
                 {
                     "no": 9,
                     "date": "2026-02-02",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": null,
                     "feedback": {
@@ -1034,7 +1034,7 @@
                 {
                     "no": 10,
                     "date": "2026-02-05",
-                    "time": "07:00 – 08:00",
+                    "time": "07:00 â€“ 08:00",
                     "status": "completed",
                     "notes": "Ujian akhir & evaluasi",
                     "feedback": {
@@ -1069,7 +1069,7 @@
                 "id": 301,
                 "name": "Hasyim asy'ari, Lc",
                 "email": "hasyim.lc@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+                "avatar": "https://i.pravatar.cc/150?img=57",
                 "rating": 5,
                 "totalStudents": 45,
                 "specialization": "Lulusan Al-Azhar Kairo-Mesir",
@@ -1085,9 +1085,9 @@
                 {
                     "no": 1,
                     "date": "2026-01-10",
-                    "time": "10:00 – 11:00",
+                    "time": "10:00 â€“ 11:00",
                     "status": "completed",
-                    "notes": "Sesi perkenalan â€” offline di rumah siswa"
+                    "notes": "Sesi perkenalan Ã¢â‚¬â€ offline di rumah siswa"
                 }
             ],
             "payment": {
@@ -1116,7 +1116,7 @@
                 "id": 304,
                 "name": "Nanda",
                 "email": "nanda.q@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/14912671/600/20250903235026/14912671.webp",
+                "avatar": "https://i.pravatar.cc/150?img=45",
                 "rating": 4.9,
                 "totalStudents": 67,
                 "specialization": "Program Tahsin & Tahfidz",
@@ -1131,14 +1131,14 @@
                 {
                     "no": 1,
                     "date": "2025-10-07",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "completed",
                     "notes": "Perkenalan dan tes awal"
                 },
                 {
                     "no": 2,
                     "date": "2025-10-14",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "completed",
                     "notes": "Latihan huruf hijaiyah lanjutan",
                     "feedback": {
@@ -1149,7 +1149,7 @@
                 {
                     "no": 3,
                     "date": "2025-10-21",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "completed",
                     "notes": "Makharijul huruf dan sifatnya",
                     "feedback": {
@@ -1160,14 +1160,14 @@
                 {
                     "no": 4,
                     "date": "2025-10-28",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "ongoing",
                     "notes": "Sesi sedang berlangsung"
                 },
                 {
                     "no": 5,
                     "date": "2025-11-04",
-                    "time": "19:00 – 20:00",
+                    "time": "19:00 â€“ 20:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -1198,7 +1198,7 @@
                 "id": 302,
                 "name": "Indi fitriani",
                 "email": "indi.f@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+                "avatar": "https://i.pravatar.cc/150?img=47",
                 "rating": 4.9,
                 "totalStudents": 39,
                 "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an",
@@ -1287,7 +1287,7 @@
                 "id": 305,
                 "name": "Zain",
                 "email": "zain.n@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/6554409/600/20220528171239/6554409.webp",
+                "avatar": "https://i.pravatar.cc/150?img=33",
                 "rating": 5,
                 "totalStudents": 42,
                 "specialization": "Tahsin & Mahroj Profesional",
@@ -1302,35 +1302,35 @@
                 {
                     "no": 1,
                     "date": "2026-01-20",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2026-01-27",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2026-02-03",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-02-10",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-02-17",
-                    "time": "20:00 – 21:00",
+                    "time": "20:00 â€“ 21:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -1361,7 +1361,7 @@
                 "id": 301,
                 "name": "Hasyim asy'ari, Lc",
                 "email": "hasyim.lc@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
+                "avatar": "https://i.pravatar.cc/150?img=57",
                 "rating": 5,
                 "totalStudents": 45,
                 "specialization": "Lulusan Al-Azhar Kairo-Mesir",
@@ -1377,9 +1377,9 @@
                 {
                     "no": 1,
                     "date": "2026-02-20",
-                    "time": "13:00 – 14:00",
+                    "time": "13:00 â€“ 14:00",
                     "status": "scheduled",
-                    "notes": "Sesi perkenalan â€” offline"
+                    "notes": "Sesi perkenalan Ã¢â‚¬â€ offline"
                 }
             ],
             "payment": {
@@ -1408,7 +1408,7 @@
                 "id": 302,
                 "name": "Indi fitriani",
                 "email": "indi.f@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/26923640/600/20250828080508/26923640.webp",
+                "avatar": "https://i.pravatar.cc/150?img=47",
                 "rating": 4.9,
                 "totalStudents": 39,
                 "specialization": "Tahsinul Qur'an & Tahfidzul Qur'an",
@@ -1423,35 +1423,35 @@
                 {
                     "no": 1,
                     "date": "2026-02-22",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2026-02-24",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2026-02-26",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-02-28",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-03-02",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": "Latihan waqaf dan ibtida",
                     "feedback": {
@@ -1462,7 +1462,7 @@
                 {
                     "no": 6,
                     "date": "2026-03-04",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "completed",
                     "notes": "Mad dan qashr",
                     "feedback": {
@@ -1473,28 +1473,28 @@
                 {
                     "no": 7,
                     "date": "2026-03-06",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "ongoing",
                     "notes": "Sesi sedang berlangsung"
                 },
                 {
                     "no": 8,
                     "date": "2026-03-08",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 9,
                     "date": "2026-03-10",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 },
                 {
                     "no": 10,
                     "date": "2026-03-12",
-                    "time": "08:00 – 09:00",
+                    "time": "08:00 â€“ 09:00",
                     "status": "scheduled",
                     "notes": null
                 }
@@ -1525,7 +1525,7 @@
                 "id": 303,
                 "name": "Ustadz Iwan",
                 "email": "iwan.ngaji@superprof.id",
-                "avatar": "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
+                "avatar": "https://i.pravatar.cc/150?img=52",
                 "rating": 5,
                 "totalStudents": 39,
                 "specialization": "Baca Tulis Al-Qur'an Dasar",
@@ -1541,35 +1541,35 @@
                 {
                     "no": 1,
                     "date": "2025-12-22",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 2,
                     "date": "2025-12-26",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 3,
                     "date": "2025-12-30",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 4,
                     "date": "2026-01-03",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": null
                 },
                 {
                     "no": 5,
                     "date": "2026-01-07",
-                    "time": "09:00 – 10:00",
+                    "time": "09:00 â€“ 10:00",
                     "status": "completed",
                     "notes": "Sesi terakhir & evaluasi akhir"
                 }
@@ -1810,3 +1810,4 @@
         }
     ]
 }
+

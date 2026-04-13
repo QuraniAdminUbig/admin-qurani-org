@@ -1,18 +1,19 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import {
-    MessageSquare, Lightbulb, XCircle, LayoutGrid,
-    Phone, Mail, Calendar, ChevronRight, Search, Filter, GraduationCap
+    MessageSquare, XCircle, LayoutGrid,
+    Calendar, Search, Filter
 } from "lucide-react"
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-type KeluhanType = "semua" | "saran" | "keluhan" | "pembatalan"
+type KeluhanType = "semua" | "keluhan" | "pembatalan"
 
 interface KeluhanItem {
     id: number
-    type: "saran" | "keluhan" | "pembatalan"
+    type: "keluhan" | "pembatalan"
     user: {
         name: string
         email: string
@@ -58,23 +59,6 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
         trainerAvatar: "https://c.superprof.com/i/m/22913978/600/20241221202313/22913978.webp",
     },
     {
-        id: 2,
-        type: "saran",
-        user: {
-            name: "Zulfa Hanum",
-            email: "zulfa.hanum@email.com",
-            phone: "0813-9876-5432",
-            username: "zulfhanum",
-            avatar: "https://ui-avatars.com/api/?name=Zulfa+Hanum&background=6366f1&color=fff",
-        },
-        subject: "Tambahkan fitur rekam sesi",
-        pesan: "Saya menyarankan agar platform Qurani menambahkan fitur perekaman sesi belajar secara otomatis, sehingga saya bisa menonton kembali materi yang sudah disampaikan guru.",
-        date: "2026-04-04T14:15:00.000Z",
-        status: "menunggu",
-        trainer: "Hasyim asy'ari, Lc",
-        trainerAvatar: "https://c.superprof.com/i/m/11946808/600/20251105122731/11946808.webp",
-    },
-    {
         id: 3,
         type: "pembatalan",
         user: {
@@ -99,23 +83,6 @@ const DUMMY_KELUHAN: KeluhanItem[] = [
             resolusi: "Refund Penuh",
             lampiran: "Tidak ada lampiran",
         },
-    },
-    {
-        id: 4,
-        type: "saran",
-        user: {
-            name: "Fauzia Nurrohma",
-            email: "fauzia.nurrohma@email.com",
-            phone: "0813-2233-4455",
-            username: "fauzianurrohma",
-            avatar: "https://ui-avatars.com/api/?name=Fauzia+Nurrohma&background=8b5cf6&color=fff",
-        },
-        subject: "Tampilan jadwal lebih informatif",
-        pesan: "Alangkah lebih baik jika halaman jadwal pertemuan menampilkan zona waktu secara eksplisit, karena saya berada di Tangerang dan guru berada di kota berbeda.",
-        date: "2026-04-02T16:45:00.000Z",
-        status: "selesai",
-        trainer: "Ustadz Iwan",
-        trainerAvatar: "https://c.superprof.com/i/m/11668192/600/20250728190448/11668192.webp",
     },
     {
         id: 5,
@@ -173,15 +140,6 @@ const TYPE_CONFIG = {
         iconBg: "bg-rose-50 dark:bg-rose-900/20",
         iconCls: "text-rose-500",
     },
-    saran: {
-        label: "Saran",
-        icon: Lightbulb,
-        dotCls: "bg-amber-500",
-        badgeCls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-        borderCls: "border-amber-200 dark:border-amber-800/50",
-        iconBg: "bg-amber-50 dark:bg-amber-900/20",
-        iconCls: "text-amber-500",
-    },
     pembatalan: {
         label: "Pembatalan",
         icon: XCircle,
@@ -206,12 +164,16 @@ function formatDate(iso: string) {
 
 // ─── Card Component ───────────────────────────────────────────────────────────
 function KeluhanCard({ item }: { item: KeluhanItem }) {
+    const router = useRouter()
     const cfg = TYPE_CONFIG[item.type]
     const statusCfg = STATUS_CONFIG[item.status]
     const Icon = cfg.icon
 
     return (
-        <div className={`bg-white dark:bg-gray-900 rounded-2xl border shadow-sm overflow-hidden ${cfg.borderCls}`}>
+        <div
+            onClick={() => router.push(`/billing/keluhan/${item.id}`)}
+            className={`bg-white dark:bg-gray-900 rounded-2xl border shadow-sm overflow-hidden ${cfg.borderCls} cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5`}
+        >
             {/* Header */}
             <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
@@ -317,10 +279,6 @@ function KeluhanCard({ item }: { item: KeluhanItem }) {
                         </span>
                     </div>
                 </div>
-                <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap">
-                    <Phone className="w-3.5 h-3.5" />
-                    Hubungi User
-                </button>
             </div>
         </div>
     )
@@ -329,7 +287,6 @@ function KeluhanCard({ item }: { item: KeluhanItem }) {
 // ─── Filter Sidebar ───────────────────────────────────────────────────────────
 const FILTER_ITEMS = [
     { key: "semua", label: "Semua", icon: LayoutGrid },
-    { key: "saran", label: "Saran", icon: Lightbulb },
     { key: "keluhan", label: "Keluhan", icon: MessageSquare },
     { key: "pembatalan", label: "Pembatalan", icon: XCircle },
 ] as const
@@ -359,7 +316,6 @@ export default function KeluhanPage() {
 
     const counts = {
         semua: DUMMY_KELUHAN.length,
-        saran: DUMMY_KELUHAN.filter(i => i.type === "saran").length,
         keluhan: DUMMY_KELUHAN.filter(i => i.type === "keluhan").length,
         pembatalan: DUMMY_KELUHAN.filter(i => i.type === "pembatalan").length,
     }
