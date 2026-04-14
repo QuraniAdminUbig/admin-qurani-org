@@ -300,21 +300,24 @@ export async function fetchTickets(filters?: {
 
     // Handle different response structures
     // API might return: { success, data: { data: [...], totalCount } } or { data: [...], totalCount }
+    // Handle different response structures (MyQurani API patterns)
     let ticketData: ApiTicketListDto[] = [];
     let totalCount = 0;
 
-    if (rawResult.data && Array.isArray(rawResult.data)) {
-      // Direct array: { data: [...] }
-      ticketData = rawResult.data;
-      totalCount = rawResult.totalCount || rawResult.data.length;
-    } else if (rawResult.data && rawResult.data.data && Array.isArray(rawResult.data.data)) {
-      // Nested: { data: { data: [...], totalCount } }
-      ticketData = rawResult.data.data;
-      totalCount = rawResult.data.totalCount || rawResult.data.data.length;
-    } else if (Array.isArray(rawResult)) {
-      // Just array: [...]
-      ticketData = rawResult;
-      totalCount = rawResult.length;
+    const rData = rawResult.data || rawResult;
+    
+    if (Array.isArray(rData)) {
+      ticketData = rData;
+      totalCount = rawResult.totalCount || rData.length;
+    } else if (rData && typeof rData === 'object') {
+      ticketData = rData.items || rData.data || (Array.isArray(rData) ? rData : []);
+      // Search for total count in all common property names
+      totalCount = 
+        rData.totalCount || rData.TotalCount || 
+        rData.total || rData.Total || 
+        rData.count || 
+        rawResult.totalCount || rawResult.TotalCount || 
+        (Array.isArray(ticketData) ? ticketData.length : 0);
     }
 
     console.log('[fetchTickets] Parsed:', ticketData.length, 'tickets, total:', totalCount);

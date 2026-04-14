@@ -121,11 +121,6 @@ const getSidebarData = (
           url: "/billing/wallet",
           icon: Wallet,
         },
-        {
-          title: "Keluhan",
-          url: "/billing/keluhan",
-          icon: MessageSquare,
-        },
       ],
     },
     {

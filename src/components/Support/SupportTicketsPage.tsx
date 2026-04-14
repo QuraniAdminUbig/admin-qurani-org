@@ -307,31 +307,30 @@ export default function SupportTicketsPage() {
     };
   }, [statusFilters, priorityFilters, departmentFilters, searchQuery, currentPage, dateRange, loadTickets]);
 
-  // NOTE: Stats loading DISABLED to reduce API requests (6 calls per load)
-  // Stats will show as 0 - re-enable when a single stats endpoint is available
-  /*
-  // Load stats only once on mount (separate from ticket loading to avoid duplicates)
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const statsResult = await fetchTicketStats();
-        if (statsResult.success && statsResult.data) {
-          setStatusCounts({
-            all: statsResult.data.total,
-            open: statsResult.data.open,
-            in_progress: statsResult.data.in_progress,
-            answered: statsResult.data.answered,
-            on_hold: statsResult.data.on_hold,
-            closed: statsResult.data.closed
-          });
-        }
-      } catch (error) {
-        console.error('[Tickets] Failed to load stats:', error);
+  // Load stats menggunakan server action yang sudah ada (lebih akurat)
+  const loadStats = useCallback(async () => {
+    try {
+      const result = await fetchTicketStats();
+      if (result.success && result.data) {
+        setStatusCounts({
+          all: result.data.total,
+          open: result.data.open,
+          in_progress: result.data.in_progress,
+          answered: result.data.answered,
+          on_hold: result.data.on_hold,
+          closed: result.data.closed
+        });
+        console.log('[Tickets] Stats loaded from server:', result.data);
       }
-    };
+    } catch (e) {
+      console.error('[Tickets] loadStats error:', e);
+    }
+  }, []);
+
+  // Jalankan loadStats sekali saat mount
+  useEffect(() => {
     loadStats();
-  }, []); // Only run once on mount
-  */
+  }, [loadStats]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -531,6 +530,7 @@ export default function SupportTicketsPage() {
       setShowBulkSuccess(true)
       setTimeout(() => setShowBulkSuccess(false), 2000)
       loadTickets()
+      loadStats()
     } catch (error) {
       console.error("Bulk action error:", error)
     }
