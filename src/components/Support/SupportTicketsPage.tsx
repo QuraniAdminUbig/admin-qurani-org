@@ -307,21 +307,49 @@ export default function SupportTicketsPage() {
     };
   }, [statusFilters, priorityFilters, departmentFilters, searchQuery, currentPage, dateRange, loadTickets]);
 
-  // Load stats menggunakan server action yang sudah ada (lebih akurat)
+  // Load stats via client-side API (sama seperti loadTickets agar konsisten)
   const loadStats = useCallback(async () => {
     try {
-      const result = await fetchTicketStats();
-      if (result.success && result.data) {
-        setStatusCounts({
-          all: result.data.total,
-          open: result.data.open,
-          in_progress: result.data.in_progress,
-          answered: result.data.answered,
-          on_hold: result.data.on_hold,
-          closed: result.data.closed
-        });
-        console.log('[Tickets] Stats loaded from server:', result.data);
-      }
+      const { ticketsApi, getStoredAuth } = await import('@/lib/api');
+      const auth = getStoredAuth();
+      if (!auth?.accessToken) return;
+
+      // Helper — ikuti logika persis loadTickets agar parsing konsisten
+      const getTotal = (res: any): number => {
+        if (!res) return 0;
+        const d = res?.data ?? res;
+        // Jika data adalah array, totalCount ada di root (e.g. { data: [...], totalCount: N })
+        if (Array.isArray(d)) return res?.totalCount ?? 0;
+        // Jika data adalah objek (e.g. { data: { items: [...], totalCount: N } })
+        return d?.totalCount ?? res?.totalCount ?? 0;
+      };
+
+      const statusMap: Record<string, number> = {
+        Open: 1, 'In Progress': 2, Answered: 3, 'On Hold': 4, Closed: 5,
+      };
+
+      // Kirim 6 request paralel, pageSize=1 cukup — yang penting totalCount dari API
+      const [resAll, resOpen, resInProgress, resAnswered, resOnHold, resClosed] =
+        await Promise.all([
+          ticketsApi.getTickets({ page: 1, pageSize: 1 }, auth.accessToken),
+          ticketsApi.getTickets({ page: 1, pageSize: 1, status: statusMap['Open'] }, auth.accessToken),
+          ticketsApi.getTickets({ page: 1, pageSize: 1, status: statusMap['In Progress'] }, auth.accessToken),
+          ticketsApi.getTickets({ page: 1, pageSize: 1, status: statusMap['Answered'] }, auth.accessToken),
+          ticketsApi.getTickets({ page: 1, pageSize: 1, status: statusMap['On Hold'] }, auth.accessToken),
+          ticketsApi.getTickets({ page: 1, pageSize: 1, status: statusMap['Closed'] }, auth.accessToken),
+        ]);
+
+      const stats = {
+        all: getTotal(resAll),
+        open: getTotal(resOpen),
+        in_progress: getTotal(resInProgress),
+        answered: getTotal(resAnswered),
+        on_hold: getTotal(resOnHold),
+        closed: getTotal(resClosed),
+      };
+
+      console.log('[Tickets] Stats (client):', stats);
+      setStatusCounts(stats);
     } catch (e) {
       console.error('[Tickets] loadStats error:', e);
     }

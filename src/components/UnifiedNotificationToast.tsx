@@ -57,7 +57,7 @@ export function UnifiedNotificationToast() {
     ) => {
         // Skip if this is admin's own action (admin should not see their own replies)
         if (fromUserId && fromUserId === userIdRef.current) {
-            console.log("🔔 Skipping notification from self:", notificationId)
+            console.log(" Skipping notification from self:", notificationId)
             return
         }
 
@@ -66,7 +66,7 @@ export function UnifiedNotificationToast() {
         const now = Date.now()
         const lastShown = recentToastsRef.current.get(dedupKey)
         if (lastShown && (now - lastShown) < 5000) {
-            console.log(`🔔 Toast ${dedupKey} already shown ${Math.round((now - lastShown) / 1000)}s ago, skipping`)
+            console.log(` Toast ${dedupKey} already shown ${Math.round((now - lastShown) / 1000)}s ago, skipping`)
             return
         }
         recentToastsRef.current.set(dedupKey, now)
@@ -156,18 +156,18 @@ export function UnifiedNotificationToast() {
             actionUrl
         }
 
-        console.log("🔔 Showing toast with actionUrl:", actionUrl, "ticketId:", ticketId, "ticketData:", ticketData)
+        console.log(" Showing toast with actionUrl:", actionUrl, "ticketId:", ticketId, "ticketData:", ticketData)
         setToast(newToast)
     }, [])
 
     useEffect(() => {
         if (loading) {
-            console.log("🔔 UnifiedToast: Auth loading...")
+            console.log(" UnifiedToast: Auth loading...")
             return
         }
 
         if (!isAuthenticated || !userId) {
-            console.log("🔔 UnifiedToast: Not authenticated", { isAuthenticated, userId })
+            console.log("UnifiedToast: Not authenticated", { isAuthenticated, userId })
             return
         }
 
