@@ -45,6 +45,8 @@ import { bulkDeleteTickets } from "@/utils/api/tickets/delete"
 // import { createClient } from "@/utils/supabase/client"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/hooks/use-translation"
+import { formatDistanceToNowStrict } from "date-fns"
+import { id, enUS } from "date-fns/locale"
 
 type StatusType = "Open" | "In Progress" | "Answered" | "On Hold" | "Closed"
 type PriorityType = "Low" | "Medium" | "High"
@@ -175,23 +177,7 @@ export default function SupportTicketsPage() {
             '5': 'SUPPORT',
           };
 
-          // Format date for display (e.g., "21/Dec/2024 06:00")
-          const formatLastReply = (dateStr: string | null): string => {
-            if (!dateStr) return '-';
-            try {
-              const date = new Date(dateStr);
-              if (isNaN(date.getTime())) return '-';
-              const day = date.getDate().toString().padStart(2, '0');
-              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const month = months[date.getMonth()];
-              const year = date.getFullYear();
-              const hours = date.getHours().toString().padStart(2, '0');
-              const mins = date.getMinutes().toString().padStart(2, '0');
-              return `${day}/${month}/${year} ${hours}:${mins}`;
-            } catch {
-              return '-';
-            }
-          };
+
 
           // Helper to convert API response to local format
           const convertTickets = (data: any) => {
@@ -206,7 +192,7 @@ export default function SupportTicketsPage() {
               service: null,
               priority: t.priorityName || 'Medium',
               status: t.statusName || 'Open',
-              last_reply: formatLastReply(t.lastReply),
+              last_reply: t.lastReply || null,
               submitted_date: t.date,
               body: t.message || null,
             }));
@@ -610,12 +596,21 @@ export default function SupportTicketsPage() {
   const formatDate = (dateString: string | null, variant: 'short' | 'long' | 'relative' = 'long') => {
     if (!dateString) return "-"
     try {
-      let dateStr = dateString
-      if (!dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
-        dateStr = dateStr.replace(' ', 'T') + 'Z'
+      // Normalize: replace space separator with T, and append Z if no timezone info
+      let dateStr = dateString.trim()
+      if (dateStr.includes(' ') && !dateStr.includes('T')) {
+        dateStr = dateStr.replace(' ', 'T')
+      }
+      if (!dateStr.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(dateStr)) {
+        dateStr = dateStr + 'Z'
       }
       const date = new Date(dateStr)
       if (Number.isNaN(date.getTime())) return dateString
+
+      if (variant === 'relative') {
+        const localeObj = locale === 'id' ? id : enUS
+        return formatDistanceToNowStrict(date, { addSuffix: true, locale: localeObj })
+      }
 
       const hour = date.getHours().toString().padStart(2, "0")
       const minute = date.getMinutes().toString().padStart(2, "0")
@@ -623,25 +618,13 @@ export default function SupportTicketsPage() {
       const shortDate = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short" }).format(date)
       const longDate = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(date)
 
-      const timeDiff = new Date().getTime() - date.getTime()
-      const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24))
-
-      if (variant === 'relative') {
-        if (daysDiff === 0) return `${t("relative.today", "Today")} - ${timeLabel}`
-        if (daysDiff === 1) return `${t("relative.yesterday", "Yesterday")} - ${timeLabel}`
-        if (daysDiff < 7) {
-          return `${t("relative.days_ago", "{{count}}d ago", { count: daysDiff })} - ${timeLabel}`
-        }
-        return `${longDate} - ${timeLabel}`
-      }
-      if (variant === 'short') {
-        return shortDate
-      }
+      if (variant === 'short') return shortDate
       return `${longDate} - ${timeLabel}`
     } catch {
       return dateString
     }
   }
+
 
   // Pagination Logic
   const totalPages = Math.ceil(totalCount / itemsPerPage)
@@ -1102,14 +1085,13 @@ export default function SupportTicketsPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 hidden xl:table-cell text-xs text-gray-500">
-                            {formatDate(ticket.submitted_date, 'long')}
+                          <td className="px-4 py-3 hidden xl:table-cell text-xs text-gray-500 whitespace-nowrap">
+                            {formatDate(ticket.submitted_date, 'relative')}
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{formatDate(ticket.last_reply, 'long').split(' - ')[0]}</span>
-                              <span className="text-[10px] text-gray-400">{formatDate(ticket.last_reply, 'long').split(' - ')[1] || ""}</span>
-                            </div>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                              {formatDate(ticket.last_reply, 'relative')}
+                            </span>
                           </td>
                           <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
