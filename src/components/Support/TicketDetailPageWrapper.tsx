@@ -287,25 +287,47 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return "-"
     try {
-      let dateStr = dateString
-      if (!dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+
+      // DEBUG
+      console.log('[formatDateTime] INPUT:', JSON.stringify(dateString))
+      console.log('[formatDateTime] hasZ:', dateString.includes('Z'), 'hasPlus:', dateString.includes('+'))
+
+      // Format from datetime-local input: "2026-04-20T08:30" or "2026-04-20T08:30:00"
+      // Parse directly from string — ZERO timezone conversion.
+      const localMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+      if (localMatch && !dateString.includes('Z') && !dateString.includes('+')) {
+        const [, yr, mo, dy, hr, mn] = localMatch
+        const monthName = MONTHS[parseInt(mo, 10) - 1] ?? mo
+        const result = `${dy} ${monthName} ${yr} ${hr}:${mn}`
+        console.log('[formatDateTime] LOCAL PATH → result:', result)
+        return result
+      }
+
+      console.log('[formatDateTime] FALLBACK PATH (new Date)')
+      // API ISO string with timezone (e.g. "2026-04-20T01:30:00Z" or "2025-12-04 03:42:05")
+      let dateStr = dateString.trim()
+      if (dateStr.includes(' ') && !dateStr.includes('T')) {
         dateStr = dateStr.replace(' ', 'T') + 'Z'
       }
       const date = new Date(dateStr)
       if (Number.isNaN(date.getTime())) return dateString
 
       const day = date.getDate().toString().padStart(2, "0")
-      const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
-      const month = months[date.getMonth()]
+      const month = MONTHS[date.getMonth()]
       const year = date.getFullYear()
       const hour = date.getHours().toString().padStart(2, "0")
       const minute = date.getMinutes().toString().padStart(2, "0")
-      // Perfex format is often YYYY-MM-DD HH:mm or similar, but friendly format is better
-      return `${day} ${month} ${year} ${hour}:${minute}`
+      const result = `${day} ${month} ${year} ${hour}:${minute}`
+      console.log('[formatDateTime] FALLBACK result:', result)
+      return result
     } catch {
       return dateString
     }
   }
+
+
+
 
   const isUserMessage = (author: string) => {
     if (!ticket) return false
@@ -391,9 +413,27 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
     showSuccessToast()
   }
 
+  // Pure string parser — NO new Date(), NO timezone conversion.
+  // Converts "2026-04-20T08:34" → "20 Apr 2026 08:34"
+  const formatReminderDateForDisplay = (datetimeLocal: string): string => {
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+    const m = datetimeLocal.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+    if (!m) return datetimeLocal
+    const [, yr, mo, dy, hr, mn] = m
+    const monthName = MONTHS[parseInt(mo, 10) - 1] ?? mo
+    return `${dy} ${monthName} ${yr} ${hr}:${mn}`
+  }
+
   const handleAddReminder = () => {
     if (!newReminder.title.trim() || !newReminder.date) return
-    const reminder: Reminder = { id: Date.now().toString(), ...newReminder }
+    // Store the date as a pre-formatted display string (no timezone conversion ever)
+    const reminder: Reminder = {
+      id: Date.now().toString(),
+      title: newReminder.title,
+      date: formatReminderDateForDisplay(newReminder.date),
+      notifyEmail: newReminder.notifyEmail,
+      staff: newReminder.staff,
+    }
     saveReminders([...reminders, reminder])
     setNewReminder({ title: "", date: "", notifyEmail: false, staff: "" })
     showSuccessToast()
@@ -738,7 +778,19 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
                         <Input type="datetime-local" value={newReminder.date} onChange={e => setNewReminder({ ...newReminder, date: e.target.value })} className="flex-1" />
                         <Input value={newReminder.staff} onChange={e => setNewReminder({ ...newReminder, staff: e.target.value })} placeholder="Staff..." className="flex-1" />
                       </div>
-                      <button onClick={handleAddReminder} className="w-full bg-emerald-600 text-white py-2 rounded-md text-sm font-medium hover:bg-emerald-700">Create Reminder</button>
+                      <button
+                        onClick={() => {
+                          if (!newReminder.title.trim() || !newReminder.date) {
+                            alert('No title or date!')
+                            return
+                          }
+                          alert('DEBUG - raw date value from input:\n"' + newReminder.date + '"\n\nExpected format: 2026-04-20T08:34')
+                          handleAddReminder()
+                        }}
+                        className="w-full bg-emerald-600 text-white py-2 rounded-md text-sm font-medium hover:bg-emerald-700"
+                      >
+                        Create Reminder [DEBUG v2]
+                      </button>
                     </CardContent>
                   </Card>
                   {reminders.map(rem => (
@@ -747,7 +799,7 @@ export default function TicketDetailPageWrapper({ ticketId, backUrl = "/support/
                         <Bell className="w-5 h-5 text-gray-400" />
                         <div>
                           <p className="font-medium text-sm">{rem.title}</p>
-                          <p className="text-xs text-gray-500">{formatDateTime(rem.date)} • {rem.staff}</p>
+                          <p className="text-xs text-gray-500">{rem.date} {rem.staff ? `• ${rem.staff}` : ''}</p>
                         </div>
                       </div>
                       <button onClick={() => handleDeleteReminder(rem.id)}><X className="w-4 h-4 text-gray-400 hover:text-red-500" /></button>

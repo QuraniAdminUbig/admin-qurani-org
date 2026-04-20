@@ -615,9 +615,27 @@ export default function TicketDetailClient({
         showSuccessToast()
     }
 
+    // Pure string parser — NO new Date(), NO timezone conversion.
+    // Converts "2026-04-20T08:34" → "20 Apr 2026 08:34"
+    const formatReminderDateForDisplay = (datetimeLocal: string): string => {
+        const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+        const m = datetimeLocal.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+        if (!m) return datetimeLocal
+        const [, yr, mo, dy, hr, mn] = m
+        const monthName = MONTHS[parseInt(mo, 10) - 1] ?? mo
+        return `${dy} ${monthName} ${yr} ${hr}:${mn}`
+    }
+
     const handleAddReminder = () => {
         if (!newReminder.title.trim() || !newReminder.date) return
-        const reminder: Reminder = { id: Date.now().toString(), ...newReminder }
+        // Store the date as a pre-formatted display string (no timezone conversion ever)
+        const reminder: Reminder = {
+            id: Date.now().toString(),
+            title: newReminder.title,
+            date: formatReminderDateForDisplay(newReminder.date),
+            notifyEmail: newReminder.notifyEmail,
+            staff: newReminder.staff,
+        }
         saveReminders([...reminders, reminder])
         setNewReminder({ title: "", date: "", notifyEmail: false, staff: "" })
         showSuccessToast()
