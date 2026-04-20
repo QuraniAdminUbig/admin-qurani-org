@@ -1085,11 +1085,17 @@ export default function SupportTicketsPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 hidden xl:table-cell text-xs text-gray-500 whitespace-nowrap">
+                          <td
+                            className="px-4 py-3 hidden xl:table-cell text-xs text-gray-500 whitespace-nowrap cursor-help"
+                            title={formatDate(ticket.submitted_date, 'long')}
+                          >
                             {formatDate(ticket.submitted_date, 'relative')}
                           </td>
                           <td className="px-4 py-3 text-right whitespace-nowrap">
-                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                            <span
+                              className="text-sm text-gray-700 dark:text-gray-300 font-medium cursor-help"
+                              title={formatDate(ticket.last_reply, 'long')}
+                            >
                               {formatDate(ticket.last_reply, 'relative')}
                             </span>
                           </td>
